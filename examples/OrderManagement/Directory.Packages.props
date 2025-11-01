@@ -1,0 +1,20 @@
+<Project>
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- MagicCSharp Framework -->
+        <PackageVersion Include="MagicCSharp" Version="0.0.7" />
+        <PackageVersion Include="MagicCSharp.Data" Version="0.0.7" />
+        <PackageVersion Include="MagicCSharp.Events" Version="0.0.7" />
+
+        <!-- Database -->
+        <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0" />
+
+        <!-- ASP.NET Core -->
+        <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
+        <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    </ItemGroup>
+</Project>

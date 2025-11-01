@@ -9,16 +9,18 @@ namespace MagicCSharp.UseCases;
 public static class MagicUseCaseRegistrationExtensions
 {
     /// <summary>
-    ///     Scans the specified assembly for all interfaces that extend IMagicUseCase
+    ///     Scans all loaded assemblies for all interfaces that extend IMagicUseCase
     ///     and automatically registers them with their implementations in the DI container.
     /// </summary>
     /// <param name="services">The service collection to add the use cases to.</param>
-    /// <param name="assembly">The assembly to scan for use cases.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddMagicUseCases(this IServiceCollection services, Assembly assembly)
+    public static IServiceCollection AddMagicUseCases(this IServiceCollection services)
     {
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
         // First, find all interfaces that extend IMagicUseCase (excluding IMagicUseCase itself)
-        var useCaseInterfaces = assembly.GetTypes()
+        var useCaseInterfaces = assemblies
+            .SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.IsInterface)
             .Where(type => typeof(IMagicUseCase).IsAssignableFrom(type))
             .Where(type => type != typeof(IMagicUseCase))
@@ -26,8 +28,9 @@ public static class MagicUseCaseRegistrationExtensions
 
         foreach (var useCaseInterface in useCaseInterfaces)
         {
-            // Find the implementation of this interface
-            var implementationType = assembly.GetTypes()
+            // Find the implementation of this interface across all assemblies
+            var implementationType = assemblies
+                .SelectMany(assembly => assembly.GetTypes())
                 .FirstOrDefault(type => type.IsClass && !type.IsAbstract && useCaseInterface.IsAssignableFrom(type));
 
             if (implementationType != null)

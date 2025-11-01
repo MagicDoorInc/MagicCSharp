@@ -11,7 +11,7 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>MagicCSharp.Data</PackageId>
-    <Version>1.0.0</Version>
+    <Version>0.0.7</Version>
     <Authors>MagicCSharp Contributors</Authors>
     <Company>MagicCSharp</Company>
     <Description>Data access layer components for MagicCSharp. Includes repository patterns, Entity Framework Core base classes, and pagination support for enterprise C# applications.</Description>
@@ -20,12 +20,17 @@
     <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="IdGen" Version="3.0.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
 </Project>

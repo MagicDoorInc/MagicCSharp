@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MagicCSharp"/>
+        <PackageReference Include="MagicCSharp.Data"/>
+        <PackageReference Include="MagicCSharp.Events"/>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../../src/MagicCSharp/MagicCSharp.csproj"/>
+        <ProjectReference Include="../../../src/MagicCSharp.Data/MagicCSharp.Data.csproj"/>
+        <ProjectReference Include="../../../src/MagicCSharp.Events/MagicCSharp.Events.csproj"/>
+    </ItemGroup>
+
+</Project>

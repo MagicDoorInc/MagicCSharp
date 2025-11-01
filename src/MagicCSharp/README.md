@@ -321,7 +321,7 @@ throw new NotFoundKeyException<Product>(productKey);
 
 // Helper methods
 var user = await userRepository.Get(id);
-NotFoundIdException<User>.ThrowIfNull(user, id);
+NotFoundException.ThrowIfNull(user, id);
 ```
 
 ## Related Packages

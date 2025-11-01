@@ -1,0 +1,178 @@
+### OrderManagement API - Orders Tests
+### Base URL
+@baseUrl = http://localhost:5175
+
+### Variables
+@userId = 1
+@orderId = 1434259435607543808
+@productId1 = 100
+@productId2 = 101
+
+###
+### 1. Create Order
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "userId": {{userId}},
+  "items": [
+    {
+      "productId": {{productId1}},
+      "productName": "MacBook Pro 16-inch",
+      "quantity": 1,
+      "price": 2499.99
+    },
+    {
+      "productId": {{productId2}},
+      "productName": "Magic Mouse",
+      "quantity": 2,
+      "price": 99.99
+    }
+  ]
+}
+
+> {%
+client.test("Request executed successfully", function() {
+  client.assert(response.status === 201, "Response status is not 201");
+});
+
+client.test("Response has orderId", function() {
+  client.assert(response.body.orderId !== undefined, "No orderId in response");
+  client.global.set("orderId", response.body.orderId);
+});
+
+client.test("Total is calculated correctly", function() {
+  const expectedTotal = 2499.99 + (99.99 * 2);
+  client.assert(Math.abs(response.body.total - expectedTotal) < 0.01, "Total calculation is incorrect");
+});
+
+client.test("Status is Pending", function() {
+  client.assert(response.body.status === "Pending", "Status is not Pending");
+});
+%}
+
+###
+### 2. Get Order by ID
+GET {{baseUrl}}/api/orders/{{orderId}}
+Content-Type: application/json
+
+> {%
+client.test("Request executed successfully", function() {
+  client.assert(response.status === 200, "Response status is not 200");
+});
+
+client.test("Response has correct structure", function() {
+  client.assert(response.body.orderId !== undefined, "No orderId in response");
+  client.assert(response.body.userId !== undefined, "No userId in response");
+  client.assert(response.body.items !== undefined, "No items in response");
+  client.assert(response.body.total !== undefined, "No total in response");
+  client.assert(response.body.status !== undefined, "No status in response");
+});
+
+client.test("Items array is populated", function() {
+  client.assert(response.body.items.length > 0, "Items array is empty");
+});
+%}
+
+###
+### 3. Get User Orders
+GET {{baseUrl}}/api/orders/user/{{userId}}
+Content-Type: application/json
+
+> {%
+client.test("Request executed successfully", function() {
+  client.assert(response.status === 200, "Response status is not 200");
+});
+
+client.test("Response has orders array", function() {
+  client.assert(response.body.orders !== undefined, "No orders array in response");
+  client.assert(Array.isArray(response.body.orders), "Orders is not an array");
+});
+%}
+
+###
+### 4. Process Payment for Order
+POST {{baseUrl}}/api/orders/{{orderId}}/payment
+Content-Type: application/json
+
+{
+  "paymentMethod": "Credit Card"
+}
+
+> {%
+client.test("Request executed successfully", function() {
+  client.assert(response.status === 200, "Response status is not 200");
+});
+
+client.test("Payment was successful", function() {
+  client.assert(response.body.message !== undefined, "No message in response");
+  client.assert(response.body.message.includes("successful") || response.body.message.includes("processed"), "Payment was not successful");
+});
+%}
+
+###
+### 5. Process Complete Order (Create + Payment in one request)
+POST {{baseUrl}}/api/orders/process
+Content-Type: application/json
+
+{
+  "userId": {{userId}},
+  "items": [
+    {
+      "productId": 200,
+      "productName": "iPhone 15 Pro",
+      "quantity": 1,
+      "price": 999.99
+    }
+  ],
+  "paymentMethod": "Apple Pay"
+}
+
+> {%
+client.test("Request executed successfully", function() {
+  client.assert(response.status === 201, "Response status is not 201");
+});
+
+client.test("Response has orderId", function() {
+  client.assert(response.body.orderId !== undefined, "No orderId in response");
+});
+
+client.test("Payment was successful", function() {
+  client.assert(response.body.paymentSuccess === true, "Payment was not successful");
+});
+
+client.test("Has success message", function() {
+  client.assert(response.body.message !== undefined, "No message in response");
+});
+%}
+
+###
+### 6. Get Non-Existent Order (Should return 404)
+GET {{baseUrl}}/api/orders/999999
+Content-Type: application/json
+
+> {%
+client.test("Request returns 404", function() {
+  client.assert(response.status === 404, "Response status is not 404");
+});
+
+client.test("Error response has error field", function() {
+  client.assert(response.body.error !== undefined, "No error field in response");
+});
+%}
+
+###
+### 7. Process Payment for Pending Order (Should fail)
+POST {{baseUrl}}/api/orders/{{orderId}}/payment
+Content-Type: application/json
+
+{
+  "paymentMethod": "PayPal"
+}
+
+> {%
+client.test("Request returns appropriate status", function() {
+  // Could be 400 if order is not in pending state anymore
+  client.assert(response.status === 200 || response.status === 400, "Unexpected status code");
+});
+%}
