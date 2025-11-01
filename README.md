@@ -231,6 +231,58 @@ builder.Services.RegisterSnowflakeKeyGen(generatorId: 1);
 
 That's it. Clean, testable, production-ready.
 
+## Complete Example
+
+Want to see all the patterns in action? Check out the **OrderManagement** example - a complete, production-ready implementation demonstrating every MagicCSharp pattern.
+
+### What's Included
+
+The [OrderManagement example](examples/OrderManagement/) is a full-featured REST API showcasing:
+
+**Three-Layer Architecture in Practice**
+- Controllers handling HTTP concerns (DTOs, status codes)
+- Use Cases with pure business logic
+- Repository pattern with Entity Framework
+- Clean separation at every layer
+
+**Event-Driven Workflows**
+- Event dispatching from use cases
+- Multiple independent event handlers
+- Event chaining (events triggering events)
+- Async processing without blocking
+
+**Use Case Patterns**
+- Request/Result pattern for clear contracts
+- Use case chaining for complex workflows
+- Automatic DI registration with `[UseCase]`
+- Testable design with constructor injection
+
+**Production Infrastructure**
+- Snowflake ID generation for distributed systems
+- Entity Framework with migrations
+- Swagger documentation
+- Logging and observability
+
+### Try It Yourself
+
+```bash
+cd examples/OrderManagement
+dotnet restore
+dotnet run --project OrderManagement.Api
+
+# Visit https://localhost:5001/swagger
+```
+
+**Example APIs:**
+- `POST /api/orders` - Create an order (triggers events)
+- `POST /api/orders/{id}/payment` - Process payment
+- `POST /api/orders/process` - Create + pay in one request (use case chaining)
+- `GET /api/orders/user/{userId}` - Get user's orders
+
+Watch the logs to see event-driven architecture in action - events flowing through handlers asynchronously!
+
+[📖 Full Example Documentation](examples/OrderManagement/OrderManagement.Api/README.md)
+
 ## The MagicCSharp Ecosystem
 
 ### [MagicCSharp](src/MagicCSharp/) - Core Framework
@@ -278,34 +330,6 @@ Build event-driven systems that work locally or distributed.
 - `MagicCSharp.Events.SQS` - AWS SQS implementation
 
 [📖 Full Documentation](src/MagicCSharp.Events/README.md)
-
-## From Prototype to Production
-
-MagicCSharp is designed to grow with your application:
-
-### Day 1: Local Development
-```csharp
-services.RegisterLocalMagicEvents();
-services.RegisterSnowflakeKeyGen();  // Random generator ID
-```
-Your app runs on a single instance with in-memory events.
-
-### Week 2: First Deployment
-```csharp
-services.RegisterLocalMagicEvents();
-services.RegisterSnowflakeKeyGen(generatorId: 1);  // Fixed ID for this instance
-```
-Still simple, but ready for unique IDs.
-
-### Month 3: Scale to Multiple Instances
-```csharp
-services.RegisterMagicKafkaEvents(kafkaConfig);
-services.RegisterSnowflakeKeyGen(generatorId: GetInstanceId());
-builder.Services.AddSingleton<IDistributedLockProvider>(...);  // Redis locks
-```
-Now you're running distributed with zero code changes to your use cases.
-
-**No refactoring. No rewrites. Just configuration.**
 
 ## Real-World Benefits
 
@@ -371,6 +395,10 @@ This is the framework every C# team deserves.
 
 ## Learn More
 
+**Example Application:**
+- [OrderManagement Example](examples/OrderManagement/OrderManagement.Api/README.md) - Complete working example
+
+**Framework Documentation:**
 - [MagicCSharp Core](src/MagicCSharp/README.md) - Use cases, scheduling, locking
 - [MagicCSharp.Data](src/MagicCSharp.Data/README.md) - Repositories and Snowflake IDs
 - [MagicCSharp.Events](src/MagicCSharp.Events/README.md) - Event-driven architecture
