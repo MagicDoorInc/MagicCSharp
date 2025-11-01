@@ -18,7 +18,7 @@ services.RegisterLocalMagicEvents();
 services.RegisterMagicKafkaEvents(kafkaConfig);
 
 // Your code stays the same
-await eventDispatcher.Dispatch(new OrderCreated { OrderId = 123 });
+eventDispatcher.Dispatch(new OrderCreated { OrderId = 123 });
 ```
 
 ### Clean Architecture That Scales
@@ -77,7 +77,7 @@ public record CreateOrderResult(long OrderId, decimal Total);
 [UseCase]
 public class CreateOrderUseCase(
     IOrderRepository orders,
-    IEventDispatcher events) : ICreateOrderUseCase
+    IEventDispatcher eventDispatcher) : ICreateOrderUseCase
 {
     public async Task<CreateOrderResult> Execute(CreateOrderRequest request)
     {
@@ -85,7 +85,7 @@ public class CreateOrderUseCase(
         var order = await orders.Create(request.UserId, request.ProductIds);
 
         // Events work locally or distributed
-        await events.Dispatch(new OrderCreated { OrderId = order.Id });
+        eventDispatcher.Dispatch(new OrderCreated { OrderId = order.Id });
 
         return new CreateOrderResult(order.Id, order.Total);
     }
@@ -146,14 +146,14 @@ Build complex business processes in minutes, not days.
 [UseCase]
 public class CreateOrderUseCase(
     IOrderRepository orders,
-    IEventDispatcher events) : ICreateOrderUseCase
+    IEventDispatcher eventDispatcher) : ICreateOrderUseCase
 {
     public async Task Execute(CreateOrderRequest request)
     {
         var order = await orders.Create(request.UserId, request.ProductIds);
 
         // Dispatch event - works locally or distributed
-        await events.Dispatch(new OrderCreated
+        eventDispatcher.Dispatch(new OrderCreated
         {
             OrderId = order.Id,
             UserId = order.UserId,
@@ -210,7 +210,7 @@ services.RegisterMagicKafkaEvents(config);    // Production
 services.RegisterMagicSQSEvents(config);      // AWS
 
 // Your code never changes
-await events.Dispatch(new OrderCreated { ... });
+eventDispatcher.Dispatch(new OrderCreated { ... });
 ```
 
 ### Setup
