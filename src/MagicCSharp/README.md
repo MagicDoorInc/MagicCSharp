@@ -88,7 +88,7 @@ public interface ICreateUserUseCase : IUseCase
 }
 
 // Implementation
-[UseCase]
+[MagicUseCase]
 public class CreateUserUseCase(
     IUserRepository userRepository,
     IEmailService emailService) : ICreateUserUseCase
