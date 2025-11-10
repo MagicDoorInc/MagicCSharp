@@ -1,6 +1,6 @@
 using System.Diagnostics;
+using System.Reflection;
 using MagicCSharp.Events.Metrics;
-using MagicCSharp.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -40,30 +40,17 @@ public class AsyncEventDispatcher(
     private async Task ExecuteHandler(MagicEvent magicEvent, object handler)
     {
         var eventType = magicEvent.GetType();
+        var handlerType = handler.GetType();
+
+        var handleMethod = GetHandleMethod(handlerType, eventType);
+        if (handleMethod == null)
+        {
+            logger.LogWarning("Handler {HandlerType} does not have a Handle method, skipping", handlerType.Name);
+            return;
+        }
+
         try
         {
-            var handlerType = handler.GetType();
-
-            var handlerInterface = handlerType.GetInterfaces().FirstOrDefault(i =>
-                i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEventHandler<>));
-
-            if (handlerInterface == null || handlerInterface.GetGenericArguments()[0] != magicEvent.GetType())
-            {
-                logger.LogWarning("Handler {HandlerType} does not implement IEventHandler<{EventType}>",
-                    handlerType.Name, eventType.Name);
-                return;
-            }
-
-            logger.LogTrace("Dispatching event {EventType} to handler {HandlerType}",
-                eventType.Name, handlerType.Name);
-
-            var handleMethod = handlerInterface.GetMethod("Handle");
-            if (handleMethod == null)
-            {
-                logger.LogWarning("Handler {HandlerType} does not have a Handle method, skipping", handlerType.Name);
-                return;
-            }
-
             var stopwatch = Stopwatch.StartNew();
             try
             {
@@ -74,7 +61,7 @@ public class AsyncEventDispatcher(
                 }
                 else
                 {
-                    logger.LogError("Handler {HandlerType} did not return a Task, skipping", handlerType.Name);
+                    logger.LogWarning("Handler {HandlerType} did not return a Task, skipping", handlerType.Name);
                 }
             }
             catch (Exception handlerEx)
@@ -118,5 +105,24 @@ public class AsyncEventDispatcher(
             var priorityProperty = handler.GetType().GetProperty("Priority");
             return priorityProperty != null ? (int)priorityProperty.GetValue(handler)! : int.MaxValue;
         });
+    }
+
+    private static MethodInfo? GetHandleMethod(Type handlerType, Type eventType)
+    {
+        foreach (var method in handlerType.GetMethods())
+        {
+            if (method.Name != "Handle")
+            {
+                continue;
+            }
+
+            var parameters = method.GetParameters();
+            if (parameters.Length == 1 && parameters[0].ParameterType == eventType)
+            {
+                return method;
+            }
+        }
+
+        return null;
     }
 }
