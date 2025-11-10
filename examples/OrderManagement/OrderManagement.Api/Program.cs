@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using MagicCSharp.Data.KeyGen;
 using MagicCSharp.Events;
+using MagicCSharp.Extensions;
 using MagicCSharp.Infrastructure;
 using MagicCSharp.UseCases;
 using Microsoft.OpenApi.Models;
@@ -56,6 +57,9 @@ builder.Services.RegisterSnowflakeKeyGen();
 // MagicCSharp: Register clock abstraction for testable time
 builder.Services.AddSingleton<IClock, DateTimeClock>();
 
+// MagicCSharp: Register RequestId handler for distributed tracing
+builder.Services.AddSingleton<IRequestIdHandler, RequestIdHandler>();
+
 // Register repositories and the database
 builder.Services.AddSQL(builder.Configuration);
 builder.Services.AddSingleton<IOrderRepository, OrderEfRepository>();
@@ -69,6 +73,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// MagicCSharp: Add RequestId middleware early in the pipeline
+// This automatically generates or accepts X-Request-ID headers for distributed tracing
+app.UseRequestId();
+
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
@@ -77,6 +85,7 @@ app.MapControllers();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("Order Management API started");
 logger.LogInformation("Using MagicCSharp with:");
+logger.LogInformation("  - RequestId middleware (X-Request-ID headers)");
 logger.LogInformation("  - Local event dispatcher (in-memory)");
 logger.LogInformation("  - Snowflake ID generation");
 logger.LogInformation("  - Automatic use case registration");

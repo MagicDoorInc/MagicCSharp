@@ -6,7 +6,7 @@ namespace MagicCSharp.Events.Kafka;
 /// <summary>
 /// Adapter for bridging Kafka logging to Microsoft.Extensions.Logging.
 /// </summary>
-internal static class KafkaLoggerAdapter
+public static class KafkaLoggerAdapter
 {
     /// <summary>
     /// Create a log handler for Kafka producer.

@@ -5,7 +5,7 @@ namespace MagicCSharp.Infrastructure;
 /// </summary>
 public class RequestIdHandler : IRequestIdHandler
 {
-    private static readonly AsyncLocal<string?> CurrentRequestId = new();
+    private static readonly AsyncLocal<string?> CurrentRequestId = new AsyncLocal<string?>();
 
     public string GetCurrentRequestId()
     {
@@ -21,16 +21,21 @@ public class RequestIdHandler : IRequestIdHandler
 
     public IDisposable SetRequestId()
     {
-        return SetRequestId(Guid.NewGuid().ToString());
+        return SetRequestId(GenerateRequestId());
     }
 
     public IDisposable SetChildRequestId()
     {
         var currentId = GetCurrentRequestId();
         var childId = string.IsNullOrEmpty(currentId)
-            ? Guid.NewGuid().ToString()
+            ? GenerateRequestId()
             : $"{currentId}-{Guid.NewGuid().ToString()[..8]}";
         return SetRequestId(childId);
+    }
+
+    private static string GenerateRequestId()
+    {
+        return Guid.NewGuid().ToString().Split('-').First();
     }
 
     private class RequestIdScope(string? previousRequestId) : IDisposable

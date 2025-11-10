@@ -8,7 +8,7 @@ namespace MagicCSharp.Events;
 /// </summary>
 public class MagicEventSerializer(IEnumerable<Type> eventTypes) : IEventSerializer
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new()
+    private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions
     {
         Converters =
         {
@@ -63,7 +63,7 @@ public class MagicEventSerializer(IEnumerable<Type> eventTypes) : IEventSerializ
 /// <summary>
 /// JSON converter that handles long values as strings to prevent precision loss in JavaScript.
 /// </summary>
-internal sealed class LongToStringConverter : JsonConverter<long>
+public sealed class LongToStringConverter : JsonConverter<long>
 {
     public override bool CanConvert(Type typeToConvert)
     {

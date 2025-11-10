@@ -292,20 +292,115 @@ new IntervalSchedule(TimeSpan.FromMinutes(5))  // Every 5 minutes
 
 ### 🔍 Request ID Tracking
 
-Track requests across async boundaries and correlated logs.
+Track requests across async boundaries and correlated logs with automatic middleware.
+
+**Setup (recommended):**
 
 ```csharp
-public class MyController(IRequestIdHandler requestIdHandler)
-{
-    public async Task<IActionResult> ProcessRequest()
-    {
-        using (requestIdHandler.SetRequestId())
-        {
-            // Request ID is now available in all nested calls
-            var currentId = requestIdHandler.GetCurrentRequestId();
+// Program.cs
+var builder = WebApplication.CreateBuilder(args);
 
-            await SomeAsyncOperation(); // Request ID flows through
-        }
+// Register RequestIdHandler
+builder.Services.AddSingleton<IRequestIdHandler, RequestIdHandler>();
+
+var app = builder.Build();
+
+// Add RequestId middleware - should be early in the pipeline
+app.UseRequestId();
+
+app.Run();
+```
+
+The middleware automatically:
+- Accepts `X-Request-ID` header from clients (for distributed tracing)
+- Generates an 8-character unique ID if no header is provided
+- Adds the RequestId to response headers for client tracking
+- Makes the RequestId available throughout the entire request lifecycle
+
+**Accessing RequestId:**
+
+```csharp
+public class MyService(IRequestIdHandler requestIdHandler)
+{
+    public async Task ProcessData()
+    {
+        // RequestId is automatically available - set by middleware
+        var currentId = requestIdHandler.GetCurrentRequestId();
+
+        // Use in logging, tracing, etc.
+        _logger.LogInformation("Processing request {RequestId}", currentId);
+
+        await SomeAsyncOperation(); // RequestId flows through all async calls
+    }
+}
+```
+
+**Advanced: Manual RequestId Management:**
+
+For background jobs, event handlers, or child operations:
+
+```csharp
+// Set a specific RequestId (e.g., from event metadata)
+using (requestIdHandler.SetRequestId("abc12345"))
+{
+    await ProcessEvent();
+}
+
+// Generate a new RequestId manually
+using (requestIdHandler.SetRequestId())
+{
+    await BackgroundJob();
+}
+
+// Create child RequestId for sub-operations
+using (requestIdHandler.SetChildRequestId())
+{
+    // Child ID format: {parent}-{8-char-guid}
+    // Example: abc12345-def67890
+    await ProcessSubTask();
+}
+```
+
+**NLog Integration:**
+
+Configure NLog to automatically include RequestId in all logs:
+
+```xml
+<!-- nlog.config -->
+<nlog>
+  <extensions>
+    <add assembly="NLog.Web.AspNetCore"/>
+  </extensions>
+
+  <targets>
+    <target name="jsonfile" xsi:type="File" fileName="logs/app.json">
+      <layout xsi:type="JsonLayout">
+        <attribute name="timestamp" layout="${longdate}" />
+        <attribute name="level" layout="${level:upperCase=true}"/>
+        <attribute name="logger" layout="${logger}"/>
+        <attribute name="message" layout="${message}" />
+        <attribute name="requestId" layout="${aspnet-item:variable=RequestId:whenEmpty=System}"/>
+        <attribute name="exception" layout="${exception:format=toString}"/>
+      </layout>
+    </target>
+  </targets>
+
+  <rules>
+    <logger name="*" minlevel="Info" writeTo="jsonfile" />
+  </rules>
+</nlog>
+```
+
+```csharp
+// In your service, set RequestId in ASP.NET context for NLog
+public class MyService(IRequestIdHandler requestIdHandler, IHttpContextAccessor httpContextAccessor)
+{
+    public void LogWithRequestId()
+    {
+        var requestId = requestIdHandler.GetCurrentRequestId();
+        httpContextAccessor.HttpContext?.Items["RequestId"] = requestId;
+
+        _logger.LogInformation("This log will include the RequestId");
     }
 }
 ```
