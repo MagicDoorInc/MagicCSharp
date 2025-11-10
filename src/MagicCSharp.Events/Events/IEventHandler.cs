@@ -9,7 +9,7 @@ public interface IEventHandler<T> where T : MagicEvent
     /// <summary>
     /// Priority of this event handler. Lower values execute first.
     /// </summary>
-    MagicEventPriority Priority => MagicEventPriority.AddDataNoDependencies;
+    static virtual MagicEventPriority Priority { get; } = MagicEventPriority.AddDataNoDependencies;
 
     /// <summary>
     /// Handle the event.

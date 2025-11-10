@@ -31,15 +31,8 @@ public class OrderDal : BaseDal<Order, OrderEdit>, IDalId
     [Column("completed_at")]
     public DateTimeOffset? CompletedAt { get; set; }
 
-    [Column("created")]
-    public DateTimeOffset Created { get; set; }
-
-    [Column("updated")]
-    public DateTimeOffset Updated { get; set; }
-
     // Navigation property for items (one-to-many)
     public List<OrderItemDal> Items { get; set; } = new List<OrderItemDal>();
-
 
     // 1. Convert DAL → Entity
     public override Order ToEntity()

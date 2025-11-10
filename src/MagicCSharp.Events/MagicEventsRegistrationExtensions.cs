@@ -1,7 +1,5 @@
 using System.Reflection;
-using MagicCSharp.Events.Metrics;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace MagicCSharp.Events;
 
@@ -21,28 +19,63 @@ public static class MagicEventsRegistrationExtensions
         this IServiceCollection services,
         bool useOpenTelemetryMetrics = false)
     {
-        var assembliesToScan = AppDomain.CurrentDomain.GetAssemblies();
+        // Step 1: Collect event types
+        var eventTypes = new List<Type>();
 
-        // Register event serialization
-        var eventTypes = GetEventTypes(assembliesToScan);
-        services.AddSingleton(new EventTypeHolder(eventTypes));
-        services.AddSingleton<IEventSerializer>(new MagicEventSerializer(eventTypes));
+        // Step 2: Collect handlers with priorities and register them to DI
+        var handlersByEventType = new Dictionary<Type, List<(Type HandlerType, MagicEventPriority Priority)>>();
+        var handlerCount = 0;
 
-        // Register metrics handler
-        if (useOpenTelemetryMetrics)
+        // Single pass: process all types once
+        foreach (var type in LoadAllAppDomainTypes())
         {
-            services.AddSingleton<IEventsMetricsHandler, EventsMetricsHandler>();
-        }
-        else
-        {
-            services.AddSingleton<IEventsMetricsHandler, NullEventsMetricsHandler>();
+            // Collect event types
+            if (type.IsSubclassOf(typeof(MagicEvent)))
+            {
+                eventTypes.Add(type);
+            }
+
+            // Process handlers: collect for EventTypeHolder and register to DI
+            var handlerInterfaces = type.GetInterfaces().Where(IsEventHandler).ToList();
+            if (handlerInterfaces.Count == 0)
+            {
+                continue;
+            }
+
+            // Register handler type directly to DI (simpler, and we get instances by type)
+            services.AddTransient(type);
+            handlerCount += handlerInterfaces.Count;
+
+            // Collect handler info for EventTypeHolder (one handler can handle multiple event types)
+            foreach (var interfaceType in handlerInterfaces)
+            {
+                var eventType = interfaceType.GetGenericArguments()[0];
+
+                // Get Priority from static property (no instance needed!)
+                var priorityProperty = type.GetProperty("Priority", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+                var priority = priorityProperty != null ? (MagicEventPriority)priorityProperty.GetValue(null)! : MagicEventPriority.AddDataNoDependencies;
+
+                if (!handlersByEventType.TryGetValue(eventType, out var handlers))
+                {
+                    handlers = [];
+                    handlersByEventType[eventType] = handlers;
+                }
+
+                handlers.Add((type, priority));
+            }
         }
 
-        // Register async event dispatcher
-        services.AddSingleton<IAsyncEventDispatcher, AsyncEventDispatcher>();
+        // Step 3: Sort handlers by priority for each event type
+        var sortedHandlersByEventType = handlersByEventType.ToDictionary(
+            kvp => kvp.Key,
+            kvp => (IReadOnlyList<Type>)kvp.Value.OrderBy(h => h.Priority).Select(h => h.HandlerType).ToList().AsReadOnly()
+        );
 
-        // Register event handlers
-        RegisterEventHandlers(services, assembliesToScan);
+        var readonlyEventTypes = eventTypes.AsReadOnly();
+
+        // Register EventTypeHolder and EventSerializer
+        services.AddSingleton<IEventTypeHolder>(new MagicEventTypeHolder(readonlyEventTypes, sortedHandlersByEventType));
+        services.AddSingleton<IEventSerializer>(new MagicEventSerializer(readonlyEventTypes));
 
         return services;
     }
@@ -52,11 +85,8 @@ public static class MagicEventsRegistrationExtensions
     /// This is perfect for local development, testing, and single-service applications.
     /// </summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="useOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection RegisterLocalMagicEvents(
-        this IServiceCollection services,
-        bool useOpenTelemetryMetrics = false)
+    public static IServiceCollection RegisterLocalMagicEvents(this IServiceCollection services)
     {
         // Register local event dispatcher (wraps async with .Wait())
         services.AddSingleton<IEventDispatcher, LocalEventDispatcher>();
@@ -64,55 +94,21 @@ public static class MagicEventsRegistrationExtensions
         return services;
     }
 
-    private static IEnumerable<Type> GetEventTypes(Assembly[] assemblies)
+    private static bool IsEventHandler(Type type)
     {
-        var eventTypes = assemblies
-            .SelectMany(assembly =>
-            {
-                try
-                {
-                    return assembly.GetTypes();
-                }
-                catch (ReflectionTypeLoadException)
-                {
-                    return Array.Empty<Type>();
-                }
-            })
-            .Where(type => !type.IsAbstract && type.IsSubclassOf(typeof(MagicEvent)))
-            .ToList();
+        if (!type.IsGenericType)
+        {
+            return false;
+        }
 
-        return eventTypes;
+        return type.GetGenericTypeDefinition() == typeof(IEventHandler<>);
     }
 
-    private static void RegisterEventHandlers(IServiceCollection services, Assembly[] assemblies)
+    private static List<Type> LoadAllAppDomainTypes()
     {
-        var handlerCount = 0;
-
-        var types = assemblies
-            .SelectMany(assembly =>
-            {
-                try
-                {
-                    return assembly.GetTypes();
-                }
-                catch (ReflectionTypeLoadException)
-                {
-                    return Array.Empty<Type>();
-                }
-            })
-            .Where(type => !type.IsAbstract && !type.IsInterface);
-
-        foreach (var type in types)
-        {
-            var handlerInterfaces = type.GetInterfaces()
-                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEventHandler<>))
-                .ToList();
-
-            foreach (var interfaceType in handlerInterfaces)
-            {
-                services.AddTransient(interfaceType, type);
-                handlerCount++;
-            }
-        }
+        return AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => !type.IsAbstract)
+            .ToList();
     }
 }

@@ -61,11 +61,6 @@ public abstract class KafkaListenerBase<T>(
                     logger.LogError(e, "Failed to process message");
                 }
             }
-            catch (TaskCanceledException)
-            {
-                // This is ok, happens on shutdown
-                return;
-            }
             catch (OperationCanceledException)
             {
                 // This is ok, happens on shutdown

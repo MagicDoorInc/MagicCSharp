@@ -1,16 +1,22 @@
 namespace MagicCSharp.Events;
 
-/// <summary>
-/// Holds all registered event types for the application.
-/// Used by the serializer to enable polymorphic deserialization.
-/// </summary>
-public class EventTypeHolder(IEnumerable<Type> eventTypes)
+public interface IEventTypeHolder
 {
-    /// <summary>
-    /// Get all registered event types.
-    /// </summary>
-    public IEnumerable<Type> GetEventTypes()
+    IReadOnlyList<Type> GetEventTypes();
+    IReadOnlyList<Type> GetHandlerTypes(Type eventType);
+}
+
+public class MagicEventTypeHolder(
+    IReadOnlyList<Type> eventTypes,
+    Dictionary<Type, IReadOnlyList<Type>> sortedHandlersByEventType) : IEventTypeHolder
+{
+    public IReadOnlyList<Type> GetEventTypes()
     {
         return eventTypes;
+    }
+
+    public IReadOnlyList<Type> GetHandlerTypes(Type eventType)
+    {
+        return sortedHandlersByEventType.TryGetValue(eventType, out var handlers) ? handlers : [];
     }
 }
