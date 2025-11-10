@@ -1,4 +1,9 @@
 <Solution>
+  <Folder Name="/examples/">
+    <Project Path="examples/OrderManagement/OrderManagement.Api/OrderManagement.Api.csproj" />
+    <Project Path="examples/OrderManagement/OrderManagement.Business/OrderManagement.Business.csproj" />
+    <Project Path="examples/OrderManagement/OrderManagement.Data/OrderManagement.Data.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/MagicCSharp/MagicCSharp.csproj" />
     <Project Path="src/MagicCSharp.Data/MagicCSharp.Data.csproj" />

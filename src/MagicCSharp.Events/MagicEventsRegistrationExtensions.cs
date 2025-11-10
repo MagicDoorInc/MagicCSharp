@@ -1,4 +1,5 @@
 using System.Reflection;
+using MagicCSharp.Events.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MagicCSharp.Events;
@@ -76,6 +77,19 @@ public static class MagicEventsRegistrationExtensions
         // Register EventTypeHolder and EventSerializer
         services.AddSingleton<IEventTypeHolder>(new MagicEventTypeHolder(readonlyEventTypes, sortedHandlersByEventType));
         services.AddSingleton<IEventSerializer>(new MagicEventSerializer(readonlyEventTypes));
+
+        // Register async event dispatcher
+        services.AddSingleton<IAsyncEventDispatcher, AsyncEventDispatcher>();
+
+        // Register metrics handler
+        if (useOpenTelemetryMetrics)
+        {
+            services.AddSingleton<IEventsMetricsHandler, EventsMetricsHandler>();
+        }
+        else
+        {
+            services.AddSingleton<IEventsMetricsHandler, NullEventsMetricsHandler>();
+        }
 
         return services;
     }
