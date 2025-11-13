@@ -73,8 +73,14 @@ dotnet add package MagicCSharp.Events.SQS    # Optional
 public record CreateOrderRequest(long UserId, List<long> ProductIds);
 public record CreateOrderResult(long OrderId, decimal Total);
 
-// Just add [UseCase] - automatic DI registration, no configuration needed
-[UseCase]
+// Define interface with IMagicUseCase marker
+public interface ICreateOrderUseCase : IMagicUseCase
+{
+    Task<CreateOrderResult> Execute(CreateOrderRequest request);
+}
+
+// Implementation - [MagicUseCase] attribute is optional (defaults to Scoped)
+// Add attribute only if you need a different lifetime (Singleton, Transient)
 public class CreateOrderUseCase(
     IOrderRepository orders,
     IEventDispatcher eventDispatcher) : ICreateOrderUseCase
@@ -94,7 +100,7 @@ public class CreateOrderUseCase(
 
 **Why Use Cases?**
 
-✅ **Zero boilerplate** - One attribute, automatic registration, that's it
+✅ **Zero boilerplate** - Automatic registration, no configuration needed (attribute optional)
 
 ✅ **Trivial to test** - Constructor injection, no mocks for the framework, just your dependencies
 
@@ -119,7 +125,11 @@ Assert.Equal(expectedOrderId, result.OrderId);
 **Chaining use cases is instant:**
 ```csharp
 // Complex workflows are just composition
-[UseCase]
+public interface IProcessOrderUseCase : IMagicUseCase
+{
+    Task Execute(ProcessOrderRequest request);
+}
+
 public class ProcessOrderUseCase(
     ICreateOrderUseCase createOrder,
     IChargePaymentUseCase chargePayment,
@@ -143,7 +153,6 @@ Build complex business processes in minutes, not days.
 
 **Dispatch events from anywhere:**
 ```csharp
-[UseCase]
 public class CreateOrderUseCase(
     IOrderRepository orders,
     IEventDispatcher eventDispatcher) : ICreateOrderUseCase
@@ -167,8 +176,7 @@ public class CreateOrderUseCase(
 
 **Handle events in separate use cases:**
 ```csharp
-// Handlers are just use cases - automatically registered
-[UseCase]
+// Event handlers are automatically registered - no attribute needed
 public class SendOrderConfirmationHandler(
     IEmailService emails) : IEventHandler<OrderCreated>
 {
@@ -179,7 +187,6 @@ public class SendOrderConfirmationHandler(
     }
 }
 
-[UseCase]
 public class UpdateInventoryHandler(
     IInventoryRepository inventory) : IEventHandler<OrderCreated>
 {
@@ -254,7 +261,7 @@ The [OrderManagement example](examples/OrderManagement/) is a full-featured REST
 **Use Case Patterns**
 - Request/Result pattern for clear contracts
 - Use case chaining for complex workflows
-- Automatic DI registration with `[UseCase]`
+- Automatic DI registration (no attributes required)
 - Testable design with constructor injection
 
 **Production Infrastructure**

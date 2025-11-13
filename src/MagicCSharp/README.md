@@ -81,14 +81,14 @@ public record CreateUserResult
     public bool Success { get; init; }
 }
 
-// Interface
-public interface ICreateUserUseCase : IUseCase
+// Interface with IMagicUseCase marker
+public interface ICreateUserUseCase : IMagicUseCase
 {
     Task<CreateUserResult> Execute(CreateUserRequest request);
 }
 
-// Implementation
-[MagicUseCase]
+// Implementation - [MagicUseCase] attribute is optional (defaults to Scoped)
+// Only add if you need Singleton or Transient lifetime
 public class CreateUserUseCase(
     IUserRepository userRepository,
     IEmailService emailService) : ICreateUserUseCase
@@ -176,8 +176,14 @@ That's it! Your use case is automatically registered and follows clean architect
 The use case pattern helps organize business logic into small, focused classes that are easy to test and maintain.
 
 ```csharp
-// Use cases implement IMagicUseCase
-public class SendWelcomeEmailUseCase(IEmailService emailService) : IMagicUseCase
+// Define interface with IMagicUseCase marker
+public interface ISendWelcomeEmailUseCase : IMagicUseCase
+{
+    Task Execute(string email);
+}
+
+// Implementation - [MagicUseCase] attribute is optional for Scoped (default)
+public class SendWelcomeEmailUseCase(IEmailService emailService) : ISendWelcomeEmailUseCase
 {
     public async Task Execute(string email)
     {
@@ -185,17 +191,26 @@ public class SendWelcomeEmailUseCase(IEmailService emailService) : IMagicUseCase
     }
 }
 
-// Control the lifetime with an attribute
+// Add [MagicUseCase] attribute only when you need non-Scoped lifetime
+public interface ICacheWarmerUseCase : IMagicUseCase
+{
+    Task WarmCache();
+}
+
 [MagicUseCase(ServiceLifetime.Singleton)]
-public class CacheWarmerUseCase : IMagicUseCase
+public class CacheWarmerUseCase : ICacheWarmerUseCase
 {
     // This use case will be registered as a singleton
+    public async Task WarmCache()
+    {
+        // Cache warming logic
+    }
 }
 ```
 
-**Automatic Registration** - All classes implementing `IMagicUseCase` are automatically registered in your DI container.
+**Automatic Registration** - All classes implementing interfaces with `IMagicUseCase` are automatically registered in your DI container.
 
-**Lifetime Control** - Use `[MagicUseCase(ServiceLifetime)]` to control service lifetime (Scoped by default).
+**Lifetime Control** - The `[MagicUseCase]` attribute is optional. When omitted, use cases default to Scoped lifetime. Add `[MagicUseCase(ServiceLifetime.Singleton)]` or `[MagicUseCase(ServiceLifetime.Transient)]` only when you need a different lifetime.
 
 ### ⏰ Testable Time
 

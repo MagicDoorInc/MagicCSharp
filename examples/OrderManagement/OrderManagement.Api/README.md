@@ -31,7 +31,8 @@ This is a complete example demonstrating **MagicCSharp best practices** for buil
 ### ✅ Use Case Pattern
 
 - **Request/Result Pattern** - Clear contracts with `CreateOrderRequest` / `CreateOrderResult`
-- **Automatic Registration** - `[UseCase]` attribute handles DI registration
+- **Automatic Registration** - Implements `IMagicUseCase` interface for automatic DI registration
+- **Optional Attribute** - `[MagicUseCase]` attribute only needed for non-Scoped lifetimes
 - **Use Case Chaining** - `ProcessCompleteOrderUseCase` composes other use cases
 - **Testability** - Pure constructor injection, no framework coupling
 
@@ -159,8 +160,13 @@ public record CreateOrderResult
     public decimal Total { get; init; }
 }
 
-// Use Case - Pure business logic
-[UseCase]
+// Interface with IMagicUseCase marker
+public interface ICreateOrderUseCase : IMagicUseCase
+{
+    Task<CreateOrderResult> Execute(CreateOrderRequest request);
+}
+
+// Use Case - Pure business logic ([MagicUseCase] attribute optional for Scoped)
 public class CreateOrderUseCase(
     IOrderRepository orderRepository,
     IEventDispatcher events,
@@ -176,7 +182,11 @@ public class CreateOrderUseCase(
 ### 2. Use Case Chaining
 
 ```csharp
-[UseCase]
+public interface IProcessCompleteOrderUseCase : IMagicUseCase
+{
+    Task Execute(ProcessCompleteOrderRequest request);
+}
+
 public class ProcessCompleteOrderUseCase(
     ICreateOrderUseCase createOrder,
     IProcessPaymentUseCase processPayment) : IProcessCompleteOrderUseCase
@@ -198,8 +208,7 @@ public class ProcessCompleteOrderUseCase(
 // Use case dispatches event
 await events.Dispatch(new OrderCreated { OrderId = order.Id });
 
-// Handler processes event independently
-[UseCase]
+// Handler processes event independently (automatically registered)
 public class LogOrderCreatedHandler : IEventHandler<OrderCreated>
 {
     public Task Handle(OrderCreated evt)
