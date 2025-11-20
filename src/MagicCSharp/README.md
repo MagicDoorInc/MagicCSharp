@@ -127,8 +127,8 @@ If your use case interfaces are defined in separate C# libraries, you must ensur
 
 ```csharp
 // Force assembly loading by referencing a type from each library
-_ = typeof(MyLibrary1.ISomeUseCase);
-_ = typeof(MyLibrary2.IAnotherUseCase);
+_ = typeof(MyLibrary1.ISomeUseCase).Assembly;
+_ = typeof(MyLibrary2.IAnotherUseCase).Assembly;
 
 // Now register use cases - all assemblies are loaded
 services.AddMagicUseCases();
