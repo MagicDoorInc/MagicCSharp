@@ -7,7 +7,7 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp</PackageId>
-        <Version>0.0.7</Version>
+        <Version>0.0.9</Version>
         <Authors>MagicCSharp Contributors</Authors>
         <Company>MagicCSharp</Company>
         <Description>A foundational library for building Enterprise-grade C# applications. Includes IMagicUseCase pattern for clean architecture, scheduled background services with drift-free execution, distributed locking, exception handling utilities, and testable time abstractions.</Description>

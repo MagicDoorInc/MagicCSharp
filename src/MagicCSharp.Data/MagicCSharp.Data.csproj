@@ -11,7 +11,7 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>MagicCSharp.Data</PackageId>
-    <Version>0.0.7</Version>
+    <Version>0.0.9</Version>
     <Authors>MagicCSharp Contributors</Authors>
     <Company>MagicCSharp</Company>
     <Description>Data access layer components for MagicCSharp. Includes repository patterns, Entity Framework Core base classes, and pagination support for enterprise C# applications.</Description>
