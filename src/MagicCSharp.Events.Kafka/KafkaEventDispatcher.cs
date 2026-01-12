@@ -1,11 +1,11 @@
 using Confluent.Kafka;
-using MagicCSharp.Events;
+using MagicCSharp.Events.Events;
 using Microsoft.Extensions.Logging;
 
 namespace MagicCSharp.Events.Kafka;
 
 /// <summary>
-/// Event dispatcher that sends events to a Kafka topic.
+///     Event dispatcher that sends events to a Kafka topic.
 /// </summary>
 public class KafkaEventDispatcher(
     KafkaEventsBackgroundServiceConfig config,

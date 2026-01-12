@@ -1,18 +1,18 @@
 <Solution>
-  <Folder Name="/examples/">
-    <Project Path="examples/OrderManagement/OrderManagement.Api/OrderManagement.Api.csproj" />
-    <Project Path="examples/OrderManagement/OrderManagement.Business/OrderManagement.Business.csproj" />
-    <Project Path="examples/OrderManagement/OrderManagement.Data/OrderManagement.Data.csproj" />
-  </Folder>
-  <Folder Name="/src/">
-    <Project Path="src/MagicCSharp/MagicCSharp.csproj" />
-    <Project Path="src/MagicCSharp.Data/MagicCSharp.Data.csproj" />
-    <Project Path="src/MagicCSharp.Events/MagicCSharp.Events.csproj" />
-    <Project Path="src/MagicCSharp.Events.Kafka/MagicCSharp.Events.Kafka.csproj" />
-    <Project Path="src/MagicCSharp.Events.SQS/MagicCSharp.Events.SQS.csproj" />
-  </Folder>
-  <Properties Name="Configuration">
-    <Property Name="Debug|AnyCPU" />
-    <Property Name="Release|AnyCPU" />
-  </Properties>
+    <Folder Name="/examples/">
+        <Project Path="examples/OrderManagement/OrderManagement.Api/OrderManagement.Api.csproj"/>
+        <Project Path="examples/OrderManagement/OrderManagement.Business/OrderManagement.Business.csproj"/>
+        <Project Path="examples/OrderManagement/OrderManagement.Data/OrderManagement.Data.csproj"/>
+    </Folder>
+    <Folder Name="/src/">
+        <Project Path="src/MagicCSharp/MagicCSharp.csproj"/>
+        <Project Path="src/MagicCSharp.Data/MagicCSharp.Data.csproj"/>
+        <Project Path="src/MagicCSharp.Events/MagicCSharp.Events.csproj"/>
+        <Project Path="src/MagicCSharp.Events.Kafka/MagicCSharp.Events.Kafka.csproj"/>
+        <Project Path="src/MagicCSharp.Events.SQS/MagicCSharp.Events.SQS.csproj"/>
+    </Folder>
+    <Properties Name="Configuration">
+        <Property Name="Debug|AnyCPU"/>
+        <Property Name="Release|AnyCPU"/>
+    </Properties>
 </Solution>

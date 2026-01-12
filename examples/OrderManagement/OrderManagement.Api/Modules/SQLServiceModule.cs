@@ -1,11 +1,10 @@
-using System.Text.Json;
+using MagicCSharp.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;
 using OrderManagement.Data.EntityFramework;
-using MagicCSharp.Infrastructure;
 
-namespace Revoco.Backend.Modules;
+namespace OrderManagement.Api.Modules;
 
 public static class SQLServiceModule
 {
@@ -18,7 +17,7 @@ public static class SQLServiceModule
         var database = configurationManager.GetValue<string>("DB_NAME") ?? throw new Exception("Missing DB_NAME");
         var user = configurationManager.GetValue<string>("DB_USER") ?? throw new Exception("Missing DB_USER");
         var password = configurationManager.GetValue<string>("DB_PASSWORD") ??
-                   throw new Exception("Missing DB_PASSWORD");
+                       throw new Exception("Missing DB_PASSWORD");
 
         var connectionString = $"Host={host};" + $"Port={port};" + $"Database={database};" + $"Username={user};" +
                                $"Password={password};" + $"Timeout=60;" + // 60 seconds

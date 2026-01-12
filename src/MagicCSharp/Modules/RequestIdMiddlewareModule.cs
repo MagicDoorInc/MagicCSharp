@@ -1,17 +1,17 @@
 using MagicCSharp.Middleware;
 using Microsoft.AspNetCore.Builder;
 
-namespace MagicCSharp.Extensions;
+namespace MagicCSharp.Modules;
 
 /// <summary>
-/// Extension methods for adding RequestId middleware to the application pipeline.
+///     Extension methods for adding RequestId middleware to the application pipeline.
 /// </summary>
 public static class RequestIdMiddlewareModule
 {
     /// <summary>
-    /// Adds the RequestId middleware to the application pipeline.
-    /// This middleware automatically generates or accepts a RequestId for each HTTP request,
-    /// and adds it to response headers for client tracking.
+    ///     Adds the RequestId middleware to the application pipeline.
+    ///     This middleware automatically generates or accepts a RequestId for each HTTP request,
+    ///     and adds it to response headers for client tracking.
     /// </summary>
     /// <param name="app">The application builder.</param>
     /// <returns>The application builder for chaining.</returns>

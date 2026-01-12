@@ -2,16 +2,16 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
-using MagicCSharp.Events.Metrics;
+using MagicCSharp.Events.Events.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace MagicCSharp.Events;
+namespace MagicCSharp.Events.Events;
 
 /// <summary>
-/// Asynchronous event dispatcher that executes all registered handlers for an event.
-/// Handlers are executed in priority order, with lower priority values executing first.
-/// This dispatcher executes handlers immediately without queuing to external systems.
+///     Asynchronous event dispatcher that executes all registered handlers for an event.
+///     Handlers are executed in priority order, with lower priority values executing first.
+///     This dispatcher executes handlers immediately without queuing to external systems.
 /// </summary>
 public class AsyncEventDispatcher(
     IServiceScopeFactory serviceScopeFactory,
@@ -19,6 +19,9 @@ public class AsyncEventDispatcher(
     IEventsMetricsHandler metrics,
     ILogger<AsyncEventDispatcher> logger) : IAsyncEventDispatcher
 {
+    private static readonly ConcurrentDictionary<(Type handler, Type eventType), HandleDelegate?> _handleDelegateCache =
+        [];
+
     public async Task Dispatch(MagicEvent magicEvent)
     {
         var eventType = magicEvent.GetType();
@@ -28,7 +31,9 @@ public class AsyncEventDispatcher(
         using var scope = serviceScopeFactory.CreateScope();
 
         // Set request id for the event
-        using (logger.BeginScope(magicEvent.EventId[^12..])) // Use the last 12 characters of the event id as the request id
+        using (
+            logger.BeginScope(
+                magicEvent.EventId[^12..])) // Use the last 12 characters of the event id as the request id
         {
             // Get pre-sorted handler types from EventTypeHolder (already sorted by Priority)
             var handlerTypes = eventTypeHolder.GetHandlerTypes(eventType);
@@ -42,14 +47,19 @@ public class AsyncEventDispatcher(
         }
     }
 
-    private async Task ExecuteHandler(MagicEvent magicEvent, Type eventType, Type handlerType, IServiceScope scope)
+    private async Task ExecuteHandler(
+        MagicEvent magicEvent,
+        Type eventType,
+        Type handlerType,
+        IServiceScope scope)
     {
         // Get handler instance from ServiceProvider (registered as concrete type)
         var handler = scope.ServiceProvider.GetService(handlerType);
         if (handler == null)
         {
             logger.LogError("Handler {handler} not found in ServiceProvider", handlerType.Name);
-            metrics.EventFailed(eventType, handlerType.Name, new InvalidOperationException($"Handler {handlerType.Name} not found in ServiceProvider"));
+            metrics.EventFailed(eventType, handlerType.Name,
+                new InvalidOperationException($"Handler {handlerType.Name} not found in ServiceProvider"));
             return;
         }
 
@@ -58,7 +68,8 @@ public class AsyncEventDispatcher(
         if (handleDelegate == null)
         {
             logger.LogError("Handler {handler} does not have a Handle method, skipping", handlerType.Name);
-            metrics.EventFailed(eventType, handlerType.Name, new InvalidOperationException($"Handler {handlerType.Name} does not have a Handle method"));
+            metrics.EventFailed(eventType, handlerType.Name,
+                new InvalidOperationException($"Handler {handlerType.Name} does not have a Handle method"));
             return;
         }
 
@@ -70,31 +81,27 @@ public class AsyncEventDispatcher(
             try
             {
                 await handleDelegate(handler, magicEvent);
-            }
-            catch (Exception handlerEx)
+            } catch (Exception handlerEx)
             {
                 metrics.EventFailed(eventType, handlerType.Name, handlerEx);
-                logger.LogError(handlerEx, "An error occurred while executing event handler {handler}", handlerType.Name);
+                logger.LogError(handlerEx, "An error occurred while executing event handler {handler}",
+                    handlerType.Name);
             }
             finally
             {
                 stopwatch.Stop();
-                logger.LogTrace("Event {event} handled by {handler} in {duration}ms", eventType.Name, handlerType.Name, stopwatch.ElapsedMilliseconds);
+                logger.LogTrace("Event {event} handled by {handler} in {duration}ms", eventType.Name, handlerType.Name,
+                    stopwatch.ElapsedMilliseconds);
                 metrics.EventFinished(eventType, handlerType.Name, stopwatch.Elapsed);
             }
         }
     }
 
-    // Delegate type: (handler instance, event instance) -> Task
-    private delegate Task HandleDelegate(object handler, MagicEvent magicEvent);
-
-    private static readonly ConcurrentDictionary<(Type handler, Type eventType), HandleDelegate?> _handleDelegateCache = [];
-
     /// <summary>
-    /// Gets a compiled delegate for the Handle method, eliminating runtime reflection.
-    /// Supports two cases:
-    /// 1) Exact match: Handle(SpecificEvent)
-    /// 2) Base-class parameter: Handle(MagicEvent) can accept SpecificEvent
+    ///     Gets a compiled delegate for the Handle method, eliminating runtime reflection.
+    ///     Supports two cases:
+    ///     1) Exact match: Handle(SpecificEvent)
+    ///     2) Base-class parameter: Handle(MagicEvent) can accept SpecificEvent
     /// </summary>
     private static HandleDelegate? GetHandleDelegate(Type handlerType, Type eventType)
     {
@@ -108,7 +115,8 @@ public class AsyncEventDispatcher(
             if (method == null)
             {
                 // Fallback: iterate instance public/non-public methods and allow base-class parameter matches
-                foreach (var m in handlerType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                foreach (var m in handlerType.GetMethods(BindingFlags.Instance | BindingFlags.Public |
+                                                         BindingFlags.NonPublic))
                 {
                     if (m.Name != "Handle")
                     {
@@ -116,7 +124,8 @@ public class AsyncEventDispatcher(
                     }
 
                     var ps = m.GetParameters();
-                    if (ps.Length == 1 && (ps[0].ParameterType == eventType || ps[0].ParameterType.IsAssignableFrom(eventType)))
+                    if (ps.Length == 1 && (ps[0].ParameterType == eventType ||
+                                           ps[0].ParameterType.IsAssignableFrom(eventType)))
                     {
                         method = m;
                         break;
@@ -153,11 +162,15 @@ public class AsyncEventDispatcher(
             // Ensure return type is Task
             if (method.ReturnType != typeof(Task))
             {
-                throw new InvalidOperationException($"Handler {handlerType.Name}.Handle method must return Task, but returns {method.ReturnType.Name}");
+                throw new InvalidOperationException(
+                    $"Handler {handlerType.Name}.Handle method must return Task, but returns {method.ReturnType.Name}");
             }
 
             // Create lambda and compile to delegate
             return Expression.Lambda<HandleDelegate>(call, handlerParam, eventParam).Compile();
         });
     }
+
+    // Delegate type: (handler instance, event instance) -> Task
+    private delegate Task HandleDelegate(object handler, MagicEvent magicEvent);
 }

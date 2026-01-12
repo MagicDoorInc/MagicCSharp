@@ -1,15 +1,14 @@
 using System.Text.Json.Serialization;
 using MagicCSharp.Data.KeyGen;
 using MagicCSharp.Events;
-using MagicCSharp.Extensions;
 using MagicCSharp.Infrastructure;
-using MagicCSharp.UseCases;
+using MagicCSharp.Modules;
 using Microsoft.OpenApi.Models;
+using OrderManagement.Api.Modules;
 using OrderManagement.Business.UseCases.Orders;
-using OrderManagement.Data.Domain.Entities;
+using OrderManagement.Data.Entities;
 using OrderManagement.Data.EntityFramework.Repositories;
 using OrderManagement.Data.Repositories;
-using Revoco.Backend.Modules;
 
 // We need this to load the other assemblies
 var _1 = typeof(CreateOrderUseCase).Assembly;

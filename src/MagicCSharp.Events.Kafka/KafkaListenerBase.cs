@@ -21,17 +21,17 @@ public abstract class KafkaListenerBase<T>(
     private static readonly TimeSpan UnexpectedErrorRetryDelay = TimeSpan.FromSeconds(30);
 
     /// <summary>
-    /// The Kafka topic to subscribe to.
+    ///     The Kafka topic to subscribe to.
     /// </summary>
     protected abstract string Topic { get; }
 
     /// <summary>
-    /// Parse the message body into the expected type.
+    ///     Parse the message body into the expected type.
     /// </summary>
     protected abstract T? ParseCallback(string body, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Handle the parsed message.
+    ///     Handle the parsed message.
     /// </summary>
     protected abstract Task OnMessage(T message, CancellationToken cancellationToken);
 
@@ -42,7 +42,7 @@ public abstract class KafkaListenerBase<T>(
 
     private async Task Run(CancellationToken stoppingToken)
     {
-         using var scope = serviceScopeFactory.CreateScope();
+        using var scope = serviceScopeFactory.CreateScope();
 
         var requestIdHandler = scope.ServiceProvider.GetRequiredService<IRequestIdHandler>();
 
@@ -73,8 +73,7 @@ public abstract class KafkaListenerBase<T>(
 
                     // Process message
                     await ProcessMessage(consumeResult, consumer, stoppingToken);
-                }
-                catch (Exception ex)
+                } catch (Exception ex)
                 {
                     await HandleException(ex, stoppingToken);
                 }
@@ -88,7 +87,10 @@ public abstract class KafkaListenerBase<T>(
     }
 
     // Message processing
-    private async Task ProcessMessage(ConsumeResult<Null, string> consumeResult, IConsumer<Null, string> consumer, CancellationToken stoppingToken)
+    private async Task ProcessMessage(
+        ConsumeResult<Null, string> consumeResult,
+        IConsumer<Null, string> consumer,
+        CancellationToken stoppingToken)
     {
         var body = consumeResult.Message.Value;
         logger.LogTrace("Received message: {message}", body);
@@ -106,13 +108,13 @@ public abstract class KafkaListenerBase<T>(
 
             logger.LogTrace("Processed message at partition={partition}, offset={offset} in {elapsed} ms",
                 consumeResult.Partition.Value, consumeResult.Offset.Value, stopwatch.ElapsedMilliseconds);
-        }
-        catch (Exception ex)
+        } catch (Exception ex)
         {
             // Processing failed - don't commit offset, message will be retried
             // All exceptions are logged and swallowed to continue processing other messages
             // If stoppingToken is cancelled, next loop iteration will check and exit gracefully
-            logger.LogError(ex, "Failed to process message. Offset will not be committed. Message will be retried based on Kafka configuration: partition={partition}, offset={offset}",
+            logger.LogError(ex,
+                "Failed to process message. Offset will not be committed. Message will be retried based on Kafka configuration: partition={partition}, offset={offset}",
                 consumeResult.Partition.Value, consumeResult.Offset.Value);
         }
     }
@@ -133,29 +135,34 @@ public abstract class KafkaListenerBase<T>(
 
             if (error.IsFatal)
             {
-                logger.LogError(consumeEx, "Fatal Kafka error: code={code}, reason={reason}. Consumer will attempt to continue after {delay} seconds.",
+                logger.LogError(consumeEx,
+                    "Fatal Kafka error: code={code}, reason={reason}. Consumer will attempt to continue after {delay} seconds.",
                     error.Code, error.Reason, FatalErrorRetryDelay.TotalSeconds);
                 await Task.Delay(FatalErrorRetryDelay, stoppingToken);
             }
             else
             {
                 // Non-fatal error (network issues, etc.) - Kafka library will auto-reconnect
-                logger.LogWarning(consumeEx, "Kafka consume error: code={code}, reason={reason}. Kafka client will attempt automatic recovery after {delay} seconds.",
+                logger.LogWarning(consumeEx,
+                    "Kafka consume error: code={code}, reason={reason}. Kafka client will attempt automatic recovery after {delay} seconds.",
                     error.Code, error.Reason, NonFatalErrorRetryDelay.TotalSeconds);
                 await Task.Delay(NonFatalErrorRetryDelay, stoppingToken);
             }
+
             return;
         }
 
         if (ex is KafkaException kafkaEx)
         {
-            logger.LogError(kafkaEx, "Kafka exception. Will attempt to continue after {delay} seconds.", FatalErrorRetryDelay.TotalSeconds);
+            logger.LogError(kafkaEx, "Kafka exception. Will attempt to continue after {delay} seconds.",
+                FatalErrorRetryDelay.TotalSeconds);
             await Task.Delay(FatalErrorRetryDelay, stoppingToken);
             return;
         }
 
         // Unexpected error
-        logger.LogError(ex, "Unexpected error in Kafka consumer loop. Will attempt to continue after {delay} seconds.", UnexpectedErrorRetryDelay.TotalSeconds);
+        logger.LogError(ex, "Unexpected error in Kafka consumer loop. Will attempt to continue after {delay} seconds.",
+            UnexpectedErrorRetryDelay.TotalSeconds);
         await Task.Delay(UnexpectedErrorRetryDelay, stoppingToken);
     }
 
@@ -171,8 +178,7 @@ public abstract class KafkaListenerBase<T>(
         {
             consumer.Close();
             consumer.Dispose();
-        }
-        catch (Exception ex)
+        } catch (Exception ex)
         {
             logger.LogError(ex, "Error closing Kafka consumer during shutdown");
         }

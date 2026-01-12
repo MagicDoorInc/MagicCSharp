@@ -1,38 +1,38 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
 
-    <!-- NuGet Package Properties -->
-    <PackageId>MagicCSharp.Events</PackageId>
-    <Version>0.0.9</Version>
-    <Authors>MagicCSharp</Authors>
-    <Company>MagicCSharp</Company>
-    <Description>Event dispatching and handling infrastructure for MagicCSharp applications</Description>
-    <PackageTags>csharp;events;event-driven;dispatcher</PackageTags>
-    <RepositoryUrl>https://github.com/yourusername/magiccsharp</RepositoryUrl>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-  </PropertyGroup>
+        <!-- NuGet Package Properties -->
+        <PackageId>MagicCSharp.Events</PackageId>
+        <Version>0.0.11</Version>
+        <Authors>MagicCSharp</Authors>
+        <Company>MagicCSharp</Company>
+        <Description>Event dispatching and handling infrastructure for MagicCSharp applications</Description>
+        <PackageTags>csharp;events;event-driven;dispatcher</PackageTags>
+        <RepositoryUrl>https://github.com/yourusername/magiccsharp</RepositoryUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="../MagicCSharp/MagicCSharp.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="../MagicCSharp/MagicCSharp.csproj"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
-    <PackageReference Include="System.Text.Json" Version="9.0.0" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.0" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0"/>
+        <PackageReference Include="System.Text.Json" Version="9.0.0"/>
+        <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.0"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\"/>
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
 
 </Project>

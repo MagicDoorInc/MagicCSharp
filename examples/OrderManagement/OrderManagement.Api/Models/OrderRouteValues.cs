@@ -1,7 +1,7 @@
 namespace OrderManagement.Api.Models;
 
 /// <summary>
-/// Route values for redirecting to order endpoints
+///     Route values for redirecting to order endpoints
 /// </summary>
 public class OrderRouteValues
 {

@@ -1,7 +1,7 @@
-using MagicCSharp.Events;
+using MagicCSharp.Events.Events;
 using MagicCSharp.UseCases;
 using Microsoft.Extensions.Logging;
-using OrderManagement.Data.Domain.Events;
+using OrderManagement.Data.Events;
 
 namespace OrderManagement.Business.UseCases.EventHandlers;
 

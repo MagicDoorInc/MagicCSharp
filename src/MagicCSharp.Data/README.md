@@ -2,7 +2,8 @@
 
 **Type-safe repository pattern with Entity Framework Core**
 
-Stop writing repetitive data access code. MagicCSharp.Data provides generic repository base classes with built-in pagination, automatic timestamp tracking, and customizable hooks for your business logic.
+Stop writing repetitive data access code. MagicCSharp.Data provides generic repository base classes with built-in
+pagination, automatic timestamp tracking, and customizable hooks for your business logic.
 
 ## Why MagicCSharp.Data?
 
@@ -62,6 +63,7 @@ public record Product : ProductEdit, IMagicEntity, IIdEntity
 ```
 
 **Why this pattern?**
+
 - Edit has only the properties that can be changed
 - Entity adds Id and timestamps that are set by the system
 - Prevents accidental modification of Id or timestamps in business logic
@@ -135,6 +137,7 @@ public class ProductDal : IDalTransform<Product, ProductEdit>, IDalId, IDal
 ```
 
 **DAL Rules:**
+
 - ✅ Use `[Table("snake_case")]` for table names
 - ✅ Use `[Column("snake_case")]` for column names
 - ✅ Use `[Index(nameof(Property))]` on foreign keys and queried fields
@@ -214,6 +217,7 @@ public class ProductRepository(
 ```
 
 **Repository Rules:**
+
 - ✅ Always inject `IKeyGenService` for ID generation
 - ✅ Use `keyGenService.GetId()` in `CreateDal()` - generates Snowflake IDs
 - ✅ Use filter extension methods for consistency
@@ -250,7 +254,8 @@ public class ProductService(ProductRepository repository)
 
 ## Query Strategy: Always Use Get() with Filters
 
-**CRITICAL: 99% of queries should use the `Get(filter)` method. Only create custom query methods when absolutely necessary.**
+**CRITICAL: 99% of queries should use the `Get(filter)` method. Only create custom query methods when absolutely
+necessary.**
 
 ### ✅ Correct Pattern (Use This)
 
@@ -309,12 +314,14 @@ public async Task<List<Product>> GetExpensiveProducts()
 ### When to Create Custom Methods
 
 Only create custom query methods when:
+
 1. Query requires complex joins across multiple tables
 2. Query uses advanced SQL features (window functions, CTEs, etc.)
 3. Query has complex aggregations or grouping
 4. Performance requires raw SQL or stored procedure
 
 **Example of legitimate custom method:**
+
 ```csharp
 // ✅ Acceptable - Complex query with aggregation
 public async Task<Dictionary<long, decimal>> GetAveragePriceByCategory()
@@ -333,13 +340,13 @@ public async Task<Dictionary<long, decimal>> GetAveragePriceByCategory()
 
 MagicCSharp.Data provides extension methods for consistent, safe filtering:
 
-| Extension | Use Case | Example |
-|-----------|----------|---------|
-| `ApplyListFilter(list, selector)` | Filter by list of values (handles null/empty) | `query.ApplyListFilter(filter.Ids, x => x.Id)` |
+| Extension                                                    | Use Case                                               | Example                                                                                          |
+|--------------------------------------------------------------|--------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| `ApplyListFilter(list, selector)`                            | Filter by list of values (handles null/empty)          | `query.ApplyListFilter(filter.Ids, x => x.Id)`                                                   |
 | `ApplyStringNullableValueFilter(value, selector, operation)` | String filtering (Equals/Contains/StartsWith/EndsWith) | `query.ApplyStringNullableValueFilter(filter.Name, x => x.Name, StringFilterOperation.Contains)` |
-| `ApplyComparableRangeFilter(range, selector)` | Date/number ranges with inclusive/exclusive bounds | `query.ApplyComparableRangeFilter(filter.PriceRange, x => x.Price)` |
-| `ApplyNullableValueFilter(value, selector)` | Filter nullable primitives | `query.ApplyNullableValueFilter(filter.IsActive, x => x.IsActive)` |
-| `ApplyNavigationNullableFilter(list, nav, selector)` | Filter by related entities | `query.ApplyNavigationNullableFilter(filter.TagIds, x => x.Tags, t => t.Id)` |
+| `ApplyComparableRangeFilter(range, selector)`                | Date/number ranges with inclusive/exclusive bounds     | `query.ApplyComparableRangeFilter(filter.PriceRange, x => x.Price)`                              |
+| `ApplyNullableValueFilter(value, selector)`                  | Filter nullable primitives                             | `query.ApplyNullableValueFilter(filter.IsActive, x => x.IsActive)`                               |
+| `ApplyNavigationNullableFilter(list, nav, selector)`         | Filter by related entities                             | `query.ApplyNavigationNullableFilter(filter.TagIds, x => x.Tags, t => t.Id)`                     |
 
 **Example using all extensions:**
 
@@ -440,6 +447,7 @@ foreach (var product in result.Items)
 ```
 
 **PaginationRequest** validates page numbers and page sizes automatically:
+
 - Minimum page: 1
 - Minimum page size: 1
 
@@ -589,6 +597,7 @@ public class ProductRepository(
 ```
 
 **Sub-Entity Rules:**
+
 - ✅ Handle sub-entities in `AfterDalCreatedHook` (for create)
 - ✅ Handle sub-entities in `AfterDalApplyHook` (for update)
 - ✅ Use `keyGenService.GetId()` for sub-entity IDs
@@ -656,6 +665,7 @@ protected override IQueryable<ProductDal> ApplyFilter(
 The DAL (Data Access Layer) pattern separates database entities from domain entities:
 
 **Benefits:**
+
 - Database schema changes don't affect your domain
 - Can transform data on read/write
 - Keeps EF Core concerns out of your domain layer
@@ -1007,6 +1017,7 @@ services.RegisterSnowflakeKeyGen(generatorId: 2);  // Server 2
 ### ID Structure
 
 Snowflake IDs are 64-bit integers composed of:
+
 - **41 bits** - Timestamp in milliseconds (69 years of IDs)
 - **10 bits** - Generator ID (1024 parallel generators)
 - **12 bits** - Sequence number (4096 IDs per millisecond)

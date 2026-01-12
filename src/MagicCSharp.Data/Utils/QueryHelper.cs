@@ -3,12 +3,12 @@ using MagicCSharp.Data.Models;
 namespace MagicCSharp.Data.Utils;
 
 /// <summary>
-/// Helper methods for working with IQueryable data.
+///     Helper methods for working with IQueryable data.
 /// </summary>
 public static class QueryHelper
 {
     /// <summary>
-    /// Apply pagination to a query.
+    ///     Apply pagination to a query.
     /// </summary>
     /// <typeparam name="TDal">The DAL type.</typeparam>
     /// <param name="query">The query to paginate.</param>

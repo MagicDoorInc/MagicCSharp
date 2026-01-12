@@ -1,6 +1,6 @@
-using MagicCSharp.Events;
+using MagicCSharp.Events.Events;
 
-namespace OrderManagement.Data.Domain.Events;
+namespace OrderManagement.Data.Events;
 
 public record OrderCreated : MagicEvent
 {

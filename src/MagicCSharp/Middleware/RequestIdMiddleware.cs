@@ -4,15 +4,15 @@ using Microsoft.AspNetCore.Http;
 namespace MagicCSharp.Middleware;
 
 /// <summary>
-/// Middleware that automatically sets a RequestId for each HTTP request.
-/// Accepts X-Request-ID header from clients, or generates a new ID if not provided.
-/// Adds the RequestId to response headers for client tracking.
+///     Middleware that automatically sets a RequestId for each HTTP request.
+///     Accepts X-Request-ID header from clients, or generates a new ID if not provided.
+///     Adds the RequestId to response headers for client tracking.
 /// </summary>
 public class RequestIdMiddleware
 {
+    private const string RequestIdHeaderName = "X-Request-ID";
     private readonly RequestDelegate _next;
     private readonly IRequestIdHandler _requestIdHandler;
-    private const string RequestIdHeaderName = "X-Request-ID";
 
     public RequestIdMiddleware(RequestDelegate next, IRequestIdHandler requestIdHandler)
     {
@@ -40,6 +40,7 @@ public class RequestIdMiddleware
                 {
                     context.Response.Headers[RequestIdHeaderName] = requestId;
                 }
+
                 return Task.CompletedTask;
             });
 

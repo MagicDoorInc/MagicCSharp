@@ -5,7 +5,7 @@ using MagicCSharp.Infrastructure;
 using MagicCSharp.Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using OrderManagement.Data.Domain.Entities;
+using OrderManagement.Data.Entities;
 using OrderManagement.Data.EntityFramework.DALs;
 using OrderManagement.Data.Repositories;
 

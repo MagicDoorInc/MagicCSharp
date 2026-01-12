@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using MagicCSharp.Data.Dals;
 using Microsoft.EntityFrameworkCore;
-using OrderManagement.Data.Domain.Entities;
+using OrderManagement.Data.Entities;
 
 namespace OrderManagement.Data.EntityFramework.DALs;
 

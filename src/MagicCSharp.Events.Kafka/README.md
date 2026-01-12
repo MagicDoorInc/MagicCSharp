@@ -2,7 +2,8 @@
 
 **Kafka event dispatching for distributed systems**
 
-Process events across multiple services with guaranteed delivery, fault tolerance, and automatic producer/consumer setup. MagicCSharp.Events.Kafka handles all the Kafka complexity so you can focus on your business logic.
+Process events across multiple services with guaranteed delivery, fault tolerance, and automatic producer/consumer
+setup. MagicCSharp.Events.Kafka handles all the Kafka complexity so you can focus on your business logic.
 
 ## Why MagicCSharp.Events.Kafka?
 
@@ -102,11 +103,13 @@ public class SendConfirmationHandler(IEmailService emailService)
 ```
 
 **Producer (IEventDispatcher):**
+
 1. Serializes the event with type information
 2. Sends to Kafka topic asynchronously
 3. Returns immediately (fire-and-forget)
 
 **Consumer (Background Service):**
+
 1. Polls Kafka for new messages
 2. Deserializes events
 3. Dispatches to `IAsyncEventDispatcher` (local async dispatcher)
@@ -128,6 +131,7 @@ services.RegisterMagicKafkaEvents(new KafkaMagicEventConfiguration(
 ```
 
 **What gets configured:**
+
 - ✅ Kafka producer with connection pooling
 - ✅ Kafka consumer with consumer group
 - ✅ Background service for consuming
@@ -156,6 +160,7 @@ catch (Exception ex)
 ```
 
 **Benefits:**
+
 - No data loss if processing fails
 - Failed messages are automatically retried
 - At-least-once delivery guarantee
@@ -172,6 +177,7 @@ Kafka logs automatically flow through `ILogger`:
 ```
 
 **Log Levels:**
+
 - `Critical` - Emergency/Alert level issues
 - `Error` - Kafka errors
 - `Warning` - Connection issues, temporary failures
@@ -182,11 +188,13 @@ Kafka logs automatically flow through `ILogger`:
 ### ⚡ High Performance
 
 **Producer:**
+
 - Async non-blocking sends
 - Connection pooling
 - Automatic batching
 
 **Consumer:**
+
 - Long polling for efficiency
 - Parallel processing (scale with consumer group)
 - Manual offset management
@@ -226,6 +234,7 @@ services.RegisterMagicKafkaEvents(new KafkaMagicEventConfiguration(
 The consumer handles errors gracefully:
 
 **Parsing Errors:**
+
 ```csharp
 // Unknown event type - message is skipped and committed
 var event = DeserializeMagicEvent(json);
@@ -238,6 +247,7 @@ if (event == null)
 ```
 
 **Processing Errors:**
+
 ```csharp
 // Handler throws exception - message is NOT committed
 try
@@ -253,6 +263,7 @@ catch (Exception ex)
 ```
 
 **Connection Errors:**
+
 ```csharp
 try
 {

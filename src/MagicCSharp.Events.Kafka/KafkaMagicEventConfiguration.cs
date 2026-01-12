@@ -1,7 +1,7 @@
 namespace MagicCSharp.Events.Kafka;
 
 /// <summary>
-/// Configuration for Kafka event dispatching and consuming.
+///     Configuration for Kafka event dispatching and consuming.
 /// </summary>
 /// <param name="BootstrapServers">Kafka bootstrap servers (comma-separated list of host:port).</param>
 /// <param name="GroupId">Kafka consumer group ID.</param>

@@ -2,7 +2,9 @@
 
 **Enterprise-grade infrastructure for clean, maintainable C# applications**
 
-MagicCSharp provides the foundational building blocks for building scalable, maintainable, and testable enterprise applications using clean architecture principles. Stop writing boilerplate infrastructure code and focus on your business logic.
+MagicCSharp provides the foundational building blocks for building scalable, maintainable, and testable enterprise
+applications using clean architecture principles. Stop writing boilerplate infrastructure code and focus on your
+business logic.
 
 ## Why MagicCSharp?
 
@@ -30,11 +32,11 @@ dotnet add package MagicCSharp
 
 MagicCSharp enforces clean separation of concerns with a three-layer architecture:
 
-| Layer | Responsibility | HTTP Concerns | Business Logic | Technical Implementation |
-|-------|---------------|---------------|----------------|-------------------------|
-| **Controllers** | API routing & DTOs | ✅ Yes | ❌ No | ❌ No |
-| **Use Cases** | Business workflows | ❌ No | ✅ Yes | ❌ No |
-| **Services** | External APIs & protocols | ❌ No | ❌ No | ✅ Yes |
+| Layer           | Responsibility            | HTTP Concerns | Business Logic | Technical Implementation |
+|-----------------|---------------------------|---------------|----------------|--------------------------|
+| **Controllers** | API routing & DTOs        | ✅ Yes         | ❌ No           | ❌ No                     |
+| **Use Cases**   | Business workflows        | ❌ No          | ✅ Yes          | ❌ No                     |
+| **Services**    | External APIs & protocols | ❌ No          | ❌ No           | ✅ Yes                    |
 
 ### Data Flow
 
@@ -124,6 +126,7 @@ services.AddMagicCSharp();
 ```
 
 This single method from `MagicUseCaseRegistrationModule` registers:
+
 - All use cases via automatic discovery
 - `IClock` implementation for testable time
 - `IRequestIdHandler` for request tracking
@@ -143,7 +146,9 @@ Use this approach when you need custom implementations of `IClock` or `IRequestI
 
 **Important for Multi-Assembly Projects:**
 
-If your use case interfaces are defined in separate C# libraries, you must ensure those assemblies are loaded before calling `AddMagicUseCases()`. C# loads assemblies JIT (Just-In-Time) - the .dll won't be loaded into the domain until code that references it is executed.
+If your use case interfaces are defined in separate C# libraries, you must ensure those assemblies are loaded before
+calling `AddMagicUseCases()`. C# loads assemblies JIT (Just-In-Time) - the .dll won't be loaded into the domain until
+code that references it is executed.
 
 ```csharp
 // Force assembly loading by referencing a type from each library
@@ -154,7 +159,8 @@ _ = typeof(MyLibrary2.IAnotherUseCase).Assembly;
 services.AddMagicUseCases();
 ```
 
-Without forcing the assembly to load first, use cases in other libraries won't be discovered during registration, even if you use them later in your application.
+Without forcing the assembly to load first, use cases in other libraries won't be discovered during registration, even
+if you use them later in your application.
 
 ### 3. Use in Controller
 
@@ -191,7 +197,8 @@ That's it! Your use case is automatically registered and follows clean architect
 
 ## Module Architecture
 
-MagicCSharp provides extension methods through module classes that follow a consistent pattern for configuring your application.
+MagicCSharp provides extension methods through module classes that follow a consistent pattern for configuring your
+application.
 
 ### MagicUseCaseRegistrationModule
 
@@ -199,22 +206,25 @@ MagicCSharp provides extension methods through module classes that follow a cons
 
 **Purpose:** Provides extension methods for automatic service registration.
 
-**Why use it:** Eliminates manual service registration boilerplate. Instead of registering each use case individually in your DI container, this module automatically discovers and registers all use cases across your application.
+**Why use it:** Eliminates manual service registration boilerplate. Instead of registering each use case individually in
+your DI container, this module automatically discovers and registers all use cases across your application.
 
 **Key methods:**
 
 1. **`AddMagicCSharp()`** - One-stop registration (recommended)
-   - Automatically registers all use cases
-   - Registers `IClock` for testable time
-   - Registers `IRequestIdHandler` for request tracking
-   - Best for most applications
+    - Automatically registers all use cases
+    - Registers `IClock` for testable time
+    - Registers `IRequestIdHandler` for request tracking
+    - Best for most applications
 
 2. **`AddMagicUseCases()`** - Use case registration only
-   - Only registers use cases via automatic discovery
-   - Use when you need custom implementations of `IClock` or `IRequestIdHandler`
-   - Gives you granular control over other service registrations
+    - Only registers use cases via automatic discovery
+    - Use when you need custom implementations of `IClock` or `IRequestIdHandler`
+    - Gives you granular control over other service registrations
 
-**How it works:** Scans all loaded assemblies for interfaces implementing `IMagicUseCase`, finds their concrete implementations, and registers them with the appropriate lifetime (Scoped by default, or as specified by the `[MagicUseCase]` attribute).
+**How it works:** Scans all loaded assemblies for interfaces implementing `IMagicUseCase`, finds their concrete
+implementations, and registers them with the appropriate lifetime (Scoped by default, or as specified by the
+`[MagicUseCase]` attribute).
 
 ### RequestIdMiddlewareModule
 
@@ -222,19 +232,23 @@ MagicCSharp provides extension methods through module classes that follow a cons
 
 **Purpose:** Provides middleware for automatic request ID tracking across HTTP requests.
 
-**Why use it:** Essential for distributed tracing and log correlation. Automatically generates unique IDs for each request, accepts IDs from upstream services, and makes request IDs available throughout your entire request pipeline.
+**Why use it:** Essential for distributed tracing and log correlation. Automatically generates unique IDs for each
+request, accepts IDs from upstream services, and makes request IDs available throughout your entire request pipeline.
 
 **Key method:**
 
 - **`UseRequestId()`** - Adds RequestId middleware to the pipeline
-  - Automatically generates 8-character unique IDs
-  - Accepts `X-Request-ID` header from clients
-  - Adds RequestId to response headers
-  - Makes RequestId available via `IRequestIdHandler`
+    - Automatically generates 8-character unique IDs
+    - Accepts `X-Request-ID` header from clients
+    - Adds RequestId to response headers
+    - Makes RequestId available via `IRequestIdHandler`
 
-**Best practice:** Add `app.UseRequestId()` early in your middleware pipeline, typically right after error handling middleware and before authentication/authorization.
+**Best practice:** Add `app.UseRequestId()` early in your middleware pipeline, typically right after error handling
+middleware and before authentication/authorization.
 
-**Why modules?** These modules follow the ASP.NET Core convention of providing extension methods for configuration, making it easy to discover and use MagicCSharp features through IntelliSense, while keeping the implementation details encapsulated.
+**Why modules?** These modules follow the ASP.NET Core convention of providing extension methods for configuration,
+making it easy to discover and use MagicCSharp features through IntelliSense, while keeping the implementation details
+encapsulated.
 
 ## Features
 
@@ -275,9 +289,12 @@ public class CacheWarmerUseCase : ICacheWarmerUseCase
 }
 ```
 
-**Automatic Registration** - All classes implementing interfaces with `IMagicUseCase` are automatically registered in your DI container.
+**Automatic Registration** - All classes implementing interfaces with `IMagicUseCase` are automatically registered in
+your DI container.
 
-**Lifetime Control** - The `[MagicUseCase]` attribute is optional. When omitted, use cases default to Scoped lifetime. Add `[MagicUseCase(ServiceLifetime.Singleton)]` or `[MagicUseCase(ServiceLifetime.Transient)]` only when you need a different lifetime.
+**Lifetime Control** - The `[MagicUseCase]` attribute is optional. When omitted, use cases default to Scoped lifetime.
+Add `[MagicUseCase(ServiceLifetime.Singleton)]` or `[MagicUseCase(ServiceLifetime.Transient)]` only when you need a
+different lifetime.
 
 ### ⏰ Testable Time
 
@@ -306,7 +323,8 @@ var service = new OrderService(fakeClock);
 
 ### 🔒 Distributed Locking
 
-Prevent concurrent execution across multiple instances using distributed locks powered by [Medallion.Threading](https://github.com/madelson/DistributedLock).
+Prevent concurrent execution across multiple instances using distributed locks powered
+by [Medallion.Threading](https://github.com/madelson/DistributedLock).
 
 ```csharp
 public class ScheduledReportGenerator(
@@ -323,6 +341,7 @@ public class ScheduledReportGenerator(
 ```
 
 **Supports Multiple Backends:**
+
 - File-based locks (default, good for single-server)
 - Redis locks (for distributed systems)
 - SQL Server locks
@@ -361,11 +380,13 @@ services.AddHostedService<DailyReportService>();
 **Two Schedule Types:**
 
 **Time of Day Schedule** - Run at specific times:
+
 ```csharp
 new TimeOfDaySchedule(new TimeOnly(2, 0))  // 2 AM daily
 ```
 
 **Interval Schedule** - Run at regular intervals:
+
 ```csharp
 new IntervalSchedule(TimeSpan.FromMinutes(5))  // Every 5 minutes
 ```
@@ -397,6 +418,7 @@ app.Run();
 ```
 
 The `UseRequestId()` extension method from `RequestIdMiddlewareModule` automatically:
+
 - Accepts `X-Request-ID` header from clients (for distributed tracing)
 - Generates an 8-character unique ID if no header is provided
 - Adds the RequestId to response headers for client tracking

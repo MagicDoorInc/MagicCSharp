@@ -4,12 +4,12 @@ using Microsoft.Extensions.Logging;
 namespace MagicCSharp.Events.Kafka;
 
 /// <summary>
-/// Adapter for bridging Kafka logging to Microsoft.Extensions.Logging.
+///     Adapter for bridging Kafka logging to Microsoft.Extensions.Logging.
 /// </summary>
 public static class KafkaLoggerAdapter
 {
     /// <summary>
-    /// Create a log handler for Kafka producer.
+    ///     Create a log handler for Kafka producer.
     /// </summary>
     public static Action<IProducer<TKey, TValue>, LogMessage> GetProducerLogHandler<TKey, TValue>(ILogger logger)
     {
@@ -21,7 +21,7 @@ public static class KafkaLoggerAdapter
     }
 
     /// <summary>
-    /// Create a log handler for Kafka consumer.
+    ///     Create a log handler for Kafka consumer.
     /// </summary>
     public static Action<IConsumer<TKey, TValue>, LogMessage> GetConsumerLogHandler<TKey, TValue>(ILogger logger)
     {

@@ -52,8 +52,7 @@ public class OrdersController : ControllerBase
 
             // Map entity to DTO
             return Ok(OrderResponseDto.FromEntity(order));
-        }
-        catch (Exception ex) when (ex.Message.Contains("not found"))
+        } catch (Exception ex) when (ex.Message.Contains("not found"))
         {
             // HTTP concern: Convert exceptions to HTTP status codes
             return NotFound(ErrorResponseDto.FromMessage(ex.Message));
@@ -84,8 +83,7 @@ public class OrdersController : ControllerBase
             }
 
             return Ok(ProcessPaymentResponseDto.FromResult(result));
-        }
-        catch (Exception ex) when (ex.Message.Contains("not found"))
+        } catch (Exception ex) when (ex.Message.Contains("not found"))
         {
             // HTTP concern: Convert exceptions to HTTP status codes
             return NotFound(ErrorResponseDto.FromMessage(ex.Message));

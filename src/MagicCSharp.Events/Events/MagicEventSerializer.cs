@@ -1,10 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace MagicCSharp.Events;
+namespace MagicCSharp.Events.Events;
 
 /// <summary>
-/// JSON-based event serializer that wraps events with type information for polymorphic deserialization.
+///     JSON-based event serializer that wraps events with type information for polymorphic deserialization.
 /// </summary>
 public class MagicEventSerializer(IEnumerable<Type> eventTypes) : IEventSerializer
 {
@@ -53,7 +53,7 @@ public class MagicEventSerializer(IEnumerable<Type> eventTypes) : IEventSerializ
     }
 
     /// <summary>
-    /// Wrapper record for event serialization with type information.
+    ///     Wrapper record for event serialization with type information.
     /// </summary>
     public record MagicEventWrapper(
         string Type,
@@ -61,7 +61,7 @@ public class MagicEventSerializer(IEnumerable<Type> eventTypes) : IEventSerializ
 }
 
 /// <summary>
-/// JSON converter that handles long values as strings to prevent precision loss in JavaScript.
+///     JSON converter that handles long values as strings to prevent precision loss in JavaScript.
 /// </summary>
 public sealed class LongToStringConverter : JsonConverter<long>
 {
@@ -72,9 +72,7 @@ public sealed class LongToStringConverter : JsonConverter<long>
 
     public override long Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        return reader.TokenType == JsonTokenType.Number
-            ? reader.GetInt64()
-            : long.Parse(reader.GetString()!);
+        return reader.TokenType == JsonTokenType.Number ? reader.GetInt64() : long.Parse(reader.GetString()!);
     }
 
     public override void Write(Utf8JsonWriter writer, long value, JsonSerializerOptions options)

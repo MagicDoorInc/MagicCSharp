@@ -1,6 +1,6 @@
 using MagicCSharp.Infrastructure.Exceptions;
 using MagicCSharp.UseCases;
-using OrderManagement.Data.Domain.Entities;
+using OrderManagement.Data.Entities;
 using OrderManagement.Data.Repositories;
 
 namespace OrderManagement.Business.UseCases.Orders;

@@ -1,23 +1,22 @@
 using System.Reflection;
 using MagicCSharp.Infrastructure;
+using MagicCSharp.UseCases;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MagicCSharp.UseCases;
+namespace MagicCSharp.Modules;
 
 /// <summary>
 ///     Extension methods for registering MagicUseCases in the dependency injection container.
 /// </summary>
 public static class MagicUseCaseRegistrationModule
 {
-    public static IServiceCollection AddMagicCSharp(
-        this IServiceCollection services)
+    public static IServiceCollection AddMagicCSharp(this IServiceCollection services)
     {
-        return services
-            .AddMagicUseCases()
+        return services.AddMagicUseCases()
             .AddSingleton<IClock, DateTimeClock>()
             .AddSingleton<IRequestIdHandler, RequestIdHandler>();
     }
-    
+
     /// <summary>
     ///     Scans all loaded assemblies for all interfaces that extend IMagicUseCase
     ///     and automatically registers them with their implementations in the DI container.
@@ -29,8 +28,7 @@ public static class MagicUseCaseRegistrationModule
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
         // First, find all interfaces that extend IMagicUseCase (excluding IMagicUseCase itself)
-        var useCaseInterfaces = assemblies
-            .SelectMany(assembly => assembly.GetTypes())
+        var useCaseInterfaces = assemblies.SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.IsInterface)
             .Where(type => typeof(IMagicUseCase).IsAssignableFrom(type))
             .Where(type => type != typeof(IMagicUseCase))
@@ -39,8 +37,7 @@ public static class MagicUseCaseRegistrationModule
         foreach (var useCaseInterface in useCaseInterfaces)
         {
             // Find the implementation of this interface across all assemblies
-            var implementationType = assemblies
-                .SelectMany(assembly => assembly.GetTypes())
+            var implementationType = assemblies.SelectMany(assembly => assembly.GetTypes())
                 .FirstOrDefault(type => type.IsClass && !type.IsAbstract && useCaseInterface.IsAssignableFrom(type));
 
             if (implementationType != null)

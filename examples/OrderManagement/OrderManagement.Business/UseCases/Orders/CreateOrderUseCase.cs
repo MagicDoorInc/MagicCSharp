@@ -1,8 +1,8 @@
-using MagicCSharp.Events;
+using MagicCSharp.Events.Events;
 using MagicCSharp.Infrastructure;
 using MagicCSharp.UseCases;
-using OrderManagement.Data.Domain.Entities;
-using OrderManagement.Data.Domain.Events;
+using OrderManagement.Data.Entities;
+using OrderManagement.Data.Events;
 using OrderManagement.Data.Repositories;
 
 namespace OrderManagement.Business.UseCases.Orders;

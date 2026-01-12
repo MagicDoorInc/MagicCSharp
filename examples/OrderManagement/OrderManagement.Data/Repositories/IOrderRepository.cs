@@ -1,5 +1,5 @@
 using MagicCSharp.Data.Repositories;
-using OrderManagement.Data.Domain.Entities;
+using OrderManagement.Data.Entities;
 
 namespace OrderManagement.Data.Repositories;
 

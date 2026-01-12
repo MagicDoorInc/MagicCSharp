@@ -1,14 +1,14 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using MagicCSharp.Data.Dals;
 using MagicCSharp.Infrastructure;
 using MagicCSharp.Infrastructure.Entities;
 using MagicCSharp.Infrastructure.Exceptions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace MagicCSharp.Data.Repositories;
 
 /// <summary>
-/// Base repository implementation for entities that use string keys as primary identifiers.
+///     Base repository implementation for entities that use string keys as primary identifiers.
 /// </summary>
 /// <typeparam name="TContext">The database context type.</typeparam>
 /// <typeparam name="TDal">The data access layer type.</typeparam>
@@ -153,8 +153,8 @@ public abstract class BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit>
     }
 
     /// <summary>
-    /// Transform a DAL object to an entity.
-    /// Override this to customize the transformation.
+    ///     Transform a DAL object to an entity.
+    ///     Override this to customize the transformation.
     /// </summary>
     protected virtual TEntity ToEntity(TDal dal)
     {
@@ -162,8 +162,8 @@ public abstract class BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit>
     }
 
     /// <summary>
-    /// Hook called after creating a DAL object but before saving.
-    /// Override this to add custom logic.
+    ///     Hook called after creating a DAL object but before saving.
+    ///     Override this to add custom logic.
     /// </summary>
     protected virtual void AfterDalCreatedHook(TDal dal, TEdit edit, TContext context)
     {
@@ -171,8 +171,8 @@ public abstract class BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit>
     }
 
     /// <summary>
-    /// Hook called after applying changes to a DAL object during update.
-    /// Override this to add custom logic.
+    ///     Hook called after applying changes to a DAL object during update.
+    ///     Override this to add custom logic.
     /// </summary>
     protected virtual void AfterDalApplyHook(TDal dal, TEdit edit, TContext context)
     {
@@ -180,8 +180,8 @@ public abstract class BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit>
     }
 
     /// <summary>
-    /// Hook called before deleting a DAL object.
-    /// Override this to add custom logic.
+    ///     Hook called before deleting a DAL object.
+    ///     Override this to add custom logic.
     /// </summary>
     protected virtual void AfterDalDeleteHook(TDal dal, TContext context)
     {
@@ -189,26 +189,26 @@ public abstract class BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit>
     }
 
     /// <summary>
-    /// Apply default ordering to the query.
-    /// Must be implemented by derived classes.
+    ///     Apply default ordering to the query.
+    ///     Must be implemented by derived classes.
     /// </summary>
     protected abstract IQueryable<TDal> ApplyOrder(IQueryable<TDal> query);
 
     /// <summary>
-    /// Apply filtering to the query based on the filter object.
-    /// Must be implemented by derived classes.
+    ///     Apply filtering to the query based on the filter object.
+    ///     Must be implemented by derived classes.
     /// </summary>
     protected abstract IQueryable<TDal> ApplyFilter(IQueryable<TDal> query, TFilter filter);
 
     /// <summary>
-    /// Get the DbSet for the DAL type.
-    /// Must be implemented by derived classes.
+    ///     Get the DbSet for the DAL type.
+    ///     Must be implemented by derived classes.
     /// </summary>
     protected abstract DbSet<TDal> GetDbSet(TContext context);
 
     /// <summary>
-    /// Get the base query for this repository.
-    /// Override this to add includes or other query modifications.
+    ///     Get the base query for this repository.
+    ///     Override this to add includes or other query modifications.
     /// </summary>
     protected virtual IQueryable<TDal> GetQuery(TContext context)
     {
@@ -216,14 +216,14 @@ public abstract class BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit>
     }
 
     /// <summary>
-    /// Create a new DAL object from an edit object.
-    /// Must be implemented by derived classes.
+    ///     Create a new DAL object from an edit object.
+    ///     Must be implemented by derived classes.
     /// </summary>
     protected abstract TDal CreateDal(TEdit edit);
 
     /// <summary>
-    /// Get the NotFoundException to throw when an entity is not found.
-    /// Must be implemented by derived classes.
+    ///     Get the NotFoundException to throw when an entity is not found.
+    ///     Must be implemented by derived classes.
     /// </summary>
     protected abstract NotFoundException GetNotFoundException(string key);
 }

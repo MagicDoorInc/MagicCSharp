@@ -1,18 +1,18 @@
 using Confluent.Kafka;
-using MagicCSharp.Events;
+using MagicCSharp.Events.Events;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace MagicCSharp.Events.Kafka;
 
 /// <summary>
-/// Extension methods for registering Kafka event dispatching services.
+///     Extension methods for registering Kafka event dispatching services.
 /// </summary>
 public static class MagicKafkaEventsRegistrationExtensions
 {
     /// <summary>
-    /// Register Kafka event dispatcher and background service.
-    /// This also calls RegisterMagicEvents() to register core infrastructure.
+    ///     Register Kafka event dispatcher and background service.
+    ///     This also calls RegisterMagicEvents() to register core infrastructure.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">Kafka configuration.</param>
@@ -46,9 +46,7 @@ public static class MagicKafkaEventsRegistrationExtensions
             };
 
             var producerLogger = KafkaLoggerAdapter.GetProducerLogHandler<Null, string>(logger);
-            return new ProducerBuilder<Null, string>(producerConfig)
-                .SetLogHandler(producerLogger)
-                .Build();
+            return new ProducerBuilder<Null, string>(producerConfig).SetLogHandler(producerLogger).Build();
         });
 
         // Register Kafka consumer
@@ -63,9 +61,7 @@ public static class MagicKafkaEventsRegistrationExtensions
             };
 
             var consumerLogger = KafkaLoggerAdapter.GetConsumerLogHandler<Null, string>(logger);
-            return new ConsumerBuilder<Null, string>(consumerConfig)
-                .SetLogHandler(consumerLogger)
-                .Build();
+            return new ConsumerBuilder<Null, string>(consumerConfig).SetLogHandler(consumerLogger).Build();
         });
 
         // Register Kafka event dispatcher

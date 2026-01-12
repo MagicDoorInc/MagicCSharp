@@ -1,6 +1,6 @@
 using MagicCSharp.Infrastructure.Entities;
 
-namespace OrderManagement.Data.Domain.Entities;
+namespace OrderManagement.Data.Entities;
 
 public record Order : OrderEdit, IMagicEntity, IIdEntity
 {

@@ -1,4 +1,4 @@
-using OrderManagement.Data.Domain.Entities;
+using OrderManagement.Data.Entities;
 
 namespace OrderManagement.Api.DTOs;
 
@@ -18,13 +18,15 @@ public record OrderResponseDto
         {
             OrderId = order.Id,
             UserId = order.UserId,
-            Items = order.Items.Select(i => new OrderItemDto
-            {
-                ProductId = i.ProductId,
-                ProductName = i.ProductName,
-                Quantity = i.Quantity,
-                Price = i.Price,
-            }).ToList(),
+            Items = order.Items
+                .Select(i => new OrderItemDto
+                {
+                    ProductId = i.ProductId,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    Price = i.Price,
+                })
+                .ToList(),
             Total = order.Total,
             Status = order.Status,
             Created = order.Created,

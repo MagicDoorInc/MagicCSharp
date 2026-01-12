@@ -1,17 +1,17 @@
-using MagicCSharp.Events;
+using MagicCSharp.Events.Events;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MagicCSharp.Events.SQS;
 
 /// <summary>
-/// Extension methods for registering AWS SQS event dispatching services.
+///     Extension methods for registering AWS SQS event dispatching services.
 /// </summary>
 public static class MagicSQSEventsRegistrationExtensions
 {
     /// <summary>
-    /// Register SQS event dispatcher and background service.
-    /// This also calls RegisterMagicEvents() to register core infrastructure.
-    /// Note: IAmazonSQS client must be registered separately by the consumer.
+    ///     Register SQS event dispatcher and background service.
+    ///     This also calls RegisterMagicEvents() to register core infrastructure.
+    ///     Note: IAmazonSQS client must be registered separately by the consumer.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">SQS configuration.</param>
@@ -30,7 +30,8 @@ public static class MagicSQSEventsRegistrationExtensions
         // Validate parameters
         if (configuration.MaxNumberOfMessages < 1 || configuration.MaxNumberOfMessages > 10)
         {
-            throw new ArgumentOutOfRangeException(nameof(configuration.MaxNumberOfMessages), "Must be between 1 and 10");
+            throw new ArgumentOutOfRangeException(nameof(configuration.MaxNumberOfMessages),
+                "Must be between 1 and 10");
         }
 
         if (configuration.WaitTimeSeconds < 0 || configuration.WaitTimeSeconds > 20)
@@ -44,11 +45,8 @@ public static class MagicSQSEventsRegistrationExtensions
         }
 
         // Register SQS configuration
-        services.AddSingleton(new SqsEventsBackgroundServiceConfig(
-            configuration.QueueUrl,
-            configuration.MaxNumberOfMessages,
-            configuration.WaitTimeSeconds,
-            configuration.VisibilityTimeout));
+        services.AddSingleton(new SqsEventsBackgroundServiceConfig(configuration.QueueUrl,
+            configuration.MaxNumberOfMessages, configuration.WaitTimeSeconds, configuration.VisibilityTimeout));
 
         // Register SQS event dispatcher
         services.AddSingleton<IEventDispatcher, SqsEventDispatcher>();

@@ -1,36 +1,36 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
 
-    <!-- NuGet Package Properties -->
-    <PackageId>MagicCSharp.Events.SQS</PackageId>
-    <Version>0.0.9</Version>
-    <Authors>MagicCSharp</Authors>
-    <Company>MagicCSharp</Company>
-    <Description>AWS SQS event dispatcher and consumer implementation for MagicCSharp.Events</Description>
-    <PackageTags>csharp;events;sqs;aws;event-driven</PackageTags>
-    <RepositoryUrl>https://github.com/yourusername/magiccsharp</RepositoryUrl>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-  </PropertyGroup>
+        <!-- NuGet Package Properties -->
+        <PackageId>MagicCSharp.Events.SQS</PackageId>
+        <Version>0.0.11</Version>
+        <Authors>MagicCSharp</Authors>
+        <Company>MagicCSharp</Company>
+        <Description>AWS SQS event dispatcher and consumer implementation for MagicCSharp.Events</Description>
+        <PackageTags>csharp;events;sqs;aws;event-driven</PackageTags>
+        <RepositoryUrl>https://github.com/yourusername/magiccsharp</RepositoryUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="../MagicCSharp.Events/MagicCSharp.Events.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="../MagicCSharp.Events/MagicCSharp.Events.csproj"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="AWSSDK.SQS" Version="3.7.400.58" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="AWSSDK.SQS" Version="3.7.400.58"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\"/>
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
 
 </Project>

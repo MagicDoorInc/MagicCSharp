@@ -1,17 +1,19 @@
 using System.Reflection;
-using MagicCSharp.Events.Metrics;
+using MagicCSharp.Events.Events;
+using MagicCSharp.Events.Events.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MagicCSharp.Events;
 
 /// <summary>
-/// Extension methods for registering MagicCSharp Events services.
+///     Extension methods for registering MagicCSharp Events services.
 /// </summary>
 public static class MagicEventsRegistrationExtensions
 {
     /// <summary>
-    /// Register core event infrastructure including event handlers, serialization, and metrics.
-    /// Does NOT register IEventDispatcher - use RegisterLocalMagicEvents(), RegisterMagicKafkaEvents(), or RegisterMagicSQSEvents().
+    ///     Register core event infrastructure including event handlers, serialization, and metrics.
+    ///     Does NOT register IEventDispatcher - use RegisterLocalMagicEvents(), RegisterMagicKafkaEvents(), or
+    ///     RegisterMagicSQSEvents().
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="useOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
@@ -53,8 +55,11 @@ public static class MagicEventsRegistrationExtensions
                 var eventType = interfaceType.GetGenericArguments()[0];
 
                 // Get Priority from static property (no instance needed!)
-                var priorityProperty = type.GetProperty("Priority", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
-                var priority = priorityProperty != null ? (MagicEventPriority)priorityProperty.GetValue(null)! : MagicEventPriority.AddDataNoDependencies;
+                var priorityProperty = type.GetProperty("Priority",
+                    BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+                var priority = priorityProperty != null
+                    ? (MagicEventPriority)priorityProperty.GetValue(null)!
+                    : MagicEventPriority.AddDataNoDependencies;
 
                 if (!handlersByEventType.TryGetValue(eventType, out var handlers))
                 {
@@ -67,15 +72,18 @@ public static class MagicEventsRegistrationExtensions
         }
 
         // Step 3: Sort handlers by priority for each event type
-        var sortedHandlersByEventType = handlersByEventType.ToDictionary(
-            kvp => kvp.Key,
-            kvp => (IReadOnlyList<Type>)kvp.Value.OrderBy(h => h.Priority).Select(h => h.HandlerType).ToList().AsReadOnly()
-        );
+        var sortedHandlersByEventType = handlersByEventType.ToDictionary(kvp => kvp.Key,
+            kvp => (IReadOnlyList<Type>)kvp.Value
+                .OrderBy(h => h.Priority)
+                .Select(h => h.HandlerType)
+                .ToList()
+                .AsReadOnly());
 
         var readonlyEventTypes = eventTypes.AsReadOnly();
 
         // Register EventTypeHolder and EventSerializer
-        services.AddSingleton<IEventTypeHolder>(new MagicEventTypeHolder(readonlyEventTypes, sortedHandlersByEventType));
+        services.AddSingleton<IEventTypeHolder>(new MagicEventTypeHolder(readonlyEventTypes,
+            sortedHandlersByEventType));
         services.AddSingleton<IEventSerializer>(new MagicEventSerializer(readonlyEventTypes));
 
         // Register async event dispatcher
@@ -95,8 +103,8 @@ public static class MagicEventsRegistrationExtensions
     }
 
     /// <summary>
-    /// Register local event dispatcher for in-process event handling.
-    /// This is perfect for local development, testing, and single-service applications.
+    ///     Register local event dispatcher for in-process event handling.
+    ///     This is perfect for local development, testing, and single-service applications.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection for chaining.</returns>
@@ -120,7 +128,8 @@ public static class MagicEventsRegistrationExtensions
 
     private static List<Type> LoadAllAppDomainTypes()
     {
-        return AppDomain.CurrentDomain.GetAssemblies()
+        return AppDomain.CurrentDomain
+            .GetAssemblies()
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => !type.IsAbstract)
             .ToList();

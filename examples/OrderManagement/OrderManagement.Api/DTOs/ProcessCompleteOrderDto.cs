@@ -14,12 +14,13 @@ public record ProcessCompleteOrderDto
         {
             UserId = UserId,
             Items = Items.Select(i => new CreateOrderItem
-            {
-                ProductId = i.ProductId,
-                ProductName = i.ProductName,
-                Quantity = i.Quantity,
-                Price = i.Price,
-            }).ToList(),
+                {
+                    ProductId = i.ProductId,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    Price = i.Price,
+                })
+                .ToList(),
             PaymentMethod = PaymentMethod,
         };
     }

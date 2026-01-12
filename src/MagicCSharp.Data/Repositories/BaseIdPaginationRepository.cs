@@ -1,33 +1,31 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using MagicCSharp.Data.Dals;
 using MagicCSharp.Data.Models;
 using MagicCSharp.Data.Utils;
 using MagicCSharp.Infrastructure;
 using MagicCSharp.Infrastructure.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace MagicCSharp.Data.Repositories;
 
 /// <summary>
-/// Base repository implementation with pagination support for entities with numeric ID identifiers.
+///     Base repository implementation with pagination support for entities with numeric ID identifiers.
 /// </summary>
 /// <typeparam name="TContext">The database context type.</typeparam>
 /// <typeparam name="TDal">The data access layer type.</typeparam>
 /// <typeparam name="TEntity">The entity type.</typeparam>
 /// <typeparam name="TFilter">The filter type for queries.</typeparam>
 /// <typeparam name="TEdit">The edit type for create/update operations.</typeparam>
-public abstract class BaseIdPaginationRepository<TContext, TDal, TEntity, TFilter, TEdit> : BaseIdRepository<TContext, TDal, TEntity, TFilter, TEdit>,
-    IRepositoryPaginated<TEntity, TFilter, TEdit>
+public abstract class BaseIdPaginationRepository<TContext, TDal, TEntity, TFilter, TEdit> :
+    BaseIdRepository<TContext, TDal, TEntity, TFilter, TEdit>, IRepositoryPaginated<TEntity, TFilter, TEdit>
     where TDal : class, IDalTransform<TEntity, TEdit>, IDalId, IDal
     where TEntity : class, TEdit, IIdEntity
     where TContext : DbContext
 {
     private readonly IDbContextFactory<TContext> contextFactory;
 
-    protected BaseIdPaginationRepository(
-        IDbContextFactory<TContext> contextFactory,
-        IClock clock,
-        ILogger logger) : base(contextFactory, clock, logger)
+    protected BaseIdPaginationRepository(IDbContextFactory<TContext> contextFactory, IClock clock, ILogger logger) :
+        base(contextFactory, clock, logger)
     {
         this.contextFactory = contextFactory;
     }

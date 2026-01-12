@@ -2,7 +2,8 @@
 
 **AWS SQS event dispatching for cloud-native applications**
 
-Process events across AWS infrastructure with guaranteed delivery, long polling efficiency, and automatic message handling. MagicCSharp.Events.SQS handles all the SQS complexity so you can focus on your business logic.
+Process events across AWS infrastructure with guaranteed delivery, long polling efficiency, and automatic message
+handling. MagicCSharp.Events.SQS handles all the SQS complexity so you can focus on your business logic.
 
 ## Why MagicCSharp.Events.SQS?
 
@@ -111,11 +112,13 @@ public class SendConfirmationHandler(IEmailService emailService)
 ```
 
 **Producer (IEventDispatcher):**
+
 1. Serializes the event with type information
 2. Sends to SQS queue asynchronously
 3. Returns immediately (fire-and-forget)
 
 **Consumer (Background Service):**
+
 1. Polls SQS with long polling (up to 20 seconds)
 2. Receives batch of messages (configurable size)
 3. Deserializes events
@@ -137,11 +140,13 @@ var sqsConfig = new SqsMagicEventConfiguration(
 ```
 
 **Benefits:**
+
 - ✅ Reduces number of empty receives (lower costs)
 - ✅ Reduces latency (near real-time processing)
 - ✅ Fewer API calls to AWS
 
 **Without long polling (WaitTimeSeconds = 0):**
+
 ```
 Poll 1: Empty (charge)
 Poll 2: Empty (charge)
@@ -150,6 +155,7 @@ Poll 4: Message! (charge + process)
 ```
 
 **With long polling (WaitTimeSeconds = 20):**
+
 ```
 Poll 1: [waiting... message arrives] Message! (charge + process)
 ```
@@ -166,11 +172,13 @@ var sqsConfig = new SqsMagicEventConfiguration(
 ```
 
 **Small Batches (1-3 messages):**
+
 - Lower latency per message
 - Good for real-time requirements
 - Higher per-message cost
 
 **Large Batches (10 messages):**
+
 - Higher throughput
 - More cost-effective
 - Good for high-volume processing
@@ -187,6 +195,7 @@ var sqsConfig = new SqsMagicEventConfiguration(
 ```
 
 **How it works:**
+
 1. Message received from SQS
 2. Message becomes invisible for 30 seconds
 3. Processing starts
@@ -194,6 +203,7 @@ var sqsConfig = new SqsMagicEventConfiguration(
 5. **Failure:** After 30 seconds, message becomes visible again (automatic retry)
 
 **Choosing the right timeout:**
+
 - Too short: Messages redelivered while still processing
 - Too long: Slow retry on failures
 - Good default: 2-3x your average processing time
@@ -219,6 +229,7 @@ catch (Exception ex)
 ```
 
 **Benefits:**
+
 - No data loss if processing fails
 - Automatic retry on failures
 - At-least-once delivery guarantee
@@ -226,6 +237,7 @@ catch (Exception ex)
 ### 🛡️ Error Handling
 
 **Unknown Event Types:**
+
 ```csharp
 var event = DeserializeMagicEvent(json);
 if (event == null)
@@ -237,6 +249,7 @@ if (event == null)
 ```
 
 **Processing Errors:**
+
 ```csharp
 try
 {
@@ -251,6 +264,7 @@ catch (Exception ex)
 ```
 
 **SQS Connection Errors:**
+
 ```csharp
 try
 {
@@ -487,6 +501,7 @@ var sqsConfig = new SqsMagicEventConfiguration(
 ### 3. Configure Dead Letter Queues
 
 Set up DLQs in AWS to catch messages that fail repeatedly:
+
 - MaxReceiveCount: 3-5 (retry 3-5 times before sending to DLQ)
 - Monitor DLQ for failed messages
 - Investigate and fix issues
@@ -495,6 +510,7 @@ Set up DLQs in AWS to catch messages that fail repeatedly:
 ### 4. Monitor CloudWatch Metrics
 
 Key metrics to monitor:
+
 - `ApproximateNumberOfMessagesVisible` - Queue backlog
 - `ApproximateAgeOfOldestMessage` - Processing lag
 - `NumberOfMessagesSent` - Production rate

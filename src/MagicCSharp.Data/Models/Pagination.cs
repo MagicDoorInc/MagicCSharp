@@ -1,13 +1,13 @@
 namespace MagicCSharp.Data.Models;
 
 /// <summary>
-/// Represents a paginated result set.
+///     Represents a paginated result set.
 /// </summary>
 /// <typeparam name="T">The type of items in the result set.</typeparam>
 public record Pagination<T>
 {
     /// <summary>
-    /// Creates an empty pagination result.
+    ///     Creates an empty pagination result.
     /// </summary>
     public Pagination()
     {
@@ -18,7 +18,7 @@ public record Pagination<T>
     }
 
     /// <summary>
-    /// Creates a pagination result with the specified values.
+    ///     Creates a pagination result with the specified values.
     /// </summary>
     public Pagination(
         int page,
@@ -33,7 +33,7 @@ public record Pagination<T>
     }
 
     /// <summary>
-    /// Creates a pagination result from a request and total count.
+    ///     Creates a pagination result from a request and total count.
     /// </summary>
     public Pagination(PaginationRequest paginationRequest, int totalCount, IReadOnlyList<T> items)
     {
@@ -44,27 +44,27 @@ public record Pagination<T>
     }
 
     /// <summary>
-    /// Current page number (1-based).
+    ///     Current page number (1-based).
     /// </summary>
     public int Page { get; init; } = 1;
 
     /// <summary>
-    /// Number of items per page.
+    ///     Number of items per page.
     /// </summary>
     public int PageSize { get; init; } = 10;
 
     /// <summary>
-    /// Total number of items across all pages.
+    ///     Total number of items across all pages.
     /// </summary>
     public int TotalCount { get; init; }
 
     /// <summary>
-    /// Items in the current page.
+    ///     Items in the current page.
     /// </summary>
     public IReadOnlyList<T> Items { get; init; } = [];
 
     /// <summary>
-    /// Total number of pages.
+    ///     Total number of pages.
     /// </summary>
     public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
 }

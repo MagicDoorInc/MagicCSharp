@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace MagicCSharp.Events.SQS;
 
 /// <summary>
-/// Base class for SQS listener background services using long polling.
+///     Base class for SQS listener background services using long polling.
 /// </summary>
 /// <typeparam name="T">The type of message to consume.</typeparam>
 public abstract class SqsListenerBase<T>(
@@ -15,22 +15,22 @@ public abstract class SqsListenerBase<T>(
     ILogger logger) : BackgroundService
 {
     /// <summary>
-    /// The SQS queue URL to consume from.
+    ///     The SQS queue URL to consume from.
     /// </summary>
     protected abstract string QueueUrl { get; }
 
     /// <summary>
-    /// Maximum number of messages to receive in one request (1-10).
+    ///     Maximum number of messages to receive in one request (1-10).
     /// </summary>
     protected virtual int MaxNumberOfMessages => 10;
 
     /// <summary>
-    /// Long polling wait time in seconds (0-20).
+    ///     Long polling wait time in seconds (0-20).
     /// </summary>
     protected virtual int WaitTimeSeconds => 20;
 
     /// <summary>
-    /// Message visibility timeout in seconds.
+    ///     Message visibility timeout in seconds.
     /// </summary>
     protected virtual int VisibilityTimeout => 30;
 
@@ -82,25 +82,21 @@ public abstract class SqsListenerBase<T>(
 
                         // Delete the message after successful processing
                         await DeleteMessage(sqsClient, message.ReceiptHandle, stoppingToken);
-                    }
-                    catch (Exception e)
+                    } catch (Exception e)
                     {
                         logger.LogError(e, "Failed to process SQS message");
                         // Message will become visible again after visibility timeout
                     }
                 }
-            }
-            catch (TaskCanceledException)
+            } catch (TaskCanceledException)
             {
                 // This is ok, happens on shutdown
                 return;
-            }
-            catch (OperationCanceledException)
+            } catch (OperationCanceledException)
             {
                 // This is ok, happens on shutdown
                 return;
-            }
-            catch (Exception e)
+            } catch (Exception e)
             {
                 logger.LogError(e, "Failed to get messages from SQS");
                 await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
@@ -120,20 +116,19 @@ public abstract class SqsListenerBase<T>(
                 QueueUrl = QueueUrl,
                 ReceiptHandle = receiptHandle,
             }, cancellationToken);
-        }
-        catch (Exception ex)
+        } catch (Exception ex)
         {
             logger.LogError(ex, "Failed to delete message from SQS");
         }
     }
 
     /// <summary>
-    /// Parse the message body into the expected type.
+    ///     Parse the message body into the expected type.
     /// </summary>
     protected abstract T? ParseCallback(string body, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Handle the parsed message.
+    ///     Handle the parsed message.
     /// </summary>
     protected abstract Task OnMessage(T message, CancellationToken cancellationToken);
 }

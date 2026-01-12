@@ -1,7 +1,7 @@
 namespace MagicCSharp.Events.SQS;
 
 /// <summary>
-/// Configuration for the SQS events background service.
+///     Configuration for the SQS events background service.
 /// </summary>
 /// <param name="QueueUrl">The SQS queue URL to consume from and send to.</param>
 /// <param name="MaxNumberOfMessages">Maximum number of messages to receive in one request (1-10). Default is 10.</param>

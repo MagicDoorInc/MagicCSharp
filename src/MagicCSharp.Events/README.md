@@ -2,7 +2,8 @@
 
 **Event-driven architecture made simple**
 
-Build decoupled, scalable applications with a clean event-driven architecture. MagicCSharp.Events handles event dispatching, serialization, and handler execution with priority ordering and comprehensive monitoring.
+Build decoupled, scalable applications with a clean event-driven architecture. MagicCSharp.Events handles event
+dispatching, serialization, and handler execution with priority ordering and comprehensive monitoring.
 
 ## Why MagicCSharp.Events?
 
@@ -144,6 +145,7 @@ public class SendConfirmationHandler : IEventHandler<OrderCreatedEvent>
 ```
 
 **Built-in Priorities:**
+
 - `Cron = -1` - For scheduled/cron tasks
 - `AddDataNoDependencies = 0` - Create data with no dependencies
 - `AddDataWithDependencies = 1000` - Create data that depends on other handlers
@@ -152,11 +154,14 @@ public class SendConfirmationHandler : IEventHandler<OrderCreatedEvent>
 - `NotifyUser = 3000` - Send notifications
 - `RunLast = 10000` - Anything that should run last
 
-**Important:** All handlers for a given event are always executed on the same server instance. This ensures that the priority-based execution order is maintained and allows you to chain operations where certain tasks must complete before others begin. This is particularly useful when handlers have dependencies on each other's side effects.
+**Important:** All handlers for a given event are always executed on the same server instance. This ensures that the
+priority-based execution order is maintained and allows you to chain operations where certain tasks must complete before
+others begin. This is particularly useful when handlers have dependencies on each other's side effects.
 
 ### 🏠 Always Use IEventDispatcher
 
-**Important:** Always inject and use `IEventDispatcher` in your application code, never use specific implementations directly. This allows you to switch between local and distributed event processing without changing your business logic.
+**Important:** Always inject and use `IEventDispatcher` in your application code, never use specific implementations
+directly. This allows you to switch between local and distributed event processing without changing your business logic.
 
 ```csharp
 // ✅ CORRECT - Always use IEventDispatcher
@@ -178,7 +183,8 @@ public class OrderService(LocalEventDispatcher dispatcher) // Don't do this!
 
 **Local Development**
 
-Use `RegisterLocalMagicEvents()` to register `LocalEventDispatcher` as the implementation of `IEventDispatcher`. This executes all handlers synchronously in the same process:
+Use `RegisterLocalMagicEvents()` to register `LocalEventDispatcher` as the implementation of `IEventDispatcher`. This
+executes all handlers synchronously in the same process:
 
 ```csharp
 // In your Startup.cs or Program.cs
@@ -191,6 +197,7 @@ services.RegisterLocalMagicEvents();
 ```
 
 **What happens:**
+
 ```csharp
 public class OrderService(IEventDispatcher eventDispatcher)
 {
@@ -208,6 +215,7 @@ public class OrderService(IEventDispatcher eventDispatcher)
 ```
 
 **Perfect for:**
+
 - Local development and testing
 - Single-service applications
 - When you need immediate execution
@@ -215,7 +223,8 @@ public class OrderService(IEventDispatcher eventDispatcher)
 
 **Distributed Events (Kafka/SQS)**
 
-For distributed systems, use `RegisterMagicKafkaEvents()` or `RegisterMagicSQSEvents()`. These register the distributed event dispatcher as `IEventDispatcher`:
+For distributed systems, use `RegisterMagicKafkaEvents()` or `RegisterMagicSQSEvents()`. These register the distributed
+event dispatcher as `IEventDispatcher`:
 
 ```csharp
 // In your Startup.cs or Program.cs
@@ -234,6 +243,7 @@ services.RegisterMagicSQSEvents(sqsConfig);
 ```
 
 **What happens:**
+
 ```csharp
 public class OrderService(IEventDispatcher eventDispatcher)
 {
@@ -250,12 +260,14 @@ public class OrderService(IEventDispatcher eventDispatcher)
 ```
 
 **Perfect for:**
+
 - Microservices architectures
 - Cross-service communication
 - Async, fire-and-forget event processing
 - Resilient, distributed systems
 
 **Key Benefits:**
+
 - **Zero Code Changes** - Same `IEventDispatcher` interface for both local and distributed
 - **Easy Testing** - Test locally without Kafka/SQS infrastructure
 - **Flexible Deployment** - Switch from local to distributed by changing registration only
@@ -269,12 +281,14 @@ services.RegisterLocalMagicEvents(useOpenTelemetryMetrics: true);
 ```
 
 **Metrics Collected:**
+
 - `Events` - Counter of events received by type
 - `Events.Failed` - Counter of failed events by type and handler
 - `Events.Finished` - Counter of completed events by type and handler
 - `Events.ExecutionTime` - Histogram of execution times by type and handler
 
 **View in your monitoring system:**
+
 ```
 Events{eventType="UserCreatedEvent"} = 1234
 Events.Failed{eventType="OrderCreatedEvent", handlerName="SendEmailHandler"} = 5
@@ -299,6 +313,7 @@ Events are automatically serialized with type information:
 ```
 
 **Features:**
+
 - Handles polymorphic deserialization
 - Converts longs to strings (prevents JavaScript precision loss)
 - Skips unknown event types gracefully
@@ -334,6 +349,7 @@ public async Task SendWelcomeEmailHandler_SendsEmail()
 ```
 
 **Testing with IEventDispatcher:**
+
 ```csharp
 [Fact]
 public void CreateUser_DispatchesEvent()
@@ -387,6 +403,7 @@ Event handlers are registered as **Transient** by default. They are created fres
 ### 🎨 Advanced Patterns
 
 **Conditional Handlers:**
+
 ```csharp
 public class PremiumUserWelcomeHandler : IEventHandler<UserCreatedEvent>
 {
@@ -401,6 +418,7 @@ public class PremiumUserWelcomeHandler : IEventHandler<UserCreatedEvent>
 ```
 
 **Batch Operations:**
+
 ```csharp
 public class BatchNotificationHandler : IEventHandler<OrderCreatedEvent>
 {

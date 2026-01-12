@@ -1,4 +1,4 @@
-namespace MagicCSharp.Events;
+namespace MagicCSharp.Events.Events;
 
 public interface IEventTypeHolder
 {

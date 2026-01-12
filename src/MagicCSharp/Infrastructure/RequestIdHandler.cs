@@ -1,7 +1,7 @@
 namespace MagicCSharp.Infrastructure;
 
 /// <summary>
-/// Default implementation of IRequestIdHandler using AsyncLocal for async context tracking.
+///     Default implementation of IRequestIdHandler using AsyncLocal for async context tracking.
 /// </summary>
 public class RequestIdHandler : IRequestIdHandler
 {
@@ -40,7 +40,7 @@ public class RequestIdHandler : IRequestIdHandler
 
     private class RequestIdScope(string? previousRequestId) : IDisposable
     {
-        private bool disposed = false;
+        private bool disposed;
 
         public void Dispose()
         {

@@ -13,12 +13,13 @@ public record CreateOrderDto
         {
             UserId = UserId,
             Items = Items.Select(i => new CreateOrderItem
-            {
-                ProductId = i.ProductId,
-                ProductName = i.ProductName,
-                Quantity = i.Quantity,
-                Price = i.Price,
-            }).ToList(),
+                {
+                    ProductId = i.ProductId,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    Price = i.Price,
+                })
+                .ToList(),
         };
     }
 }

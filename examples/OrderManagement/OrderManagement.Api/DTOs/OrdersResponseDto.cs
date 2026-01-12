@@ -1,4 +1,4 @@
-using OrderManagement.Data.Domain.Entities;
+using OrderManagement.Data.Entities;
 
 namespace OrderManagement.Api.DTOs;
 
