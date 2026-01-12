@@ -3,7 +3,7 @@ namespace MagicCSharp.Infrastructure.Entities;
 /// <summary>
 ///     Represents an entity with a numeric identifier.
 /// </summary>
-public interface IIdEntity
+public interface IIdEntity : IMagicEntity
 {
     /// <summary>
     ///     Gets the unique identifier for this entity.

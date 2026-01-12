@@ -6,7 +6,7 @@ namespace MagicCSharp.Extensions;
 /// <summary>
 /// Extension methods for adding RequestId middleware to the application pipeline.
 /// </summary>
-public static class RequestIdMiddlewareExtensions
+public static class RequestIdMiddlewareModule
 {
     /// <summary>
     /// Adds the RequestId middleware to the application pipeline.

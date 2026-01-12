@@ -114,12 +114,32 @@ public class CreateUserUseCase(
 }
 ```
 
-### 2. Register Use Cases
+### 2. Register Services
+
+**Option A: Register Everything (Recommended)**
 
 ```csharp
 // In your Startup.cs or Program.cs
-services.AddMagicUseCases();
+services.AddMagicCSharp();
 ```
+
+This single method from `MagicUseCaseRegistrationModule` registers:
+- All use cases via automatic discovery
+- `IClock` implementation for testable time
+- `IRequestIdHandler` for request tracking
+
+**Option B: Granular Control**
+
+```csharp
+// Register only use cases
+services.AddMagicUseCases();
+
+// Manually register other services as needed
+services.AddSingleton<IClock, DateTimeClock>();
+services.AddSingleton<IRequestIdHandler, RequestIdHandler>();
+```
+
+Use this approach when you need custom implementations of `IClock` or `IRequestIdHandler`.
 
 **Important for Multi-Assembly Projects:**
 
@@ -168,6 +188,53 @@ public class UserController : ControllerBase
 ```
 
 That's it! Your use case is automatically registered and follows clean architecture principles.
+
+## Module Architecture
+
+MagicCSharp provides extension methods through module classes that follow a consistent pattern for configuring your application.
+
+### MagicUseCaseRegistrationModule
+
+**Location:** `MagicCSharp.UseCases.MagicUseCaseRegistrationModule`
+
+**Purpose:** Provides extension methods for automatic service registration.
+
+**Why use it:** Eliminates manual service registration boilerplate. Instead of registering each use case individually in your DI container, this module automatically discovers and registers all use cases across your application.
+
+**Key methods:**
+
+1. **`AddMagicCSharp()`** - One-stop registration (recommended)
+   - Automatically registers all use cases
+   - Registers `IClock` for testable time
+   - Registers `IRequestIdHandler` for request tracking
+   - Best for most applications
+
+2. **`AddMagicUseCases()`** - Use case registration only
+   - Only registers use cases via automatic discovery
+   - Use when you need custom implementations of `IClock` or `IRequestIdHandler`
+   - Gives you granular control over other service registrations
+
+**How it works:** Scans all loaded assemblies for interfaces implementing `IMagicUseCase`, finds their concrete implementations, and registers them with the appropriate lifetime (Scoped by default, or as specified by the `[MagicUseCase]` attribute).
+
+### RequestIdMiddlewareModule
+
+**Location:** `MagicCSharp.Extensions.RequestIdMiddlewareModule`
+
+**Purpose:** Provides middleware for automatic request ID tracking across HTTP requests.
+
+**Why use it:** Essential for distributed tracing and log correlation. Automatically generates unique IDs for each request, accepts IDs from upstream services, and makes request IDs available throughout your entire request pipeline.
+
+**Key method:**
+
+- **`UseRequestId()`** - Adds RequestId middleware to the pipeline
+  - Automatically generates 8-character unique IDs
+  - Accepts `X-Request-ID` header from clients
+  - Adds RequestId to response headers
+  - Makes RequestId available via `IRequestIdHandler`
+
+**Best practice:** Add `app.UseRequestId()` early in your middleware pipeline, typically right after error handling middleware and before authentication/authorization.
+
+**Why modules?** These modules follow the ASP.NET Core convention of providing extension methods for configuration, making it easy to discover and use MagicCSharp features through IntelliSense, while keeping the implementation details encapsulated.
 
 ## Features
 
@@ -309,24 +376,27 @@ new IntervalSchedule(TimeSpan.FromMinutes(5))  // Every 5 minutes
 
 Track requests across async boundaries and correlated logs with automatic middleware.
 
-**Setup (recommended):**
+**Setup:**
 
 ```csharp
 // Program.cs
 var builder = WebApplication.CreateBuilder(args);
 
-// Register RequestIdHandler
-builder.Services.AddSingleton<IRequestIdHandler, RequestIdHandler>();
+// Register services (IRequestIdHandler is included)
+builder.Services.AddMagicCSharp();
+// OR if using granular registration:
+// builder.Services.AddSingleton<IRequestIdHandler, RequestIdHandler>();
 
 var app = builder.Build();
 
-// Add RequestId middleware - should be early in the pipeline
+// Add RequestId middleware from RequestIdMiddlewareModule
+// Should be early in the pipeline
 app.UseRequestId();
 
 app.Run();
 ```
 
-The middleware automatically:
+The `UseRequestId()` extension method from `RequestIdMiddlewareModule` automatically:
 - Accepts `X-Request-ID` header from clients (for distributed tracing)
 - Generates an 8-character unique ID if no header is provided
 - Adds the RequestId to response headers for client tracking

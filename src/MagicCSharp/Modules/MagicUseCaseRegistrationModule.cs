@@ -1,4 +1,5 @@
 using System.Reflection;
+using MagicCSharp.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MagicCSharp.UseCases;
@@ -6,8 +7,17 @@ namespace MagicCSharp.UseCases;
 /// <summary>
 ///     Extension methods for registering MagicUseCases in the dependency injection container.
 /// </summary>
-public static class MagicUseCaseRegistrationExtensions
+public static class MagicUseCaseRegistrationModule
 {
+    public static IServiceCollection AddMagicCSharp(
+        this IServiceCollection services)
+    {
+        return services
+            .AddMagicUseCases()
+            .AddSingleton<IClock, DateTimeClock>()
+            .AddSingleton<IRequestIdHandler, RequestIdHandler>();
+    }
+    
     /// <summary>
     ///     Scans all loaded assemblies for all interfaces that extend IMagicUseCase
     ///     and automatically registers them with their implementations in the DI container.
