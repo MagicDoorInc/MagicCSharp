@@ -402,3 +402,5 @@ FodyWeavers.xsd
 .idea/
 
 .claude/
+# Copied from tools/ when the template package is built
+templates/content/magiccsharp-repo/tools/

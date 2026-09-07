@@ -14,20 +14,42 @@ packages directly.
 ## Setting it up
 
 You need the **.NET 10 SDK**. The scripts are single-file programs that declare their own dependencies, so
-there is nothing to install beyond that.
+there is nothing else to install.
 
-Copy `tools/` from this repository into the root of yours, then:
+### A new repository
+
+```bash
+dotnet new install MagicCSharp.Templates
+dotnet new magiccsharp-repo -n Acme
+cd Acme
+```
+
+| Option | Default | |
+|---|---|---|
+| `-n, --name` | — | Namespace and solution-name root |
+| `--MagicCSharpVersion` | the version the template shipped with | MagicCSharp packages to pin |
+| `--TargetFramework` | `net10.0` | `net10.0` or `net9.0` |
+
+That gives you everything below plus `tools/`, and the scripts' own `--help` examples are rewritten to your
+prefix.
+
+### An existing repository
+
+Copy `tools/` from [the repository](https://github.com/MagicDoorInc/MagicCSharp/tree/master/tools) into your
+root, then:
 
 ```bash
 dotnet run tools/InitRepo.cs -- --prefix Acme
 ```
 
+`InitRepo` writes only what is missing, so it composes with a repository that already has a README, a
+`.gitignore` and projects of its own. See [Adding this to an existing repository](#adding-this-to-an-existing-repository).
+
 The prefix is your namespace and solution-name root. `Acme` gives you `Acme.Shop.slnx`, assemblies named
 `Acme.Shop.App`, namespaces like `Acme.Shop.Domains.Orders`. Pick your company or product name; it is
 awkward to change later because it is baked into every namespace.
 
-That writes six things, none of which it will overwrite if they already exist — so it is safe to run in a
-repository that has a `.gitignore` and a README already:
+Either route gives you the same six things — and `InitRepo` will not overwrite any that already exist:
 
 | File | Why |
 |---|---|

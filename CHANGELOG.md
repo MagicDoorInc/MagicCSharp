@@ -84,6 +84,19 @@ only what it uses.
 services in one repository, each with its own solution, sharing a set of libraries. Entirely opt-in; nothing
 in the packages reads it. See [docs/repository-layout.md](docs/repository-layout.md).
 
+**`MagicCSharp.Templates`** — a `dotnet new` template, so starting a repository on this layout does not mean
+cloning the framework's source and copying a directory out of it:
+
+```bash
+dotnet new install MagicCSharp.Templates
+dotnet new magiccsharp-repo -n Acme
+```
+
+Lays down the configuration, `Apps/`, `Libs/` and `tools/`, with the prefix substituted everywhere — including
+the scripts' own `--help` examples. `--MagicCSharpVersion` and `--TargetFramework` are parameters; the release
+script keeps the version default in step with what it publishes. The scripts are copied from `tools/` when the
+package is built rather than duplicated, so there is one source of truth.
+
 **Tooling** — `tools/`, single-file .NET programs run with `dotnet run`, needing only the .NET 10 SDK. See
 [tools/README.md](tools/README.md).
 - `InitRepo` sets a repository up: `magiccsharp.json`, `Directory.Build.props`, central package management,

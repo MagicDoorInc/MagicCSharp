@@ -17,6 +17,9 @@
         <Project Path="src/MagicCSharp.Testing/MagicCSharp.Testing.csproj"/>
         <Project Path="src/MagicCSharp.Testing.Database/MagicCSharp.Testing.Database.csproj"/>
     </Folder>
+    <Folder Name="/templates/">
+        <Project Path="templates/MagicCSharp.Templates.csproj"/>
+    </Folder>
     <Folder Name="/tests/">
         <Project Path="tests/MagicCSharp.Tests/MagicCSharp.Tests.csproj"/>
     </Folder>

@@ -358,9 +358,9 @@ its own backend on: several services in one repository, each with its own soluti
 libraries. Take it, take part of it, or ignore it entirely — nothing in the packages reads it.
 
 ```bash
-cp -r tools/ ~/my-repo/ && cd ~/my-repo
+dotnet new install MagicCSharp.Templates
+dotnet new magiccsharp-repo -n Acme && cd Acme
 
-dotnet run tools/InitRepo.cs -- --prefix Acme          # one-time setup
 dotnet run tools/CreateApp.cs -- --name Shop --database shop
 dotnet run --project Apps/Shop/Shop.App                # a service that runs
 ```
