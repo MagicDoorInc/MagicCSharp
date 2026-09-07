@@ -58,6 +58,12 @@ public static class MagicKafkaEventsRegistrationExtensions
                 BootstrapServers = host,
                 BrokerAddressFamily = BrokerAddressFamily.V4,
                 GroupId = groupId,
+
+                // Set explicitly because the listener commits by hand, only after a message is processed.
+                // Confluent defaults both of these to true, which committed offsets on a timer regardless
+                // and made that manual commit decorative — a message that failed to parse was marked done.
+                EnableAutoCommit = false,
+                EnableAutoOffsetStore = false,
             };
 
             var consumerLogger = KafkaLoggerAdapter.GetConsumerLogHandler<Null, string>(logger);

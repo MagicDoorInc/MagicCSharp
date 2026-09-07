@@ -22,12 +22,20 @@ public class KafkaEventDispatcher(
 
         logger.LogTrace("Dispatching event {EventType}", magicEvent.GetType().Name);
 
-        // TODO: maybe we should use the sync produce here to ensure the event is sent
-        kafkaProducer.ProduceAsync(config.Topic, new Message<Null, string>
+        // Deliberately not awaited: dispatching must not block the use case that raised the event. But the
+        // task is observed — discarding it meant a broker that rejected the message failed in complete
+        // silence, which is the worst way for an event to go missing.
+        var produce = kafkaProducer.ProduceAsync(config.Topic, new Message<Null, string>
         {
             Value = eventSerializer.SerializeMagicEvent(magicEvent),
         });
 
-        // Kafka events background service will handle the rest
+        _ = produce.ContinueWith(
+            task => logger.LogError(task.Exception,
+                "Failed to produce {EventType} to {Topic}. The event was NOT published",
+                magicEvent.GetType().Name, config.Topic),
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
     }
 }

@@ -303,19 +303,29 @@ eventDispatcher.Dispatch(new OrderCreated { ... });
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
+builder.AddMagicApp();
 
-// Register use cases
-builder.Services.AddMagicUseCases();
-
-// Choose your event strategy
-builder.Services.RegisterLocalMagicEvents();        // Local development
-// builder.Services.RegisterMagicKafkaEvents(config);  // Production with Kafka
-
-// Setup repositories with Snowflake IDs
-builder.Services.RegisterSnowflakeKeyGen(generatorId: 1);
+var app = builder.Build();
+app.UseMagicApp(builder);
+app.Run();
 ```
 
-That's it. Clean, testable, production-ready.
+That is the whole of it with `MagicCSharp.App`. Wiring the pieces yourself instead:
+
+```csharp
+builder.Services.AddMagicCSharp();                  // use cases, IClock, request IDs
+builder.Services.RegisterSnowflakeKeyGen();         // ids — give each instance a distinct id in production
+
+builder.Services.RegisterMagicEvents();             // handler discovery — required before any transport
+builder.Services.RegisterLocalMagicEvents();        // in-process
+// builder.Services.RegisterMagicKafkaEvents(config);  // or Kafka
+
+builder.Services.AddMagicScheduling();              // schedule store + lock (single machine)
+builder.Services.AddMagicErrorHandling();           // exceptions to RFC 7807 responses
+```
+
+`RegisterMagicEvents()` comes first — it is what discovers your handlers. The transport call only registers
+the dispatcher, so on its own it fails at resolution.
 
 ## Complete Example
 
