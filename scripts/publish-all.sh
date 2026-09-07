@@ -23,12 +23,20 @@ VERSION_FILE="scripts/version.txt"
 OUTPUT_DIR="./nupkgs"
 
 # Package paths
+# Order matters: a package is packed after everything it references, so the version bump has already
+# landed in its dependencies' csproj files.
 PACKAGES=(
     "src/MagicCSharp/MagicCSharp.csproj"
+    "src/MagicCSharp.AspNetCore/MagicCSharp.AspNetCore.csproj"
+    "src/MagicCSharp.Scheduling/MagicCSharp.Scheduling.csproj"
     "src/MagicCSharp.Data/MagicCSharp.Data.csproj"
+    "src/MagicCSharp.Data.EntityFramework/MagicCSharp.Data.EntityFramework.csproj"
+    "src/MagicCSharp.Data.Postgres/MagicCSharp.Data.Postgres.csproj"
     "src/MagicCSharp.Events/MagicCSharp.Events.csproj"
     "src/MagicCSharp.Events.Kafka/MagicCSharp.Events.Kafka.csproj"
     "src/MagicCSharp.Events.SQS/MagicCSharp.Events.SQS.csproj"
+    "src/MagicCSharp.Testing/MagicCSharp.Testing.csproj"
+    "src/MagicCSharp.Testing.Database/MagicCSharp.Testing.Database.csproj"
 )
 
 echo "================================================"

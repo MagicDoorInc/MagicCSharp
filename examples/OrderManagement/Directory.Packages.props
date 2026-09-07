@@ -6,7 +6,10 @@
     <ItemGroup>
         <!-- MagicCSharp Framework -->
         <PackageVersion Include="MagicCSharp" Version="0.0.7" />
+        <PackageVersion Include="MagicCSharp.AspNetCore" Version="0.0.7" />
         <PackageVersion Include="MagicCSharp.Data" Version="0.0.7" />
+        <PackageVersion Include="MagicCSharp.Data.EntityFramework" Version="0.0.7" />
+        <PackageVersion Include="MagicCSharp.Data.Postgres" Version="0.0.7" />
         <PackageVersion Include="MagicCSharp.Events" Version="0.0.7" />
 
         <!-- Database -->

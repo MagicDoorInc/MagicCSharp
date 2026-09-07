@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using MagicCSharp.Data.Dals;
+using MagicCSharp.Data.EntityFramework.Dals;
 using Microsoft.EntityFrameworkCore;
 using OrderManagement.Data.Entities;
 

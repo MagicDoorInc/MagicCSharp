@@ -15,6 +15,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../../../src/MagicCSharp/MagicCSharp.csproj"/>
+        <ProjectReference Include="../../../src/MagicCSharp.AspNetCore/MagicCSharp.AspNetCore.csproj"/>
         <ProjectReference Include="../../../src/MagicCSharp.Events/MagicCSharp.Events.csproj"/>
         <ProjectReference Include="../OrderManagement.Business/OrderManagement.Business.csproj"/>
         <ProjectReference Include="../OrderManagement.Data/OrderManagement.Data.csproj"/>

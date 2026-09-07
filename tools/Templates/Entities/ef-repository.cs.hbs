@@ -1,0 +1,35 @@
+using MagicCSharp.Data.EntityFramework.Repositories;
+using MagicCSharp.Data.Utils;
+using MagicCSharp.Infrastructure;
+using MagicCSharp.Infrastructure.KeyGen;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using {{ prefix }}.{{ app_name }}.Data.EntityFramework.Dals;
+using {{ prefix }}.{{ app_name }}.Data.Repositories;
+using {{ entity_namespace }};
+
+namespace {{ prefix }}.{{ app_name }}.Data.EntityFramework.Repositories;
+
+public class {{ plural }}EfRepository(
+    IDbContextFactory<Magic{{ app_name }}Context> contextFactory,
+    IKeyGenService keyGen,
+    IClock clock,
+    ILoggerFactory loggerFactory)
+    : Base{{ if use_key }}Key{{ else }}Id{{ end }}{{ if is_paginated }}Paginated{{ end }}Repository<Magic{{ app_name }}Context, {{ entity_name }}Dal, {{ entity_name }}, {{ entity_name }}Filter, {{ entity_name }}Edit>(
+        contextFactory, clock, loggerFactory), I{{ plural }}Repository
+{
+    protected override {{ entity_name }}Dal CreateDal({{ entity_name }}Edit edit)
+    {
+        return {{ entity_name }}Dal.From(edit, keyGen.Get{{ if use_key }}Key(){{ else }}Id(){{ end }});
+    }
+
+    protected override IQueryable<{{ entity_name }}Dal> ApplyFilter(IQueryable<{{ entity_name }}Dal> query, {{ entity_name }}Filter filter)
+    {
+        {{ if use_key }}query = query.ApplyListFilter(filter.Keys, x => x.Key);{{ else }}query = query.ApplyListFilter(filter.Ids, x => (long?)x.Id);{{ end }}
+        query = query.ApplyComparableRangeFilter(filter.Created, x => (DateTimeOffset?)x.Created);
+
+        // TODO: narrow on the rest of the filter's properties
+
+        return query;
+    }
+}

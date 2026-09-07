@@ -9,6 +9,8 @@
     <ItemGroup>
         <PackageReference Include="MagicCSharp"/>
         <PackageReference Include="MagicCSharp.Data"/>
+        <PackageReference Include="MagicCSharp.Data.EntityFramework"/>
+        <PackageReference Include="MagicCSharp.Data.Postgres"/>
         <PackageReference Include="MagicCSharp.Events"/>
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design"/>
@@ -17,6 +19,8 @@
     <ItemGroup>
         <ProjectReference Include="../../../src/MagicCSharp/MagicCSharp.csproj"/>
         <ProjectReference Include="../../../src/MagicCSharp.Data/MagicCSharp.Data.csproj"/>
+        <ProjectReference Include="../../../src/MagicCSharp.Data.EntityFramework/MagicCSharp.Data.EntityFramework.csproj"/>
+        <ProjectReference Include="../../../src/MagicCSharp.Data.Postgres/MagicCSharp.Data.Postgres.csproj"/>
         <ProjectReference Include="../../../src/MagicCSharp.Events/MagicCSharp.Events.csproj"/>
     </ItemGroup>
 

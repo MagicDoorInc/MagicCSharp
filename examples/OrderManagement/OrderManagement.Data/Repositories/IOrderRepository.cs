@@ -3,6 +3,8 @@ using OrderManagement.Data.Entities;
 
 namespace OrderManagement.Data.Repositories;
 
-public interface IOrderRepository : IRepositoryPaginated<Order, OrderFilter, OrderEdit>
+public interface IOrderRepository :
+    IRepository<Order, long, OrderEdit, OrderFilter>,
+    IPaginatedRepository<Order, OrderFilter>
 {
 }
