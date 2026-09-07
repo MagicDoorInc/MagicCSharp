@@ -10,7 +10,8 @@ dotnet new install MagicCSharp.Templates
 dotnet new magiccsharp-repo -n Acme
 cd Acme
 
-dotnet run tools/CreateApp.cs -- --name Shop --database shop
+dotnet tool restore                       # the CLI, pinned in .config/dotnet-tools.json
+dotnet mcs create-app --name Shop --database shop
 dotnet run --project Apps/Shop/Shop.App
 ```
 
@@ -24,9 +25,9 @@ dotnet run --project Apps/Shop/Shop.App
 | `--TargetFramework` | `net10.0` | `net10.0` or `net9.0` |
 
 You get `magiccsharp.json`, `Directory.Build.props`, central package management, the all-projects solution,
-`Apps/`, `Libs/`, and `tools/` — seven scripts that create services, domains, shared libraries and entities,
-and lint the conventions the compiler cannot.
+`Apps/`, `Libs/`, and a tool manifest pinning `MagicCSharp.Cli` — so everyone on the repository runs the same
+scaffolding after `dotnet tool restore`.
 
-Requires the **.NET 10 SDK** to run the scripts, whatever the projects target.
+Requires the **.NET 10 SDK**, whatever the projects themselves target.
 
 Full guide: https://github.com/MagicDoorInc/MagicCSharp/blob/master/docs/repository-layout.md

@@ -32,5 +32,18 @@ dotnet tool install MagicCSharp.Cli
 **Nothing is overwritten** — an existing file is reported and skipped. **Re-running changes nothing**, so
 every command is safe to repeat.
 
+## Your own templates
+
+Everything generated comes from a template you can replace, one file at a time:
+
+```bash
+mcs templates list
+mcs templates eject Entities/dal.cs.hbs
+```
+
+Across several repositories, keep the templates in a repository of their own and add it as a submodule at
+`.magiccsharp/templates`. See
+[template overrides](https://github.com/MagicDoorInc/MagicCSharp/blob/master/docs/template-overrides.md).
+
 The structure this creates is optional; the MagicCSharp packages work in any layout. Full guide:
 https://github.com/MagicDoorInc/MagicCSharp/blob/master/docs/repository-layout.md

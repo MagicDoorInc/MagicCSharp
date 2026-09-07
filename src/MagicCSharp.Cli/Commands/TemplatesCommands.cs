@@ -18,7 +18,7 @@ public class TemplatesListCommand : Command<TemplatesListCommand.Settings>
 
     public override int Execute(CommandContext context, Settings settings)
     {
-        var resolver = TemplateResolver.ForRepository(RepoConfig.Load());
+        var resolver = TemplateResolver.ForRepository(RepoConfig.TryLoad());
         var templates = resolver.All();
 
         var table = new Table().Border(TableBorder.SimpleHeavy);
@@ -57,7 +57,7 @@ public class TemplatesWhereCommand : Command
 {
     public override int Execute(CommandContext context)
     {
-        var resolver = TemplateResolver.ForRepository(RepoConfig.Load());
+        var resolver = TemplateResolver.ForRepository(RepoConfig.TryLoad());
 
         AnsiConsole.MarkupLine("[bold]Looked up in order, first match wins:[/]");
 
@@ -99,7 +99,7 @@ public class TemplatesEjectCommand : Command<TemplatesEjectCommand.Settings>
 
     public override int Execute(CommandContext context, Settings settings)
     {
-        var resolver = TemplateResolver.ForRepository(RepoConfig.Load());
+        var resolver = TemplateResolver.ForRepository(RepoConfig.TryLoad());
 
         if (resolver.OverrideDirectory == null)
         {

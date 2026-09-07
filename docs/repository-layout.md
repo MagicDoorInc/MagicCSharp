@@ -81,20 +81,20 @@ The prefix is your namespace and solution-name root. `Acme` gives you `Acme.Shop
 `Acme.Shop.App`, namespaces like `Acme.Shop.Domains.Orders`. Pick your company or product name; it is
 awkward to change later because it is baked into every namespace.
 
-Either route gives you the same six things — and `InitRepo` will not overwrite any that already exist:
+Either route gives you the same six things — and `mcs init` will not overwrite any that already exist:
 
 | File | Why |
 |---|---|
 | `magiccsharp.json` | Holds the prefix. Its presence is how every other tool knows it is at the repository root. |
 | `Directory.Build.props` | Target framework, nullable, implicit usings, warnings-as-errors — inherited by every project, so a `.csproj` carries only what is specific to it. |
 | `Directory.Packages.props` | Central package management: one version per package for the whole repository, so two projects cannot disagree. |
-| `{Prefix}.All.slnx` | Every project. Generated — see `SyncAllProjects`. |
+| `{Prefix}.All.slnx` | Every project. Generated — see `mcs sync`. |
 | `Apps/`, `Libs/` | The two top-level directories, with `.gitkeep` so they survive a fresh clone. |
 
 Then create your first service:
 
 ```bash
-dotnet run tools/CreateApp.cs -- --name Shop --database shop
+mcs create-app --name Shop --database shop
 ```
 
 You now have a service that builds and runs:
@@ -159,14 +159,14 @@ contracts only.
 `Libs/` is for code **more than one service uses**. That is the whole rule.
 
 ```bash
-dotnet run tools/CreateLib.cs -- --name Events --tests
+mcs create-lib --name Events --tests
 ```
 
 Creates `Libs/Events/Default/Acme.Libraries.Events.csproj`, and a Tests project beside it. Dots in the name
 nest directories:
 
 ```bash
-dotnet run tools/CreateLib.cs -- --name Clients.Billing
+mcs create-lib --name Clients.Billing
 # → Libs/Clients/Billing/Default/Acme.Libraries.Clients.Billing.csproj
 ```
 
@@ -217,51 +217,22 @@ was that service's code in the wrong place.
 ## Making the templates your own
 
 Everything the generators write comes from a `.hbs` template, and a team can replace any one of them without
-forking the rest. Override the DAL template to add your own audit columns; leave the other eighteen built-in.
-
-Templates are searched in order, **first match wins**:
-
-1. `.magiccsharp/templates/` in your repository — committed, so the whole team gets it
-2. the built-ins, embedded in `mcs` itself
+forking the rest.
 
 ```bash
 mcs templates list              # every template, and which layer provides it
-mcs templates where             # the layers, in search order
 mcs templates eject Entities/dal.cs.hbs
 ```
 
-`eject` writes a built-in template into your override directory. Edit it, commit it, and every generator in
-the repository uses your copy from then on. Delete it to go back to the built-in — there is no state anywhere
-else.
+Two layers, first match winning: `.magiccsharp/templates/` in your repository, then the built-ins embedded in
+`mcs`. Resolution is per file, so overriding the DAL template leaves the other eighteen built-in and still
+tracking upstream. Reverting is deleting your copy.
 
-Because resolution is per file, an override you took a year ago does not stop you receiving improvements to
-every template you did not touch.
+**Once you have more than one repository, put the templates in a repository of their own** and add it as a
+submodule at `.magiccsharp/templates` — otherwise house style drifts between repositories and a fix to one
+never reaches the others.
 
-### Configuring it
-
-`magiccsharp.json` holds the override directory:
-
-```json
-{
-  "prefix": "Acme",
-  "templates": ".magiccsharp/templates"
-}
-```
-
-Point it anywhere — a git submodule shared across repositories, a directory outside the repo, whatever suits.
-Set it to `""` to turn overrides off entirely, which makes `mcs templates eject` refuse rather than write
-somewhere that will be ignored.
-
-### What to override, and what it costs
-
-Good candidates are house style that the framework has no opinion about: a licence header on generated
-files, your own audit columns on the DAL base, a different default filter shape, a test file that starts
-from your fixtures.
-
-The cost is the usual one for a fork. Your copy stops tracking upstream, so a fix to the built-in template
-does not reach it — `mcs templates list` shows which files you have taken on, and re-ejecting with `--force`
-gives you the current built-in to merge against.
-
+**[How to override templates, and how to build a shared template repository →](template-overrides.md)**
 
 ---
 
@@ -270,7 +241,7 @@ gives you the current built-in to merge against.
 ### A domain
 
 ```bash
-dotnet run tools/CreateAppLib.cs -- --solution Acme.Shop.slnx --name Domains.Orders --models --tests
+mcs create-domain --solution Acme.Shop.slnx --name Domains.Orders --models --tests
 ```
 
 Up to three projects under `Apps/Shop/Shop.Domains/Orders/`:
@@ -286,7 +257,7 @@ projects depend on, and a cycle follows immediately.
 ### An entity
 
 ```bash
-dotnet run tools/AddEntity.cs -- --solution Acme.Shop.slnx --domain Orders --name Order --paginated
+mcs add-entity --solution Acme.Shop.slnx --domain Orders --name Order --paginated
 ```
 
 Four files across three projects, all of which have to agree about names, namespaces and generic arguments:
@@ -318,26 +289,26 @@ interface says so.
 
 ## The tools
 
-| Tool | Does |
+| Command | Does |
 |---|---|
-| `InitRepo` | Sets up the repository. Run once. |
-| `CreateApp` | New service: host project, solution, and the data projects unless `--no-database`. |
-| `CreateAppLib` | New domain inside a service. |
-| `CreateLib` | New shared library under `Libs/`. |
-| `AddEntity` | Entity across its four files, registered. |
-| `SyncAllProjects` | Rebuilds `{Prefix}.All.slnx` from disk. |
-| `ValidateConventions` | Lints the conventions the compiler cannot. Exits non-zero — use it in CI. |
+| `mcs init` | Sets up the repository. Run once. |
+| `mcs create-app` | New service: host project, solution, and the data projects unless `--no-database`. |
+| `mcs create-domain` | New domain inside a service. |
+| `mcs create-lib` | New shared library under `Libs/`. |
+| `mcs add-entity` | Entity across its four files, registered. |
+| `mcs sync` | Rebuilds `{Prefix}.All.slnx` from disk. |
+| `mcs validate` | Lints the conventions the compiler cannot. Exits non-zero — use it in CI. |
+| `mcs templates` | See and override the generators' templates. |
 
-Every one takes `--help`, and [tools/README.md](../tools/README.md) has the options and a worked example for
-each.
+Every one takes `--help`, and the [CLI reference](../src/MagicCSharp.Cli/README.md) lists the options.
 
 ### Regenerating the wide solution
 
 ```bash
-dotnet run tools/SyncAllProjects.cs
+mcs sync
 ```
 
-`CreateApp`, `CreateAppLib` and `CreateLib` run this themselves, so you rarely call it. The two times you do:
+`create-app`, `create-domain` and `create-lib` run this themselves, so you rarely call it. The two times you do:
 after a merge or rebase leaves `{Prefix}.All.slnx` conflicted — take either side, or delete the file, and
 regenerate rather than resolving by hand — and after moving or deleting a project outside the tools.
 
@@ -350,13 +321,13 @@ edited would throw the edits away, so it never happens — if you want a file re
 **Re-running changes nothing.** Registrations are not duplicated, solutions are rewritten only when the
 content actually differs. Run any of them twice and the second run produces no diff.
 
-`CreateApp`, `CreateAppLib` and `CreateLib` run `SyncAllProjects` for you, so a new project is in the wide
-solution without a second command.
+`create-app`, `create-domain` and `create-lib` run `sync` for you, so a new project is in the wide solution
+without a second command.
 
 ### Conventions
 
 ```bash
-dotnet run tools/ValidateConventions.cs -- --path .
+mcs validate --path .
 ```
 
 Four rules, each for something that produces code which *compiles and then fails later*:
@@ -382,25 +353,25 @@ in review.
 
 ## Adding this to an existing repository
 
-`InitRepo` skips what already exists, so it composes with what you have. In an existing repository, expect to
+`mcs init` skips what already exists, so it composes with what you have. In an existing repository, expect to
 do three things by hand:
 
-1. **Reconcile `Directory.Build.props`.** If you already have one, `InitRepo` leaves it alone — check it sets
+1. **Reconcile `Directory.Build.props`.** If you already have one, `mcs init` leaves it alone — check it sets
    a target framework and `Nullable`.
 2. **Adopt central package management, or don't.** `Directory.Packages.props` only takes effect for projects
    that omit versions from their `PackageReference` entries. Existing projects with inline versions keep
    working until you move them.
 3. **Move projects into `Apps/` and `Libs/`.** The tools only generate into those paths; they will not
-   relocate what you have. `SyncAllProjects` picks up whatever it finds, so you can move projects gradually.
+   relocate what you have. `mcs sync` picks up whatever it finds, so you can move projects gradually.
 
-You can also take part of it. The scripts want the full layout, but `ValidateConventions` works on any
+You can also take part of it. The commands want the full layout, but `mcs validate` works on any
 directory, and the packages themselves want nothing.
 
 ---
 
 ## Version pinning
 
-`InitRepo` writes the MagicCSharp version into `Directory.Packages.props`. It defaults to the version the
+`mcs init` writes the MagicCSharp version into `Directory.Packages.props`. It defaults to the version the
 tools shipped with; override it with `--package-version`. The release script keeps that default in step with
 what is actually published, so a freshly scaffolded repository never points at a version that predates its
 own tooling.

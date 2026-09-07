@@ -36,6 +36,28 @@ public record RepoConfig
             return null;
         }
 
+        return Read(path);
+    }
+
+    /// <summary>
+    ///     Reads the config if there is one, saying nothing when there is not.
+    ///     <para>
+    ///         For commands that work outside a repository. The template commands only need the config to
+    ///         find the override directory, which has a default — so a missing config is an ordinary case,
+    ///         not an error worth a red line. It is what lets you build a shared template repository in an
+    ///         empty directory.
+    ///     </para>
+    /// </summary>
+    public static RepoConfig? TryLoad(string? directory = null)
+    {
+        var path = Path.Combine(directory ?? Directory.GetCurrentDirectory(), FileName);
+
+        return File.Exists(path) ? Read(path) : null;
+    }
+
+    private static RepoConfig? Read(string path)
+    {
+
         RepoConfig? config;
         try
         {

@@ -387,7 +387,7 @@ toward the domain and never back, which is what lets you read a domain without r
 `mcs` maintains it — creating services, domains, shared libraries and entities, and linting the conventions
 the compiler can't check. Nothing is ever overwritten and re-running any command produces no diff.
 
-**[Full guide →](docs/repository-layout.md)** · [Tool reference →](tools/README.md)
+**[Full guide →](docs/repository-layout.md)** · [Template overrides →](docs/template-overrides.md) · [CLI reference →](src/MagicCSharp.Cli/README.md)
 
 ## Real-World Benefits
 
