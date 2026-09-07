@@ -117,7 +117,7 @@ public record AppLibrary
             Directory = directory,
             AssemblyName = assemblyName,
             HostProject = $"{appRoot}/{appName}.App/{config.Prefix}.{appName}.App.csproj",
-            IsDomain = segments[0] == "Domains",
+            IsDomain = segments[0] == Container,
             IsHttpSurface = segments.Length > 1 && segments[^1] == "App",
             ParentDefaultProject = ParentOf(config, appName, segments),
         };
@@ -139,6 +139,55 @@ public record AppLibrary
         }
 
         return $"{directory}/Default/{config.Prefix}.{appName}.{string.Join('.', parent)}.csproj";
+    }
+
+    /// <summary>The first segment that puts a library under the host's wing.</summary>
+    private const string Container = "Domains";
+
+    /// <summary>
+    ///     One insertion, deletion, substitution or transposition away from <see cref="Container" />,
+    ///     ignoring case. Cheap because both strings are short and one of them is a constant.
+    /// </summary>
+    private static bool IsNearMiss(string segment)
+    {
+        if (Math.Abs(segment.Length - Container.Length) > 1)
+        {
+            return false;
+        }
+
+        var distance = new int[segment.Length + 1, Container.Length + 1];
+
+        for (var i = 0; i <= segment.Length; i++)
+        {
+            distance[i, 0] = i;
+        }
+
+        for (var j = 0; j <= Container.Length; j++)
+        {
+            distance[0, j] = j;
+        }
+
+        for (var i = 1; i <= segment.Length; i++)
+        {
+            for (var j = 1; j <= Container.Length; j++)
+            {
+                var substitute = char.ToLowerInvariant(segment[i - 1]) == char.ToLowerInvariant(Container[j - 1]) ? 0 : 1;
+
+                distance[i, j] = Math.Min(
+                    Math.Min(distance[i - 1, j] + 1, distance[i, j - 1] + 1),
+                    distance[i - 1, j - 1] + substitute);
+
+                // Transposition, so "Domians" is caught too.
+                if (i > 1 && j > 1 &&
+                    char.ToLowerInvariant(segment[i - 1]) == char.ToLowerInvariant(Container[j - 2]) &&
+                    char.ToLowerInvariant(segment[i - 2]) == char.ToLowerInvariant(Container[j - 1]))
+                {
+                    distance[i, j] = Math.Min(distance[i, j], distance[i - 2, j - 2] + 1);
+                }
+            }
+        }
+
+        return distance[segment.Length, Container.Length] <= 1;
     }
 
     private static bool Validate(string[] segments)
@@ -166,6 +215,18 @@ public record AppLibrary
             Output.Error("The first segment cannot be Data.");
             Output.Hint($"Persistence is one place per service: repository interfaces in Data/Data.Models,");
             Output.Plain("  DALs, repositories, the context and migrations in Data/Data.EntityFramework.");
+            return false;
+        }
+
+        // Shop.Domain/Orders is a valid-looking sibling of Shop.Domains/ that the host never references,
+        // so the domain builds, ships, and silently does nothing. The tool cannot tell a typo from a
+        // deliberate name by looking at it, but at one edit away from the container that decides whether a
+        // library is wired at all, refusing and naming the fix is worth more than the name is.
+        if (segments[0] != Container && IsNearMiss(segments[0]))
+        {
+            Output.Error($"'{segments[0]}' is one letter from '{Container}', which is the container that decides whether the host references a library.");
+            Output.Hint($"Did you mean {Container}.{string.Join('.', segments.Skip(1))}? For a domain:");
+            Output.Plain($"  mcs create-domain --name {string.Join('.', segments.Skip(1))}");
             return false;
         }
 

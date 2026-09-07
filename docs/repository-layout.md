@@ -382,6 +382,10 @@ parent, `Default` to `Models` — and never back. The day something makes `Order
 `Orders/App` to reuse a type, the build fails with a cycle; the fix is to move that type into `Models`, not
 to add the reference.
 
+Because that first segment is what decides whether the host references a library at all, a name one letter
+away from `Domains` is refused rather than created. `Shop.Domain/Orders` would look right in the tree, build,
+ship, and do nothing.
+
 ### An entity
 
 ```bash

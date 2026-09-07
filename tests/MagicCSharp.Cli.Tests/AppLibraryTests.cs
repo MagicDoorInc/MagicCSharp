@@ -115,6 +115,30 @@ public class AppLibraryTests
     }
 
     [Theory]
+    [InlineData("Domain.Orders")]           // singular: a sibling of Domains/ the host never references
+    [InlineData("Domians.Orders")]          // transposed
+    [InlineData("Domain")]
+    [InlineData("Domans.Orders")]
+    [InlineData("Domainss.Orders")]
+    public void A_near_miss_of_Domains_is_refused_rather_than_silently_unwired(string name)
+    {
+        // Shop.Domain/Orders builds and ships and does nothing, because only Shop.Domains/ is referenced
+        // by the host. One letter should not be the difference between working and silently not.
+        Assert.Null(AppLibrary.Plan(Config, "Shop", name));
+    }
+
+    [Theory]
+    [InlineData("Processors")]
+    [InlineData("Clients.Stripe")]
+    [InlineData("Testing.Fixtures")]
+    [InlineData("Documents.Templates")]
+    [InlineData("Mains.Something")]
+    public void A_name_that_is_not_close_to_Domains_is_left_alone(string name)
+    {
+        Assert.NotNull(AppLibrary.Plan(Config, "Shop", name));
+    }
+
+    [Theory]
     [InlineData("Domains.Orders.Models")]   // would collide with the Models project of Orders
     [InlineData("Domains.Orders.Default")]
     [InlineData("Domains.Orders.Tests")]
