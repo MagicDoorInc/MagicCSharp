@@ -102,8 +102,22 @@ where there were none. `dotnet tool update` replaces a hand-written installer an
 `install.sh` and the vendored `tools/` directory are gone.
 
 Templates are embedded in the tool rather than installed as loose files, so there is no path to resolve and
-nothing to go missing. Overrides are unchanged: `.magiccsharp/templates/` in the repository still wins, per
-file.
+nothing to go missing.
+
+**Team-owned templates.** Every file the generators write comes from a `.hbs` template, and a team can
+replace any single one without forking the rest — `.magiccsharp/templates/` in the repository wins over the
+built-ins, per file, so an override taken today does not stop you receiving improvements to the eighteen you
+did not touch.
+
+```bash
+mcs templates list                        # every template, and which layer provides it
+mcs templates eject Entities/dal.cs.hbs   # copy one in to customise
+```
+
+Across several repositories, keep the templates in a repository of their own and add it as a submodule at
+`.magiccsharp/templates`, so house style is defined once —
+[docs/template-overrides.md](docs/template-overrides.md) has the full flow. The directory comes from
+`"templates"` in `magiccsharp.json`; `""` disables overrides.
 
 **`MagicCSharp.Templates`** — a `dotnet new` template, for teams who would rather commit the tooling than
 install it:
@@ -113,10 +127,10 @@ dotnet new install MagicCSharp.Templates
 dotnet new magiccsharp-repo -n Acme
 ```
 
-Lays down the configuration, `Apps/`, `Libs/` and `tools/`, with the prefix substituted everywhere — including
-the scripts' own `--help` examples. `--MagicCSharpVersion` and `--TargetFramework` are parameters; the release
-script keeps the version default in step with what it publishes. The scripts are copied from `tools/` when the
-package is built rather than duplicated, so there is one source of truth.
+Lays down the configuration, `Apps/`, `Libs/` and a tool manifest pinning `MagicCSharp.Cli`, with the prefix
+substituted everywhere. `--MagicCSharpVersion` and `--TargetFramework` are parameters, and the release script
+keeps the pinned version in step with what it publishes, so a generated repository never references a version
+that predates its own tooling.
 
 **Tooling** — `tools/`, single-file .NET programs run with `dotnet run`, needing only the .NET 10 SDK. See
 [tools/README.md](tools/README.md).
