@@ -480,7 +480,7 @@ From then on it wins over the built-in for everyone who pulls. Deleting it rever
 cache anywhere else.
 
 The important part is that it works **per file**. Take over the DAL template to add your audit columns and
-the other eighteen still come from the tool, still improving as it does. That's the difference between
+the other nineteen still come from the tool, still improving as it does. That's the difference between
 customising a generator and forking one.
 
 Across several repositories, put the templates in a repository of their own and add it as a submodule at

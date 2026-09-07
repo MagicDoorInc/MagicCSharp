@@ -9,9 +9,17 @@ namespace MagicCSharp.Cli.Commands;
 ///     Creates a domain inside a service.
 ///     <para>
 ///         A domain is up to three projects. <c>Default</c> holds the use cases and event handlers.
-///         <c>Models</c> holds the entities, edits and filters — separate so the data projects can reference
-///         the entities without reaching the logic, which is what stops a repository calling a use case.
-///         <c>Tests</c> holds the tests.
+///         <c>Models</c> holds the entities, edits and filters — separate so the data projects can
+///         reference the entities without reaching the logic, which is what stops a repository calling a
+///         use case. <c>Tests</c> holds the tests.
+///     </para>
+///     <para>
+///         Dots go deeper. <c>Orders.App</c> is the domain's HTTP surface, holding its controllers, so the
+///         service's host project stays a shell rather than collecting every domain's endpoints.
+///         <c>Orders.Fulfilment</c> is a subdomain, for when one domain has grown enough to split.
+///     </para>
+///     <para>
+///         This is <c>create-app-lib</c> with <c>Domains.</c> prepended, and nothing else.
 ///     </para>
 /// </summary>
 public class CreateDomainCommand : Command<CreateDomainCommand.Settings>
@@ -23,7 +31,7 @@ public class CreateDomainCommand : Command<CreateDomainCommand.Settings>
         public string? Solution { get; init; }
 
         [CommandOption("-n|--name <NAME>")]
-        [Description("Library name, e.g. 'Domains.Orders'")]
+        [Description("Domain name, e.g. 'Orders'. 'Orders.App' is its endpoints.")]
         public string? Name { get; init; }
 
         [CommandOption("-m|--models")]
@@ -38,38 +46,21 @@ public class CreateDomainCommand : Command<CreateDomainCommand.Settings>
 
         public override ValidationResult Validate()
         {
-            // The solution is not checked here: resolving a service name, or falling back to the only
-            // service there is, needs the repository config, which is not loaded until Execute.
-            return Naming.IsDottedPascal(Name)
-                ? ValidationResult.Success()
-                : ValidationResult.Error($"Name must be PascalCase segments separated by dots: {Name}");
+            // The name is checked in AppLibrary.Plan, which needs the service to say anything useful.
+            return string.IsNullOrWhiteSpace(Name)
+                ? ValidationResult.Error("Domain name is required. Use --name <NAME>")
+                : ValidationResult.Success();
         }
     }
 
     public override int Execute(CommandContext context, Settings settings)
     {
-        var config = RepoConfig.Load();
-
-        if (config == null)
-        {
-            return 1;
-        }
-
-        var solution = SolutionArgument.Resolve(config, settings.Solution);
-
-        if (solution == null)
-        {
-            return 1;
-        }
-
         var name = settings.Name!;
-        var appName = config.AppNameFromSolution(solution);
-        var appRoot = $"Apps/{appName}";
 
-        if (!Directory.Exists(appRoot))
+        if (name == "Domains")
         {
-            Output.Error($"Service not found: {appRoot}");
-            Output.Hint($"Create it first: mcs create-app --name {appName} --database {appName.ToLowerInvariant()}");
+            Output.Error("Domains is the container, not a domain. Name the domain itself:");
+            Output.Hint("  mcs create-domain --name Orders");
             return 1;
         }
 
@@ -82,69 +73,6 @@ public class CreateDomainCommand : Command<CreateDomainCommand.Settings>
             Output.Note($"Interpreting --name as {name}");
         }
 
-        // Domains.Orders -> Domains/Orders; Domains.Orders.App -> Domains/Orders/App
-        var directory = $"{appRoot}/{appName}.Domains/{string.Join('/', name.Split('.').Skip(1))}";
-        var assemblyName = $"{config.Prefix}.{appName}.{name}";
-
-        var renderer = new TemplateRenderer(TemplateResolver.ForRepository(config));
-        var model = new { prefix = config.Prefix, name, assembly_name = assemblyName };
-
-        Output.Plain($"Service: {appName}   Library: {assemblyName}");
-        Output.Blank();
-
-        var projects = new List<string>();
-
-        var defaultProject = $"{directory}/Default/{assemblyName}.csproj";
-        renderer.Render("Libraries/default.csproj.hbs", defaultProject, model);
-        projects.Add(defaultProject);
-
-        if (settings.IncludeModels)
-        {
-            var modelsProject = $"{directory}/Models/{assemblyName}.Models.csproj";
-            renderer.Render("Libraries/models.csproj.hbs", modelsProject, model);
-            projects.Add(modelsProject);
-
-            // The use cases work with the entities, so Default depends on Models. The reverse must never
-            // happen: Models is what the data projects reference, and a cycle would follow.
-            DotnetCli.EnsureReference(defaultProject, modelsProject);
-        }
-
-        if (settings.IncludeTests)
-        {
-            var testsProject = $"{directory}/Tests/{assemblyName}.Tests.csproj";
-            renderer.Render("Libraries/tests.csproj.hbs", testsProject, model);
-            projects.Add(testsProject);
-        }
-
-        // The service has to reference the domain, or nothing happens: the assembly is not deployed with
-        // the app, so its use cases are never registered and its event handlers never run. Scaffolding a
-        // domain and leaving it unreferenced looked like it worked and did nothing.
-        var appProject = $"{appRoot}/{appName}.App/{config.Prefix}.{appName}.App.csproj";
-
-        if (File.Exists(appProject))
-        {
-            DotnetCli.EnsureReference(appProject, defaultProject);
-        }
-
-        if (SolutionFile.AddProjects(solution, projects))
-        {
-            Output.Updated(solution, "projects");
-        }
-
-        SyncCommand.Run(config);
-
-        Output.Blank();
-        Output.Success("Done.");
-
-        if (settings.IncludeModels)
-        {
-            Output.Plain($"  mcs add-entity --solution {appName} --domain {name.Split('.').Last()} --name YourEntity --paginated");
-        }
-        else
-        {
-            Output.Note("Pass --models if you want add-entity to be able to place entities here.");
-        }
-
-        return 0;
+        return CreateAppLibCommand.Run(settings.Solution, name, settings.IncludeModels, settings.IncludeTests);
     }
 }

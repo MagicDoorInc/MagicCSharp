@@ -16,6 +16,7 @@ public class TemplateAssemblyNameTests
     [Theory]
     [InlineData("Libraries/default.csproj.hbs")]
     [InlineData("Libraries/models.csproj.hbs")]
+    [InlineData("Libraries/app.csproj.hbs")]
     public void Project_templates_use_the_name_the_command_computed(string template)
     {
         var resolver = new TemplateResolver(null);

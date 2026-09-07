@@ -34,8 +34,10 @@ dotnet run --project Apps/Shop/Shop.App
 |---|---|
 | `mcs init --prefix Acme` | set this directory up as a repository |
 | `mcs create-app --name Shop --database shop` | a service |
-| `mcs create-domain -s Acme.Shop.slnx -n Domains.Orders --models --tests` | a domain |
-| `mcs add-entity -s Acme.Shop.slnx -d Orders -n Order --paginated` | an entity and its repository |
+| `mcs create-domain -s Shop -n Orders --models --tests` | a domain |
+| `mcs create-domain -s Shop -n Orders.App --tests` | that domain's endpoints |
+| `mcs add-entity -s Shop -d Orders -n Order --paginated` | an entity and its repository |
+| `mcs create-app-lib -s Shop -n Processors --tests` | a library inside one service |
 | `mcs create-lib --name Events --tests` | a shared library |
 | `mcs sync` | rebuild the all-projects solution |
 | `mcs validate` | lint the conventions the compiler cannot |
@@ -118,14 +120,17 @@ Acme.Notifications.slnx
 
 Apps/
   Shop/
-    Shop.App/                    host: Program.cs, controllers
+    Shop.App/                    host: Program.cs, configuration, references
     Shop.Domains/
       Orders/
         Default/                 use cases, event handlers
         Models/                  entities, edits, filters
         Tests/
+        App/                     this domain's endpoints: controllers, DTOs
+        Fulfilment/              a subdomain: the same shape, one level down
+    Shop.Processors/             an app library: one service, but not a domain
     Data/
-      Data.Models/               repository interfaces
+      Data.Models/               repository interfaces — for every domain
       Data.EntityFramework/      DALs, EF repositories, context, migrations
 
 Libs/
@@ -225,7 +230,7 @@ mcs templates eject Entities/dal.cs.hbs
 ```
 
 Two layers, first match winning: `.magiccsharp/templates/` in your repository, then the built-ins embedded in
-`mcs`. Resolution is per file, so overriding the DAL template leaves the other eighteen built-in and still
+`mcs`. Resolution is per file, so overriding the DAL template leaves the other nineteen built-in and still
 tracking upstream. Reverting is deleting your copy.
 
 **Once you have more than one repository, put the templates in a repository of their own** and add it as a
@@ -236,30 +241,146 @@ never reaches the others.
 
 ---
 
-## Adding to a service
+## Inside a service
+
+### Where code goes
+
+A service holds exactly one host project (`Shop.App` — `Program.cs`, configuration, and references), the two
+data projects, and then any number of **libraries**. A library is three optional projects in one directory:
+`Default/` (the code), `Models/` (the types other projects may depend on) and `Tests/`. Every library has
+that same shape. What differs is what it is for, and that is decided by where it sits and what it is called.
+
+There are four places code can go, and the question that picks between them is **who uses it**:
+
+| You are writing | It goes in | Command |
+|---|---|---|
+| Code two or more **services** use: an event contract, a typed client | a shared library, `Libs/Events/` | `mcs create-lib` |
+| A business area with its own entities, rules, use cases and event handlers | a domain, `Apps/Shop/Shop.Domains/Orders/` | `mcs create-domain` |
+| That domain's endpoints: controllers, request and response types | the domain's App, `.../Orders/App/` | `mcs create-domain --name Orders.App` |
+| Code one service uses from several domains, that is not itself a domain: a payment-processor adapter, test fixtures | an app library, `Apps/Shop/Shop.Processors/` | `mcs create-app-lib` |
+
+Two sentences carry most of it:
+
+**A domain is an app library with a job.** Technically it is the same three projects. What makes it a domain
+is that it sits under `Shop.Domains/`, owns entities and rules, and the host references it.  An app library
+sits elsewhere in the service and the host does *not* reference it — something in a domain does.
+
+**A domain's `App` is its face, not a second domain.** `Orders/App` references `Orders`, never the reverse.
+Anything that needs `HttpContext` — the current user, a header, a status code — belongs in `Orders/App`.
+Anything that would still be true if the service spoke no HTTP at all belongs in `Orders/Default`.
+
+Why this is worth the structure: the host project becomes a list of references and a `Program.cs`, and each
+domain is one directory holding its rules, its types, its endpoints and its tests, readable top to bottom by
+someone who has never seen the rest of the service. Five domains' controllers do not pile into one
+`Controllers/` folder. Moving a domain to another service is moving a directory and changing two references.
+
+**Names nest.** Dots in `--name` become directories, and the leaf gets the three projects:
+
+| `--name` | Directory | Assembly |
+|---|---|---|
+| `Processors` | `Apps/Shop/Shop.Processors/` | `Acme.Shop.Processors` |
+| `Domains.Orders` | `Apps/Shop/Shop.Domains/Orders/` | `Acme.Shop.Domains.Orders` |
+| `Domains.Orders.App` | `Apps/Shop/Shop.Domains/Orders/App/` | `Acme.Shop.Domains.Orders.App` |
+| `Domains.Orders.Fulfilment` | `Apps/Shop/Shop.Domains/Orders/Fulfilment/` | `Acme.Shop.Domains.Orders.Fulfilment` |
+
+The first segment is glued to the service name; every one after it is a subdirectory.
 
 ### A domain
 
 ```bash
-mcs create-domain --solution Shop --name Domains.Orders --models --tests
+mcs create-domain --solution Shop --name Orders --models --tests
 ```
 
 `--solution` takes the service name. Leave it out entirely when the repository has only one service; with
-several and no flag, the command lists them rather than guessing.
+several and no flag, the command lists them rather than guessing. `create-domain --name Orders` is exactly
+`create-app-lib --name Domains.Orders` — use whichever reads better.
 
 Up to three projects under `Apps/Shop/Shop.Domains/Orders/`:
 
 - **`Default/`** — use cases and event handlers. The logic.
 - **`Models/`** — entities, edits, filters. Separate so the data projects can reference the entities without
-  reaching the logic. `AddEntity` needs this, so pass `--models` unless you have a reason not to.
+  reaching the logic. `add-entity` needs this, so pass `--models` unless you have a reason not to.
 - **`Tests/`** — comes with `MagicCSharp.Testing` referenced.
 
 `Default` gets a reference to `Models` automatically, and the service's `App` project gets a reference to
 `Default`. That second one is not cosmetic: without it the domain's assembly is not deployed with the
 service, so its use cases are never registered and its event handlers never run.
 
-Never add the reverse reference — `Models` is what the data projects depend on, and a cycle follows
-immediately.
+Name domains in the plural and entities in the singular — `Orders` and `Order` — so the generated
+`IOrdersRepository` reads correctly.
+
+### The domain's endpoints
+
+```bash
+mcs create-domain --solution Shop --name Orders.App --tests
+```
+
+`Apps/Shop/Shop.Domains/Orders/App/`, holding the controllers for this domain and the request and response
+types they use. It is created with the ASP.NET shared framework referenced and a reference back to
+`Orders/Default`, so its controllers can call the domain's use cases.
+
+The test for what belongs here: **would this code exist if the service had no HTTP?** If yes, it belongs in
+`Orders/Default`.
+
+There is nothing else to wire. The host references this project, and that is enough for both halves:
+controllers are found because ASP.NET reads the referenced assemblies that use MVC, and use cases and event
+handlers are found because MagicCSharp loads every assembly deployed beside the executable before it scans.
+If you are coming from a codebase that touches a type from each assembly at startup to force it to load, you
+do not need that here.
+
+Create the `.App` before its domain exists and the command says so and adds no reference; create the domain
+and run it again, and the second run adds it.
+
+### Splitting a domain
+
+```bash
+mcs create-domain --solution Shop --name Orders.Fulfilment --models --tests
+mcs add-entity    --solution Shop --domain Orders.Fulfilment --name Shipment
+```
+
+A subdomain, when one domain has grown enough to divide. It gets the same three projects one level down, and
+the host references it like any other domain.
+
+A subdomain may depend on its parent, never the reverse. That reference is *not* added for you — most
+subdomains want it, but a project reference nothing needs never announces itself — so the command prints the
+line to run if you want it.
+
+One level of nesting is normal. Three is usually a sign the domain boundary is in the wrong place rather
+than that the tool should go deeper.
+
+### An app library
+
+```bash
+mcs create-app-lib --solution Shop --name Processors --tests
+```
+
+`Apps/Shop/Shop.Processors/` — one service, but not a domain: it owns no entities and no business rules, it
+supports the domains that do. The host does not reference it; a domain should. The command prints the line.
+
+**Test fixtures** are an ordinary app library. Create one, then add `MagicCSharp.Testing` and `xunit` to its
+`Default` project and reference it from the `Tests` projects that share those fixtures:
+
+```bash
+mcs create-app-lib --solution Shop --name Testing.Fixtures
+dotnet add Apps/Shop/Shop.Testing/Fixtures/Default package MagicCSharp.Testing
+```
+
+### What the tool wires, and what it leaves you
+
+Three things follow from the name alone:
+
+| When | The tool |
+|---|---|
+| the name starts with `Domains.` | references it from the host, so it is deployed and discovered |
+| the name ends with `.App` | gives it the ASP.NET framework reference and points it at its domain |
+| you passed `--models` | points `Default` at `Models` |
+
+Everything else is yours: a subdomain's reference to its parent, and any reference to an app library.
+
+**References point down the tree and toward the domain** — host to domain, `.App` to domain, subdomain to
+parent, `Default` to `Models` — and never back. The day something makes `Orders/Default` reference
+`Orders/App` to reuse a type, the build fails with a cycle; the fix is to move that type into `Models`, not
+to add the reference.
 
 ### An entity
 
@@ -300,7 +421,8 @@ interface says so.
 |---|---|
 | `mcs init` | Sets up the repository. Run once. |
 | `mcs create-app` | New service: host project, solution, and the data projects unless `--no-database`. |
-| `mcs create-domain` | New domain inside a service. |
+| `mcs create-domain` | New domain inside a service, or its endpoints, or a subdomain. |
+| `mcs create-app-lib` | New library inside one service that is not a domain. |
 | `mcs create-lib` | New shared library under `Libs/`. |
 | `mcs add-entity` | Entity across its four files, registered. |
 | `mcs sync` | Rebuilds `{Prefix}.All.slnx` from disk. |
@@ -315,7 +437,7 @@ Every one takes `--help`, and the [CLI reference](../src/MagicCSharp.Cli/README.
 mcs sync
 ```
 
-`create-app`, `create-domain` and `create-lib` run this themselves, so you rarely call it. The two times you do:
+`create-app`, `create-domain`, `create-app-lib` and `create-lib` run this themselves, so you rarely call it. The two times you do:
 after a merge or rebase leaves `{Prefix}.All.slnx` conflicted — take either side, or delete the file, and
 regenerate rather than resolving by hand — and after moving or deleting a project outside the tools.
 
@@ -328,7 +450,7 @@ edited would throw the edits away, so it never happens — if you want a file re
 **Re-running changes nothing.** Registrations are not duplicated, solutions are rewritten only when the
 content actually differs. Run any of them twice and the second run produces no diff.
 
-`create-app`, `create-domain` and `create-lib` run `sync` for you, so a new project is in the wide solution
+`create-app`, `create-domain`, `create-app-lib` and `create-lib` run `sync` for you, so a new project is in the wide solution
 without a second command.
 
 ### Conventions

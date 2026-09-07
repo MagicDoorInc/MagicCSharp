@@ -20,7 +20,11 @@ app.Configure(config =>
 
     config.AddCommand<CreateDomainCommand>("create-domain")
         .WithDescription("Create a domain inside a service")
-        .WithExample("create-domain", "-s", "Acme.Shop.slnx", "-n", "Domains.Orders", "--models", "--tests");
+        .WithExample("create-domain", "-s", "Shop", "-n", "Orders", "--models", "--tests");
+
+    config.AddCommand<CreateAppLibCommand>("create-app-lib")
+        .WithDescription("Create a library inside one service")
+        .WithExample("create-app-lib", "-s", "Shop", "-n", "Processors", "--tests");
 
     config.AddCommand<CreateLibCommand>("create-lib")
         .WithDescription("Create a shared library under Libs/")
@@ -28,7 +32,7 @@ app.Configure(config =>
 
     config.AddCommand<AddEntityCommand>("add-entity")
         .WithDescription("Create an entity and its repository")
-        .WithExample("add-entity", "-s", "Acme.Shop.slnx", "-d", "Orders", "-n", "Order", "--paginated");
+        .WithExample("add-entity", "-s", "Shop", "-d", "Orders", "-n", "Order", "--paginated");
 
     config.AddCommand<SyncCommand>("sync")
         .WithDescription("Rebuild the all-projects solution from disk");

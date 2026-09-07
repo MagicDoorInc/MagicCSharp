@@ -18,6 +18,7 @@ public class TemplateResolverTests
             "Apps/Data/DataModels.csproj.hbs", "Apps/Data/DataEntityFramework.csproj.hbs",
             "Apps/Data/MagicContext.cs.hbs", "Apps/Data/RepositoriesModule.cs.hbs",
             "Libraries/default.csproj.hbs", "Libraries/models.csproj.hbs", "Libraries/tests.csproj.hbs",
+            "Libraries/app.csproj.hbs",
             "Entities/entity.cs.hbs", "Entities/dal.cs.hbs",
             "Entities/ef-repository.cs.hbs", "Entities/repository-interface.cs.hbs",
         ];

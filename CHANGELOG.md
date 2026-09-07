@@ -187,6 +187,12 @@ supply the half that makes it work:
   while logging the detail, because an unhandled exception's message routinely carries a connection string.
 - `HttpException` and friends — `BadRequestException`, `ConflictException`, `UnprocessableEntityException` —
   for when a use case genuinely means a status code.
+- **`mcs create-app-lib`**, and dotted names everywhere. Dots in a library name nest directories, so a
+  service can hold libraries that are not domains (`Apps/Shop/Shop.Processors`), a domain can own its
+  endpoints (`Orders.App` — its own controllers, with the ASP.NET framework reference, served by the host
+  with no wiring), and a domain that has grown can be split (`Orders.Fulfilment`, which can hold its own
+  entities). `create-domain` is this command with `Domains.` prepended, and is unchanged for existing use.
+  `create-lib` gains `--models` to match, and `add-entity --domain` takes a dotted subdomain.
 - `GetOrThrow` on `IRepository`. `Update` and `Delete` throw `NotFoundException` for a missing key while
   `Get` returns null, so every endpoint fetching by id wrote its own throw to get a 404 out of the error
   handling. This is that line, once, naming the key in the exception.
@@ -205,7 +211,7 @@ supply the half that makes it work:
 Plus `ValidateServices()`, which resolves every registration at startup so a miswired dependency fails the
 deploy rather than the first request that needs it. Generated apps get all of this wired in.
 
-**Tests** — 156, where there were none.
+**Tests** — 194, where there were none.
 
 ### Fixed
 

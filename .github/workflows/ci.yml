@@ -62,8 +62,12 @@ jobs:
           mcs create-app --name Shop --database shop
           mcs create-app --name Notifications --no-database
           mcs create-domain --solution Acme.Shop.slnx --name Domains.Orders --models --tests
+          mcs create-domain --solution Shop --name Orders.App --tests
+          mcs create-domain --solution Shop --name Orders.Fulfilment --models --tests
+          mcs create-app-lib --solution Shop --name Processors --tests
           mcs add-entity --solution Acme.Shop.slnx --domain Orders --name Order --paginated
           mcs add-entity --solution Acme.Shop.slnx --domain Orders --name ApiKey --use-key
+          mcs add-entity --solution Shop --domain Orders.Fulfilment --name Shipment
           mcs create-lib --name Events --tests
           mcs sync
           mcs validate --path .
@@ -80,7 +84,11 @@ jobs:
           mcs init --prefix Acme
           mcs create-app --name Shop --database shop
           mcs create-domain --solution Acme.Shop.slnx --name Domains.Orders --models --tests
+          mcs create-domain --solution Shop --name Orders.App --tests
+          mcs create-domain --solution Shop --name Orders.Fulfilment --models --tests
+          mcs create-app-lib --solution Shop --name Processors --tests
           mcs add-entity --solution Acme.Shop.slnx --domain Orders --name Order --paginated
+          mcs add-entity --solution Shop --domain Orders.Fulfilment --name Shipment
           mcs sync
           if [ -n "$(git status --porcelain)" ]; then
             echo "Re-running the commands changed the worktree:"

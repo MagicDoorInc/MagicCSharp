@@ -20,6 +20,11 @@ public class CreateLibCommand : Command<CreateLibCommand.Settings>
         [Description("Library name; dots nest directories, e.g. 'Clients.Billing'")]
         public string? Name { get; init; }
 
+        [CommandOption("-m|--models")]
+        [Description("Also create a Models project")]
+        [DefaultValue(false)]
+        public bool IncludeModels { get; init; }
+
         [CommandOption("-t|--tests")]
         [Description("Also create a Tests project alongside it")]
         [DefaultValue(false)]
@@ -57,7 +62,17 @@ public class CreateLibCommand : Command<CreateLibCommand.Settings>
         Output.Plain($"Library: {assemblyName}");
         Output.Blank();
 
-        var created = renderer.Render("Libraries/default.csproj.hbs", $"{directory}/Default/{assemblyName}.csproj", model);
+        var defaultProject = $"{directory}/Default/{assemblyName}.csproj";
+        var created = renderer.Render("Libraries/default.csproj.hbs", defaultProject, model);
+
+        if (settings.IncludeModels)
+        {
+            var modelsProject = $"{directory}/Models/{assemblyName}.Models.csproj";
+            created |= renderer.Render("Libraries/models.csproj.hbs", modelsProject, model);
+
+            // Default depends on Models, never the reverse — Models is the half other projects reference.
+            DotnetCli.EnsureReference(defaultProject, modelsProject);
+        }
 
         if (settings.IncludeTests)
         {

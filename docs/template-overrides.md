@@ -1,6 +1,6 @@
 # Overriding the templates
 
-Every file `mcs` generates comes from a Scriban template — nineteen of them. You can replace any one with
+Every file `mcs` generates comes from a Scriban template — twenty of them. You can replace any one with
 your own, and the rest keep coming from the tool.
 
 ```bash
@@ -18,7 +18,7 @@ Two layers, first match winning:
 
 That is the whole mechanism: a file-exists check per template name.
 
-Because it is **per file**, overriding `Entities/dal.cs.hbs` leaves the other eighteen built-in and still
+Because it is **per file**, overriding `Entities/dal.cs.hbs` leaves the other nineteen built-in and still
 receiving upstream improvements. Reverting is deleting your copy — there is no registry, no cache, and
 nothing else to unset.
 
@@ -107,7 +107,7 @@ mcs templates list --overridden
 ```
 Entities/dal.cs.hbs   this repository (.magiccsharp/templates/Entities/dal.cs.hbs)
 Apps/Program.cs.hbs   this repository (.magiccsharp/templates/Apps/Program.cs.hbs)
-19 templates, 2 overridden
+20 templates, 2 overridden
 ```
 
 Everything generated from then on uses your templates for those two and the built-ins for the rest.

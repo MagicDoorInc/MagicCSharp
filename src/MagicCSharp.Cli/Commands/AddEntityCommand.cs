@@ -26,7 +26,7 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
         public string? Name { get; init; }
 
         [CommandOption("-d|--domain <DOMAIN>")]
-        [Description("Owning domain, e.g. 'Orders'")]
+        [Description("Owning domain, e.g. 'Orders'. Dots for a subdomain: 'Orders.Fulfilment'.")]
         public string? Domain { get; init; }
 
         [CommandOption("-k|--use-key")]
@@ -48,9 +48,16 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
                 return ValidationResult.Error($"Entity name must be PascalCase with no dots: {Name}");
             }
 
-            return Naming.IsPascalWord(Domain)
-                ? ValidationResult.Success()
-                : ValidationResult.Error($"Domain must be PascalCase with no dots: {Domain}");
+            if (!Naming.IsDottedPascal(Domain))
+            {
+                return ValidationResult.Error($"Domain must be PascalCase segments separated by dots: {Domain}");
+            }
+
+            // An .App holds controllers and the request and response types they use. Entities belong to
+            // the domain itself, which is what the .App sits inside.
+            return Domain!.EndsWith(".App", StringComparison.Ordinal)
+                ? ValidationResult.Error($"Entities belong in the domain, not its HTTP surface. Use --domain {Domain[..^4]}")
+                : ValidationResult.Success();
         }
     }
 
@@ -90,7 +97,7 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
                 Output.Error($"Required project not found: {path}");
             }
 
-            Output.Hint($"Create the domain first: mcs create-domain --solution {appName} --name Domains.{domain} --models");
+            Output.Hint($"Create the domain first: mcs create-domain --solution {appName} --name {domain} --models");
             return 1;
         }
 
@@ -211,7 +218,8 @@ public class EntityPaths(string prefix, string appName, string domain, string en
     private readonly string basePath = $"Apps/{appName}";
     private readonly string plural = Naming.Pluralize(entity);
 
-    public string DomainModelsDirectory => $"{basePath}/{appName}.Domains/{domain}/Models";
+    /// <summary>Dots nest, as they do everywhere else: Orders.Fulfilment is Orders/Fulfilment.</summary>
+    public string DomainModelsDirectory => $"{basePath}/{appName}.Domains/{domain.Replace('.', '/')}/Models";
     public string DomainModelsProject => $"{DomainModelsDirectory}/{prefix}.{appName}.Domains.{domain}.Models.csproj";
     public string DataProject => $"{basePath}/Data/Data.Models/{prefix}.{appName}.Data.Models.csproj";
     public string EntityFrameworkDirectory => $"{basePath}/Data/Data.EntityFramework";
