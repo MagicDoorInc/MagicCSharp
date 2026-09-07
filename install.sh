@@ -247,7 +247,14 @@ ok "mcs installed to $BIN_DIR/mcs"
 
 # ── PATH ─────────────────────────────────────────────────────────────────────────────────────────────
 
-path_line="export PATH=\"\$HOME/.magiccsharp/bin:\$PATH\""
+# Derived from where mcs was actually installed, not assumed — MAGICCSHARP_HOME may point anywhere, and a
+# hardcoded ~/.magiccsharp/bin would then add a directory that does not exist while mcs sits elsewhere.
+# Written back through $HOME when it lives under the home directory, so the profile stays portable.
+if [ "${BIN_DIR#"$HOME"/}" != "$BIN_DIR" ]; then
+  path_line="export PATH=\"\$HOME/${BIN_DIR#"$HOME"/}:\$PATH\""
+else
+  path_line="export PATH=\"$BIN_DIR:\$PATH\""
+fi
 
 if [ -n "${NO_MODIFY_PATH:-}" ]; then
   warn "Skipped shell profile. Add this yourself:"
@@ -262,7 +269,7 @@ else
   esac
 
   if [ -n "$profile" ]; then
-    if [ -f "$profile" ] && grep -qF '.magiccsharp/bin' "$profile"; then
+    if [ -f "$profile" ] && { grep -qF "$BIN_DIR" "$profile" || grep -qF "${BIN_DIR#"$HOME"/}" "$profile"; }; then
       ok "PATH already set in $(basename "$profile")"
     else
       printf '\n# MagicCSharp tools\n%s\n' "$path_line" >> "$profile"

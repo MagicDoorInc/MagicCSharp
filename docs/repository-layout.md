@@ -46,8 +46,18 @@ dotnet run --project Apps/Shop/Shop.App
 command. It never blocks what you asked for, only says anything on a terminal, and
 `MAGICCSHARP_NO_UPDATE_CHECK=1` turns it off.
 
-Re-running the installer upgrades in place. `MAGICCSHARP_HOME` moves the install, `MAGICCSHARP_REF` pins a
-branch or tag, `NO_MODIFY_PATH=1` leaves your shell profile alone.
+The installer adds one line to your shell profile — `.zshrc`, or `.bash_profile`/`.bashrc` for bash — so
+`mcs` is on your PATH:
+
+```bash
+export PATH="$HOME/.magiccsharp/bin:$PATH"
+```
+
+Open a new shell afterwards, or source the profile. Re-running the installer will not add it twice, and if
+your shell is not one it recognises it prints the line for you to add rather than guessing at a file.
+
+Re-running upgrades in place. `MAGICCSHARP_HOME` moves the install (the PATH line follows it),
+`MAGICCSHARP_REF` pins a branch or tag, `NO_MODIFY_PATH=1` leaves your profile untouched.
 
 ### Without installing anything
 
