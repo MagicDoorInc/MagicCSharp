@@ -205,7 +205,7 @@ supply the half that makes it work:
 Plus `ValidateServices()`, which resolves every registration at startup so a miswired dependency fails the
 deploy rather than the first request that needs it. Generated apps get all of this wired in.
 
-**Tests** — 152, where there were none.
+**Tests** — 156, where there were none.
 
 ### Fixed
 
@@ -231,6 +231,9 @@ deploy rather than the first request that needs it. Generated apps get all of th
 - **`mcs create-domain` left the new domain unreferenced by its service.** Nothing failed — the projects
   built and the solution opened — but the assembly was not deployed with the app, so its use cases were never
   registered. It now adds the reference, as `create-app` already does for the data projects.
+- **`mcs add-entity` wrote every repository registration at sixteen spaces** instead of eight, with a blank
+  line between each. `InsertBefore` spliced at the anchor rather than at the start of its line, so the
+  caller's indentation was added to the anchor's own. Every generated repositories module carried it.
 - **The domain project template composed its own assembly name** as `{prefix}.Libraries.{name}`, leaving the
   service out, so two services with a same-named domain both produced `Acme.Libraries.Domains.Orders`.
 

@@ -55,7 +55,22 @@ public static class SourceEdits
         return content[..lastBrace].TrimEnd() + newLine + newLine + member + newLine + content[lastBrace..];
     }
 
-    /// <summary>Inserts a line immediately before an anchor, preserving the anchor's indentation.</summary>
+    /// <summary>
+    ///     Inserts a statement above the anchor's line, indented to match it.
+    ///     <para>
+    ///         The line lands after the last statement rather than immediately above the anchor, so blank
+    ///         lines separating the anchor from the body — the one before <c>return services;</c>, say —
+    ///         stay where the author put them and successive insertions group together.
+    ///     </para>
+    ///     <para>
+    ///         This used to splice at the anchor itself, which put the new line after the anchor's own
+    ///         leading whitespace: the caller's eight spaces became sixteen, and the anchor was pushed onto
+    ///         a fresh line of stray spaces. Every generated repositories module carried it.
+    ///     </para>
+    /// </summary>
+    /// <param name="content">The file.</param>
+    /// <param name="anchor">Text on the line to insert above, e.g. <c>return services;</c>.</param>
+    /// <param name="line">The statement, without indentation — the anchor's is applied.</param>
     public static string InsertBefore(string content, string anchor, string line)
     {
         var index = content.IndexOf(anchor, StringComparison.Ordinal);
@@ -67,6 +82,22 @@ public static class SourceEdits
 
         var newLine = content.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
 
-        return content[..index] + line + newLine + newLine + "        " + content[index..];
+        var anchorLineStart = content.LastIndexOf('\n', index) + 1;
+        var indent = content[anchorLineStart..index];
+
+        // Back up over the blank lines above the anchor, so the statement joins the ones already there
+        // instead of landing in the gap that separates them from it.
+        var insertAt = content[..anchorLineStart].TrimEnd().Length;
+
+        if (insertAt == 0)
+        {
+            insertAt = anchorLineStart;
+        }
+        else
+        {
+            insertAt += newLine.Length;
+        }
+
+        return content[..insertAt] + indent + line.Trim() + newLine + content[insertAt..];
     }
 }

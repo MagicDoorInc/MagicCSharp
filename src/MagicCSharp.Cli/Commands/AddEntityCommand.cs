@@ -196,7 +196,7 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
         }
 
         content = SourceEdits.InsertBefore(content, "return services;",
-            $"        services.AddScoped<I{plural}Repository, {plural}EfRepository>();");
+            $"services.AddScoped<I{plural}Repository, {plural}EfRepository>();");
         content = SourceEdits.EnsureUsing(content, $"{prefix}.{appName}.Data.Repositories");
         content = SourceEdits.EnsureUsing(content, $"{prefix}.{appName}.Data.EntityFramework.Repositories");
 
