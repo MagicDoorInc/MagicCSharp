@@ -72,7 +72,11 @@ jobs:
       - name: Re-run every command and assert nothing changed
         working-directory: ${{ runner.temp }}/scaffold
         run: |
-          git init -q . && git add -A && git commit -qm baseline
+          # A runner has no git identity, and the commit fails without one. Passed per-command rather
+          # than configured globally: this repository is a scratch one, and nothing else here commits.
+          git init -q .
+          git add -A
+          git -c user.name=ci -c user.email=ci@example.invalid commit -qm baseline
           mcs init --prefix Acme
           mcs create-app --name Shop --database shop
           mcs create-domain --solution Acme.Shop.slnx --name Domains.Orders --models --tests
