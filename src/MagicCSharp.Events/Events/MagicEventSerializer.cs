@@ -24,7 +24,30 @@ public class MagicEventSerializer(IEnumerable<Type> eventTypes) : IEventSerializ
         DefaultBufferSize = 4096,
     };
 
-    private readonly Dictionary<string, Type> allEventTypeMap = eventTypes.ToDictionary(t => t.Name);
+    // Keyed by simple name, because that is what goes on the wire as the discriminator — but built by
+    // hand so a duplicate names both offenders, rather than throwing "An item with the same key has
+    // already been added" from inside ToDictionary during startup with no clue which types collided.
+    private readonly Dictionary<string, Type> allEventTypeMap = BuildTypeMap(eventTypes);
+
+    private static Dictionary<string, Type> BuildTypeMap(IEnumerable<Type> eventTypes)
+    {
+        var map = new Dictionary<string, Type>(StringComparer.Ordinal);
+
+        foreach (var type in eventTypes)
+        {
+            if (map.TryGetValue(type.Name, out var existing))
+            {
+                throw new InvalidOperationException(
+                    $"Two event types are both named '{type.Name}': {existing.FullName} and {type.FullName}. " +
+                    "The type name is the wire format's discriminator, so it has to be unique across the " +
+                    "application. Rename one of them.");
+            }
+
+            map[type.Name] = type;
+        }
+
+        return map;
+    }
 
     public string SerializeMagicEvent(MagicEvent magicEvent)
     {

@@ -8,15 +8,8 @@
 
         <!-- NuGet Package Properties -->
         <PackageId>MagicCSharp.Events.SQS</PackageId>
-        <Version>0.0.11</Version>
-        <Authors>MagicCSharp</Authors>
-        <Company>MagicCSharp</Company>
         <Description>AWS SQS event dispatcher and consumer implementation for MagicCSharp.Events</Description>
         <PackageTags>csharp;events;sqs;aws;event-driven</PackageTags>
-        <RepositoryUrl>https://github.com/yourusername/magiccsharp</RepositoryUrl>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>

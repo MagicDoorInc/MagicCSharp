@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - run: dotnet build MagicCSharp.slnx -c Release
+      - run: dotnet test MagicCSharp.slnx -c Release --no-build --verbosity normal
+
+      - name: Conventions
+        run: dotnet run --project src/MagicCSharp.Cli -- validate --path src
+
+  scaffold:
+    name: Scaffold a repository from nothing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # The CHANGELOG claims a repository scaffolded from empty builds and serves a request. This is that
+      # claim, run on every change, because it spans the CLI, the templates and all fourteen packages and
+      # nothing else catches it breaking.
+      - name: Pack everything to a local feed
+        run: |
+          for proj in src/*/*.csproj; do
+            dotnet pack "$proj" -c Release -o "$RUNNER_TEMP/feed" --nologo -v quiet
+          done
+          ls "$RUNNER_TEMP/feed"
+
+      - name: Install the CLI from that feed
+        run: |
+          VERSION=$(grep -o '<Version>[^<]*' src/Directory.Build.props | sed 's/<Version>//')
+          dotnet tool install -g MagicCSharp.Cli --add-source "$RUNNER_TEMP/feed" --version "$VERSION"
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Scaffold two services, a domain, an entity and a shared library
+        working-directory: ${{ runner.temp }}
+        run: |
+          VERSION=$(grep -o '<Version>[^<]*' "$GITHUB_WORKSPACE/src/Directory.Build.props" | sed 's/<Version>//')
+          mkdir scaffold && cd scaffold
+          cat > nuget.config <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources><add key="local" value="$RUNNER_TEMP/feed" /></packageSources>
+          </configuration>
+          EOF
+          mcs init --prefix Acme --package-version "$VERSION"
+          mcs create-app --name Shop --database shop
+          mcs create-app --name Notifications --no-database
+          mcs create-domain --solution Acme.Shop.slnx --name Domains.Orders --models --tests
+          mcs add-entity --solution Acme.Shop.slnx --domain Orders --name Order --paginated
+          mcs add-entity --solution Acme.Shop.slnx --domain Orders --name ApiKey --use-key
+          mcs create-lib --name Events --tests
+          mcs sync
+          mcs validate --path .
+          dotnet build Acme.All.slnx
+
+      - name: Re-run every command and assert nothing changed
+        working-directory: ${{ runner.temp }}/scaffold
+        run: |
+          # A runner has no git identity, and the commit fails without one. Passed per-command rather
+          # than configured globally: this repository is a scratch one, and nothing else here commits.
+          git init -q .
+          git add -A
+          git -c user.name=ci -c user.email=ci@example.invalid commit -qm baseline
+          mcs init --prefix Acme
+          mcs create-app --name Shop --database shop
+          mcs create-domain --solution Acme.Shop.slnx --name Domains.Orders --models --tests
+          mcs add-entity --solution Acme.Shop.slnx --domain Orders --name Order --paginated
+          mcs sync
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Re-running the commands changed the worktree:"
+            git status --porcelain
+            git diff
+            exit 1
+          fi
+
+      - name: The generated service answers a request
+        working-directory: ${{ runner.temp }}/scaffold
+        run: |
+          dotnet run --project Apps/Notifications/Notifications.App --no-launch-profile --urls http://localhost:5199 &
+          for _ in $(seq 1 45); do
+            sleep 1
+            curl -fsS -m 2 http://localhost:5199/hello && break
+          done
+          curl -fsS -m 5 -D headers.txt http://localhost:5199/hello | grep -q '"service"'
+          grep -qi '^X-Request-ID' headers.txt

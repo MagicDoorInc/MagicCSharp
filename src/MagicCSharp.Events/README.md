@@ -5,6 +5,33 @@
 Build decoupled, scalable applications with a clean event-driven architecture. MagicCSharp.Events handles event
 dispatching, serialization, and handler execution with priority ordering and comprehensive monitoring.
 
+## Registration order
+
+Two calls, and the first is not optional:
+
+```csharp
+services.RegisterMagicEvents();        // handler discovery, serializer, IAsyncEventDispatcher
+services.RegisterLocalMagicEvents();   // then a transport — or RegisterMagicKafkaEvents / RegisterMagicSQSEvents
+```
+
+`RegisterMagicEvents` is what finds your `IEventHandler<T>` implementations and registers
+`IAsyncEventDispatcher`. The transport call only registers `IEventDispatcher`, so calling it alone leaves
+the application failing at resolution the first time anything dispatches. `MagicCSharp.App` does both for
+you.
+
+**`Priority` must be `static`.** The dispatcher reads it without constructing the handler, so an instance
+property compiles and is silently ignored — your handler runs at the default priority. The interface
+declares it `static virtual`.
+
+```csharp
+public class SendOrderConfirmationHandler : IEventHandler<OrderCreated>
+{
+    public static MagicEventPriority Priority => MagicEventPriority.NotifyUser;
+
+    public Task Handle(OrderCreated evt) => ...;
+}
+```
+
 ## Why MagicCSharp.Events?
 
 ✅ **Priority-Based Execution** - Control handler execution order
@@ -45,7 +72,7 @@ public record UserCreatedEvent : MagicEvent
 public class SendWelcomeEmailHandler(IEmailService emailService)
     : IEventHandler<UserCreatedEvent>
 {
-    public MagicEventPriority Priority => MagicEventPriority.NotifyUser;
+    public static MagicEventPriority Priority => MagicEventPriority.NotifyUser;
 
     public async Task Handle(UserCreatedEvent @event)
     {
@@ -56,7 +83,7 @@ public class SendWelcomeEmailHandler(IEmailService emailService)
 public class CreateUserProfileHandler(IProfileRepository profileRepository)
     : IEventHandler<UserCreatedEvent>
 {
-    public MagicEventPriority Priority => MagicEventPriority.AddDataNoDependencies;
+    public static MagicEventPriority Priority => MagicEventPriority.AddDataNoDependencies;
 
     public async Task Handle(UserCreatedEvent @event)
     {
@@ -78,7 +105,7 @@ services.RegisterMagicEvents();
 services.RegisterLocalMagicEvents();
 
 // Optional: Enable OpenTelemetry metrics
-// services.RegisterLocalMagicEvents(useOpenTelemetryMetrics: true);
+// services.RegisterMagicEvents(useOpenTelemetryMetrics: true);
 ```
 
 ### 4. Dispatch Events
@@ -113,7 +140,7 @@ Control the order in which handlers execute using priorities:
 public class CreateRelatedDataHandler : IEventHandler<OrderCreatedEvent>
 {
     // Executes first - no dependencies
-    public MagicEventPriority Priority => MagicEventPriority.AddDataNoDependencies;
+    public static MagicEventPriority Priority => MagicEventPriority.AddDataNoDependencies;
 
     public async Task Handle(OrderCreatedEvent @event)
     {
@@ -124,7 +151,7 @@ public class CreateRelatedDataHandler : IEventHandler<OrderCreatedEvent>
 public class UpdateInventoryHandler : IEventHandler<OrderCreatedEvent>
 {
     // Executes second - depends on order items existing
-    public MagicEventPriority Priority => MagicEventPriority.AddDataWithDependencies;
+    public static MagicEventPriority Priority => MagicEventPriority.AddDataWithDependencies;
 
     public async Task Handle(OrderCreatedEvent @event)
     {
@@ -135,7 +162,7 @@ public class UpdateInventoryHandler : IEventHandler<OrderCreatedEvent>
 public class SendConfirmationHandler : IEventHandler<OrderCreatedEvent>
 {
     // Executes last - notify user after everything is done
-    public MagicEventPriority Priority => MagicEventPriority.NotifyUser;
+    public static MagicEventPriority Priority => MagicEventPriority.NotifyUser;
 
     public async Task Handle(OrderCreatedEvent @event)
     {
@@ -277,7 +304,7 @@ public class OrderService(IEventDispatcher eventDispatcher)
 Track event processing with built-in metrics:
 
 ```csharp
-services.RegisterLocalMagicEvents(useOpenTelemetryMetrics: true);
+services.RegisterMagicEvents(useOpenTelemetryMetrics: true);
 ```
 
 **Metrics Collected:**
@@ -452,7 +479,7 @@ public record OrderCreatedEvent : MagicEvent
 public class UpdateInventoryHandler(IInventoryService inventoryService)
     : IEventHandler<OrderCreatedEvent>
 {
-    public MagicEventPriority Priority => MagicEventPriority.AddDataWithDependencies;
+    public static MagicEventPriority Priority => MagicEventPriority.AddDataWithDependencies;
 
     public async Task Handle(OrderCreatedEvent @event)
     {
@@ -463,7 +490,7 @@ public class UpdateInventoryHandler(IInventoryService inventoryService)
 public class SendConfirmationHandler(IEmailService emailService)
     : IEventHandler<OrderCreatedEvent>
 {
-    public MagicEventPriority Priority => MagicEventPriority.NotifyUser;
+    public static MagicEventPriority Priority => MagicEventPriority.NotifyUser;
 
     public async Task Handle(OrderCreatedEvent @event)
     {

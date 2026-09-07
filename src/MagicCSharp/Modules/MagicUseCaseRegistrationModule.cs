@@ -10,9 +10,14 @@ namespace MagicCSharp.Modules;
 /// </summary>
 public static class MagicUseCaseRegistrationModule
 {
-    public static IServiceCollection AddMagicCSharp(this IServiceCollection services)
+    /// <param name="services">The service collection.</param>
+    /// <param name="assemblyFilter">
+    ///     Optional filter narrowing which loaded assemblies are scanned for use cases. Defaults to every
+    ///     non-framework assembly.
+    /// </param>
+    public static IServiceCollection AddMagicCSharp(this IServiceCollection services, Func<Assembly, bool>? assemblyFilter = null)
     {
-        return services.AddMagicUseCases()
+        return services.AddMagicUseCases(assemblyFilter)
             .AddSingleton<IClock, DateTimeClock>()
             .AddSingleton<IRequestIdHandler, RequestIdHandler>();
     }

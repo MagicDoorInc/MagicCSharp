@@ -232,7 +232,7 @@ catch (Exception ex)
 
 - No data loss if processing fails
 - Automatic retry on failures
-- At-least-once delivery guarantee
+- At-least-once delivery to the dispatcher (see below for what that does and does not mean)
 
 ### 🛡️ Error Handling
 
@@ -539,3 +539,13 @@ SQS ensures each message is delivered to only one consumer at a time (via visibi
 ## License
 
 MIT License - See LICENSE file for details.
+
+## What is and is not guaranteed
+
+**Handler failures do not reach the transport.** `AsyncEventDispatcher` catches whatever a handler throws,
+logs it and carries on to the next handler — one failing handler must not stop the others. From SQS's point
+of view the message succeeded, so it is deleted rather than returned to the queue for redelivery.
+
+The honest description is **at-least-once delivery to the dispatcher, at-most-once per handler**. A handler
+that must not miss work should record its own progress and be safe to re-run. If you need a dead-letter
+queue to catch handler failures, the handler has to fail the message itself.

@@ -10,14 +10,14 @@ public static class MagicSQSEventsRegistrationExtensions
 {
     /// <summary>
     ///     Register SQS event dispatcher and background service.
-    ///     This also calls RegisterMagicEvents() to register core infrastructure.
+    ///     This also calls AddMagicEvents() to register core infrastructure.
     ///     Note: IAmazonSQS client must be registered separately by the consumer.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">SQS configuration.</param>
     /// <param name="useOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection RegisterMagicSQSEvents(
+    public static IServiceCollection AddMagicSqsEvents(
         this IServiceCollection services,
         SqsMagicEventConfiguration configuration,
         bool useOpenTelemetryMetrics = false)
@@ -25,7 +25,7 @@ public static class MagicSQSEventsRegistrationExtensions
         ArgumentNullException.ThrowIfNull(configuration);
 
         // Register core infrastructure
-        services.RegisterMagicEvents(useOpenTelemetryMetrics);
+        services.AddMagicEvents(useOpenTelemetryMetrics);
 
         // Validate parameters
         if (configuration.MaxNumberOfMessages < 1 || configuration.MaxNumberOfMessages > 10)
@@ -55,5 +55,15 @@ public static class MagicSQSEventsRegistrationExtensions
         services.AddHostedService<SqsEventsBackgroundService>();
 
         return services;
+    }
+
+    /// <inheritdoc cref="AddMagicSqsEvents" />
+    [Obsolete("Renamed to AddMagicSqsEvents, for consistency with every other registration method.")]
+    public static IServiceCollection RegisterMagicSQSEvents(
+        this IServiceCollection services,
+        SqsMagicEventConfiguration configuration,
+        bool useOpenTelemetryMetrics = false)
+    {
+        return services.AddMagicSqsEvents(configuration, useOpenTelemetryMetrics);
     }
 }

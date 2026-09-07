@@ -11,16 +11,8 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.Data.Postgres</PackageId>
-        <Version>0.0.11</Version>
-        <Authors>MagicCSharp Contributors</Authors>
-        <Company>MagicCSharp</Company>
         <Description>PostgreSQL wiring for MagicCSharp.Data.EntityFramework: a pooled context factory with sane pool and retry settings that fails fast on a bad connection string, a design-time factory for dotnet ef, and a command interceptor that normalizes DateTimeOffset parameters to UTC so timestamptz predicates bind on any machine.</Description>
         <PackageTags>postgres;postgresql;npgsql;entity-framework;efcore</PackageTags>
-        <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>

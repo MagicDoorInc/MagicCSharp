@@ -7,11 +7,11 @@ setup. MagicCSharp.Events.Kafka handles all the Kafka complexity so you can focu
 
 ## Why MagicCSharp.Events.Kafka?
 
-✅ **Guaranteed Delivery** - Events are persisted to Kafka before returning
+✅ **Non-Blocking Produce** - Dispatch returns immediately; failures are logged, not silent
 
 ✅ **Fault Tolerant** - Automatic retries and error handling
 
-✅ **Manual Commit** - Only commit after successful processing
+✅ **Manual Commit** - Auto-commit is off, so the offset moves only after the message is handled
 
 ✅ **Auto-Configuration** - Producer and consumer setup handled for you
 
@@ -163,7 +163,7 @@ catch (Exception ex)
 
 - No data loss if processing fails
 - Failed messages are automatically retried
-- At-least-once delivery guarantee
+- At-least-once delivery to the dispatcher (see below for what that does and does not mean)
 
 ### 📊 Integrated Logging
 
@@ -425,3 +425,22 @@ Kafka automatically balances partitions across consumers in the same group.
 ## License
 
 MIT License - See LICENSE file for details.
+
+## What is and is not guaranteed
+
+Worth being precise, because "at-least-once" is usually claimed and rarely true end to end.
+
+**Producing.** `Dispatch` does not block on the broker — it hands the message to the producer and returns,
+so the use case is not waiting on a network round trip. A produce that fails is logged as an error naming
+the event and topic. It is **not** retried and the caller is not told, so an event raised while the broker
+is unreachable is lost. If an event must not be lost, write it to your own database in the same transaction
+as the change that caused it and publish from there.
+
+**Consuming.** The listener commits the offset by hand, only after the message has been processed, so a
+message that fails to parse is not committed and is redelivered.
+
+**Handler failures do not reach the transport.** `AsyncEventDispatcher` catches whatever a handler throws,
+reports it to metrics and logs it, then carries on to the next handler — one failing handler must not stop
+the others. The consequence is that from the transport's point of view the message succeeded, and the
+offset is committed. So the honest description is **at-least-once delivery to the dispatcher, at-most-once
+per handler**. A handler that must not miss work should record its own progress and be safe to re-run.

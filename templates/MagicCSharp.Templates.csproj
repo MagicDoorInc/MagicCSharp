@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <PackageType>Template</PackageType>
+        <PackageId>MagicCSharp.Templates</PackageId>
+        <Version>0.0.11</Version>
+        <Authors>MagicCSharp Contributors</Authors>
+        <Company>MagicCSharp</Company>
+        <Title>MagicCSharp repository template</Title>
+        <Description>dotnet new template for a MagicCSharp repository: several services in one repository, each with its own solution, sharing a set of libraries — plus the scripts that create services, domains, shared libraries and entities, and lint the conventions the compiler cannot. Optional; the MagicCSharp packages work in any layout.</Description>
+        <PackageTags>dotnet-new;templates;clean-architecture;monorepo;scaffolding</PackageTags>
+        <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+
+        <TargetFramework>net9.0</TargetFramework>
+        <IncludeContentInPack>true</IncludeContentInPack>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <EnableDefaultItems>false</EnableDefaultItems>
+        <!-- Apps/ and Libs/ ship as empty directories held open by .gitkeep, and NuGet excludes dotfiles
+             by default — without this the generated repository is missing both. -->
+        <NoDefaultExcludes>true</NoDefaultExcludes>
+        <!-- A template package carries no assemblies, which is what NU5128 complains about. -->
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+        <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    </PropertyGroup>
+
+    <!-- The repository skeleton. The tooling is the MagicCSharp.Cli global tool, not vendored scripts. -->
+    <Target Name="IncludeTemplateContent" BeforeTargets="_GetPackageFiles">
+        <ItemGroup>
+            <!-- PackagePath set explicitly rather than via ContentTargetFolders, which would nest the
+                 already-content-rooted paths a second time. -->
+            <Content Include="content\**\*"
+                     Exclude="content\**\bin\**;content\**\obj\**"
+                     PackagePath="content\%(RecursiveDir)%(Filename)%(Extension)" />
+        </ItemGroup>
+    </Target>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>

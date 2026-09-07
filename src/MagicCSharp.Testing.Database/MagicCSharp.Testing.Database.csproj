@@ -12,16 +12,8 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.Testing.Database</PackageId>
-        <Version>0.0.11</Version>
-        <Authors>MagicCSharp Contributors</Authors>
-        <Company>MagicCSharp</Company>
         <Description>Repository integration testing for MagicCSharp against a real PostgreSQL in Testcontainers: one container shared across the suite, a logical database per test class, schema created once, and tables truncated between tests. Separate from MagicCSharp.Testing because it needs Docker, xUnit and Npgsql.</Description>
         <PackageTags>testing;testcontainers;postgres;integration-tests;xunit</PackageTags>
-        <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>

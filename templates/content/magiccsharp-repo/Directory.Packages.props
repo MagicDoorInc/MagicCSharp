@@ -1,0 +1,39 @@
+<Project>
+
+  <!--
+    Central package management: a .csproj says which packages it needs, this file says which version.
+    One version per package across the repository, so two projects cannot disagree about it.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup Label="MagicCSharp">
+    <PackageVersion Include="MagicCSharp" Version="MAGICCSHARP_VERSION" />
+    <PackageVersion Include="MagicCSharp.App" Version="MAGICCSHARP_VERSION" />
+    <PackageVersion Include="MagicCSharp.AspNetCore" Version="MAGICCSHARP_VERSION" />
+    <PackageVersion Include="MagicCSharp.Data" Version="MAGICCSHARP_VERSION" />
+    <PackageVersion Include="MagicCSharp.Data.EntityFramework" Version="MAGICCSHARP_VERSION" />
+    <PackageVersion Include="MagicCSharp.Data.Postgres" Version="MAGICCSHARP_VERSION" />
+    <PackageVersion Include="MagicCSharp.Events" Version="MAGICCSHARP_VERSION" />
+    <PackageVersion Include="MagicCSharp.Scheduling" Version="MAGICCSHARP_VERSION" />
+    <PackageVersion Include="MagicCSharp.Testing" Version="MAGICCSHARP_VERSION" />
+    <PackageVersion Include="MagicCSharp.Testing.Database" Version="MAGICCSHARP_VERSION" />
+  </ItemGroup>
+
+  <ItemGroup Label="Data">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+  </ItemGroup>
+
+  <ItemGroup Label="Web">
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+</Project>

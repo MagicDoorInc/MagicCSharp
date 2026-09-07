@@ -1,59 +1,57 @@
-#!/usr/bin/env dotnet run
-#:property ManagePackageVersionsCentrally=false
-#:property PublishAot=false
-#:package Spectre.Console.Cli@0.50.0
-
-// Checks the handful of conventions that the compiler cannot, and that go wrong quietly.
-//
-// Each rule is here because breaking it produces working code that fails later: a test that passes today and
-// fails at midnight, an event that deserializes to nulls after a deploy, a repository whose writes are
-// invisible in the log. None is a matter of taste.
-//
-// Regex, not Roslyn: keeping this a single file with no project reference is worth some precision. Every rule
-// is written to under-report rather than over-report — a false positive that has to be argued with is worse
-// than a miss.
-
 using System.ComponentModel;
 using System.Text.RegularExpressions;
+using MagicCSharp.Cli.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-var app = new CommandApp<ValidateConventionsCommand>();
-app.Configure(config =>
-{
-    config.SetApplicationName("dotnet run tools/ValidateConventions.cs --");
-    config.AddExample("--path", ".");
-    config.AddExample("--path", "Apps/Shop");
-});
-return app.Run(args);
-
-public class ValidateConventionsSettings : CommandSettings
-{
-    [CommandOption("--path <PATH>")]
-    [Description("Directory to scan. Defaults to the working directory.")]
-    [DefaultValue(".")]
-    public string Path { get; set; } = ".";
-
-    public override ValidationResult Validate()
-    {
-        return Directory.Exists(Path) ? ValidationResult.Success() : ValidationResult.Error($"Path not found: {Path}");
-    }
-}
+namespace MagicCSharp.Cli.Commands;
 
 public record Violation(string Rule, string File, int Line, string Message, string Why);
 
-public class ValidateConventionsCommand : Command<ValidateConventionsSettings>
+public record SourceFile(string Path, string[] Lines)
 {
-    public override int Execute(CommandContext context, ValidateConventionsSettings settings)
+    public string Name => System.IO.Path.GetFileName(Path);
+    public string RelativePath => System.IO.Path.GetRelativePath(Directory.GetCurrentDirectory(), Path).Replace('\\', '/');
+    public string Text { get; } = string.Join('\n', Lines);
+}
+
+/// <summary>
+///     Checks the handful of conventions the compiler cannot, and that go wrong quietly.
+///     <para>
+///         Each rule is here because breaking it produces working code that fails later: a test that passes
+///         today and fails at midnight, an event that deserializes to nulls after a deploy, a repository
+///         whose writes are invisible in the log.
+///     </para>
+///     <para>
+///         Regex rather than Roslyn, for now. Every rule is written to under-report rather than over-report —
+///         a false positive you have to argue with is worse than a miss.
+///     </para>
+/// </summary>
+public class ValidateCommand : Command<ValidateCommand.Settings>
+{
+    public class Settings : CommandSettings
     {
-        // Compare against the path *relative to the scan root*. Enumerating "." yields "./src/…", whose first
-        // segment is "." — matching a "starts with a dot" test and silently excluding the entire repository.
+        [CommandOption("--path <PATH>")]
+        [Description("Directory to scan. Defaults to the working directory.")]
+        [DefaultValue(".")]
+        public string Path { get; init; } = ".";
+
+        public override ValidationResult Validate()
+        {
+            return Directory.Exists(Path)
+                ? ValidationResult.Success()
+                : ValidationResult.Error($"Path not found: {Path}");
+        }
+    }
+
+    public override int Execute(CommandContext context, Settings settings)
+    {
         var root = System.IO.Path.GetFullPath(settings.Path);
 
         var files = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
             .Where(path => !System.IO.Path.GetRelativePath(root, path)
                 .Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)
-                .Any(segment => segment is "bin" or "obj" or "Migrations" or "tools" || segment.StartsWith('.')))
+                .Any(segment => segment is "bin" or "obj" or "Migrations" || segment.StartsWith('.')))
             .Select(path => new SourceFile(path, File.ReadAllLines(path)))
             .ToList();
 
@@ -73,7 +71,7 @@ public class ValidateConventionsCommand : Command<ValidateConventionsSettings>
 
         foreach (var group in violations.GroupBy(violation => violation.Rule))
         {
-            AnsiConsole.MarkupLine("");
+            AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine($"[bold red]{Markup.Escape(group.Key)}[/] — {Markup.Escape(group.First().Why)}");
 
             foreach (var violation in group)
@@ -82,7 +80,7 @@ public class ValidateConventionsCommand : Command<ValidateConventionsSettings>
             }
         }
 
-        AnsiConsole.MarkupLine("");
+        AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine($"[red]{violations.Count} violations in {violations.Select(v => v.File).Distinct().Count()} files.[/]");
 
         return 1;
@@ -335,11 +333,4 @@ public class ValidateConventionsCommand : Command<ValidateConventionsSettings>
         // Bare "allow" with nothing after it does not count; say why.
         return line[(marker + "// conventions: allow".Length)..].Trim(' ', '-', '—').Length > 0;
     }
-}
-
-public record SourceFile(string Path, string[] Lines)
-{
-    public string Name => System.IO.Path.GetFileName(Path);
-    public string RelativePath => System.IO.Path.GetRelativePath(".", Path).Replace('\\', '/');
-    public string Text { get; } = string.Join('\n', Lines);
 }

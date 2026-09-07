@@ -35,10 +35,10 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddMagicUseCases();
 
 // MagicCSharp: Register local event dispatcher for development
-builder.Services.RegisterMagicEvents();
+builder.Services.AddMagicEvents();
 if (builder.Environment.IsDevelopment())
 {
-    builder.Services.RegisterLocalMagicEvents();
+    builder.Services.AddLocalMagicEvents();
 }
 else
 {
@@ -51,8 +51,8 @@ else
 // MagicCSharp: Register Snowflake ID generator
 // Uses random generator ID for local development
 // In production with multiple instances, specify unique IDs per instance:
-// builder.Services.RegisterSnowflakeKeyGen(generatorId: instanceId);
-builder.Services.RegisterSnowflakeKeyGen();
+// builder.Services.AddSnowflakeKeyGen(generatorId: instanceId);
+builder.Services.AddSnowflakeKeyGen();
 
 // MagicCSharp: Register clock abstraction for testable time
 builder.Services.AddSingleton<IClock, DateTimeClock>();

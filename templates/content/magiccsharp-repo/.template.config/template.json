@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "MagicCSharp Contributors",
+  "classifications": [ "MagicCSharp", "Clean Architecture", "Solution" ],
+  "identity": "MagicCSharp.Repo",
+  "name": "MagicCSharp repository",
+  "description": "A repository laid out for several services sharing a set of libraries, with the scripts that maintain it.",
+  "shortName": "magiccsharp-repo",
+  "tags": {
+    "language": "C#",
+    "type": "solution"
+  },
+  "sourceName": "Acme",
+  "preferNameDirectory": true,
+  "symbols": {
+    "MagicCSharpVersion": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "0.0.13",
+      "replaces": "MAGICCSHARP_VERSION",
+      "description": "Version of the MagicCSharp packages to pin."
+    },
+    "TargetFramework": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        { "choice": "net10.0", "description": "net10.0" },
+        { "choice": "net9.0", "description": "net9.0" }
+      ],
+      "defaultValue": "net10.0",
+      "replaces": "TARGET_FRAMEWORK",
+      "description": "Target framework for the projects in this repository."
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "exclude": [ "**/bin/**", "**/obj/**", "**/.vs/**", "**/.idea/**" ]
+        }
+      ]
+    }
+  ]
+}

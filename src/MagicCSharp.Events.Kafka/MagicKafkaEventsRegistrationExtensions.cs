@@ -12,13 +12,13 @@ public static class MagicKafkaEventsRegistrationExtensions
 {
     /// <summary>
     ///     Register Kafka event dispatcher and background service.
-    ///     This also calls RegisterMagicEvents() to register core infrastructure.
+    ///     This also calls AddMagicEvents() to register core infrastructure.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">Kafka configuration.</param>
     /// <param name="useOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection RegisterMagicKafkaEvents(
+    public static IServiceCollection AddMagicKafkaEvents(
         this IServiceCollection services,
         KafkaMagicEventConfiguration configuration,
         bool useOpenTelemetryMetrics = false)
@@ -26,7 +26,7 @@ public static class MagicKafkaEventsRegistrationExtensions
         ArgumentNullException.ThrowIfNull(configuration);
 
         // Register core infrastructure
-        services.RegisterMagicEvents(useOpenTelemetryMetrics);
+        services.AddMagicEvents(useOpenTelemetryMetrics);
 
         var host = configuration.BootstrapServers;
         var groupId = configuration.GroupId;
@@ -58,6 +58,12 @@ public static class MagicKafkaEventsRegistrationExtensions
                 BootstrapServers = host,
                 BrokerAddressFamily = BrokerAddressFamily.V4,
                 GroupId = groupId,
+
+                // Set explicitly because the listener commits by hand, only after a message is processed.
+                // Confluent defaults both of these to true, which committed offsets on a timer regardless
+                // and made that manual commit decorative — a message that failed to parse was marked done.
+                EnableAutoCommit = false,
+                EnableAutoOffsetStore = false,
             };
 
             var consumerLogger = KafkaLoggerAdapter.GetConsumerLogHandler<Null, string>(logger);
@@ -71,5 +77,15 @@ public static class MagicKafkaEventsRegistrationExtensions
         services.AddHostedService<KafkaEventsBackgroundService>();
 
         return services;
+    }
+
+    /// <inheritdoc cref="AddMagicKafkaEvents" />
+    [Obsolete("Renamed to AddMagicKafkaEvents, for consistency with every other registration method.")]
+    public static IServiceCollection RegisterMagicKafkaEvents(
+        this IServiceCollection services,
+        KafkaMagicEventConfiguration configuration,
+        bool useOpenTelemetryMetrics = false)
+    {
+        return services.AddMagicKafkaEvents(configuration, useOpenTelemetryMetrics);
     }
 }

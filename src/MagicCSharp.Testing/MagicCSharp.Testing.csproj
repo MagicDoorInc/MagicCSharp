@@ -12,16 +12,8 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.Testing</PackageId>
-        <Version>0.0.11</Version>
-        <Authors>MagicCSharp Contributors</Authors>
-        <Company>MagicCSharp</Company>
         <Description>Test doubles for MagicCSharp: a controllable clock, a deterministic key generator, a synchronous event dispatcher, and an in-memory distributed lock. No test framework or database dependencies — see MagicCSharp.Testing.Database for those.</Description>
         <PackageTags>testing;test-doubles;fake;clock;events;clean-architecture</PackageTags>
-        <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>

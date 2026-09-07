@@ -1,0 +1,42 @@
+using MagicCSharp.App;
+{{~ if database.enabled ~}}
+using {{ prefix }}.{{ name }}.Data.EntityFramework;
+{{~ end ~}}
+
+namespace {{ prefix }}.{{ name }}.App;
+
+/// <summary>
+///     Named rather than top-level so integration tests can reference it as
+///     <c>WebApplicationFactory&lt;{{ name }}Program&gt;</c>.
+/// </summary>
+public class {{ name }}Program
+{
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+
+        // Use cases, IClock, Snowflake IDs, request IDs, in-process events, scheduling defaults and
+        // problem-details error handling. Pass MagicAppOptions to change any of it; swap in
+        // RegisterMagicKafkaEvents before this line and the in-process dispatcher steps aside.
+        builder.AddMagicApp();
+
+        builder.Services.AddOpenApi();
+{{~ if database.enabled }}
+
+        builder.Services.Add{{ name }}Repositories(builder.Configuration);
+{{~ end }}
+
+        var app = builder.Build();
+
+        // Request IDs, error handling and controllers, in the order they need — and a preflight that
+        // resolves every registration now rather than on the first request that needs it.
+        app.UseMagicApp(builder);
+
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapOpenApi();
+        }
+
+        app.Run();
+    }
+}

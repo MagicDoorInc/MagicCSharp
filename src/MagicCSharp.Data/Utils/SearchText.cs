@@ -51,6 +51,6 @@ public static partial class SearchText
         }
     }
 
-    [GeneratedRegex("[^a-z0-9\\s]")]
+    [GeneratedRegex(@"[^\p{L}\p{N}\s]")]
     private static partial Regex NonAlphanumeric();
 }

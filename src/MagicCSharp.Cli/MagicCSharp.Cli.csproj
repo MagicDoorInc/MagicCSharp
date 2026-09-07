@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>mcs</ToolCommandName>
+
+        <!-- NuGet Package Metadata -->
+        <PackageId>MagicCSharp.Cli</PackageId>
+        <Description>Scaffolding for a MagicCSharp repository: create services, domains, shared libraries and entities, and lint the conventions the compiler cannot. Install globally with 'dotnet tool install -g MagicCSharp.Cli', or per repository with a tool manifest so the whole team gets the same version.</Description>
+        <PackageTags>cli;dotnet-tool;scaffolding;clean-architecture;code-generation</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!--
+            Templates are embedded rather than shipped as loose files: a global tool's content directory is
+            a versioned path under ~/.dotnet/tools that nobody should have to find, and an embedded
+            resource cannot go missing. `mcs templates eject` writes one out when you want to edit it.
+            LogicalName keeps the slashes, so a resource is addressed the way it is written:
+            "Templates/Entities/dal.cs.hbs".
+
+            WithCulture="false" is load-bearing. MSBuild infers a culture from the second-to-last extension,
+            so entity.cs.hbs reads as culture "cs" — Czech — and the eight *.cs.hbs templates were silently
+            routed into a cs/ satellite assembly instead of the main one. The build reported all 19 items;
+            only 11 reached the DLL.
+        -->
+        <EmbeddedResource Include="Templates/**/*.hbs"
+                          LogicalName="Templates/%(RecursiveDir)%(Filename)%(Extension)"
+                          WithCulture="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Spectre.Console.Cli" Version="0.50.0"/>
+        <PackageReference Include="Scriban" Version="7.2.5"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+        <InternalsVisibleTo Include="MagicCSharp.Cli.Tests"/>
+    </ItemGroup>
+
+</Project>

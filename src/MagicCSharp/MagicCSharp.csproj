@@ -7,16 +7,8 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp</PackageId>
-        <Version>0.0.11</Version>
-        <Authors>MagicCSharp Contributors</Authors>
-        <Company>MagicCSharp</Company>
         <Description>The foundation of MagicCSharp: the IMagicUseCase pattern with convention-based dependency injection, Snowflake ID and unguessable key generation, testable time through IClock, request ID tracking across async boundaries, and shared entity and exception contracts. Depends only on the Microsoft.Extensions abstractions — add MagicCSharp.AspNetCore, .Scheduling, .Data or .Events for the parts you need.</Description>
         <PackageTags>enterprise;architecture;use-case;dependency-injection;clean-architecture;snowflake;clock</PackageTags>
-        <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>

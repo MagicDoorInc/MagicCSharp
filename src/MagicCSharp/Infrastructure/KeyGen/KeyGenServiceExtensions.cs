@@ -17,7 +17,7 @@ public static class KeyGenServiceExtensions
     ///     to ensure globally unique IDs across distributed systems. If null, a random ID is generated.
     /// </param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection RegisterSnowflakeKeyGen(this IServiceCollection services, int? generatorId = null)
+    public static IServiceCollection AddSnowflakeKeyGen(this IServiceCollection services, int? generatorId = null)
     {
         var actualGeneratorId = generatorId ?? Random.Shared.Next(1024);
 
@@ -33,5 +33,12 @@ public static class KeyGenServiceExtensions
         services.AddSingleton<IKeyGenService, SnowflakeKeyGenService>();
 
         return services;
+    }
+
+    /// <inheritdoc cref="AddSnowflakeKeyGen" />
+    [Obsolete("Renamed to AddSnowflakeKeyGen, for consistency with every other registration method.")]
+    public static IServiceCollection RegisterSnowflakeKeyGen(this IServiceCollection services, int? generatorId = null)
+    {
+        return services.AddSnowflakeKeyGen(generatorId);
     }
 }

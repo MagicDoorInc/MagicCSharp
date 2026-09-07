@@ -42,7 +42,7 @@ No more mixing HTTP logic with business rules. No more untestable code.
 
 ✅ **Distributed Locking** - Coordinate work across multiple instances
 
-✅ **Drift-Free Scheduling** - Background jobs that stay on schedule
+✅ **Drift-Free Scheduling** - Background jobs that stay on schedule, coordinated across instances
 
 ✅ **Snowflake IDs** - Globally unique, time-sortable IDs for distributed databases
 
@@ -54,16 +54,56 @@ No more mixing HTTP logic with business rules. No more untestable code.
 
 ✅ **Testable Time** - Mock time in tests with `IClock`
 
+✅ **Errors That Make Sense** - Domain exceptions become RFC 7807 responses; a missing row is a 404, not a 500
+
+✅ **Fails At Startup, Not In Production** - Every registration resolved before the first request
+
 ✅ **Test Doubles** - A controllable clock, deterministic ids, synchronous events, and repository tests against real PostgreSQL
 
 ✅ **Scaffolding** - Generate an entity across its four files, and lint the conventions the compiler can't
 
 ## Quick Start
 
-### Installation
+### The fast path
 
-Take only what you use. The core has three dependencies and knows nothing about ASP.NET, Entity Framework or
-Kafka.
+Scaffold a repository and a running service:
+
+```bash
+dotnet tool install -g MagicCSharp.Cli
+
+mcs init --prefix Acme
+mcs create-app --name Shop --database shop
+dotnet run --project Apps/Shop/Shop.App
+```
+
+That gives you a service that builds, boots and answers — with use cases, `IClock`, Snowflake IDs,
+request-ID tracking, events, scheduling and problem-details error handling already wired.
+[More on the repository layout ↓](#the-repository-layout--optional)
+
+### Adding it to an existing project
+
+One package, two calls:
+
+```bash
+dotnet add package MagicCSharp.App
+```
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+builder.AddMagicApp();
+
+var app = builder.Build();
+app.UseMagicApp(builder);
+app.Run();
+```
+
+`MagicCSharp.App` brings in the core, ASP.NET, events and scheduling packages and wires them in the order
+they need. Pass `MagicAppOptions` to change any of it.
+
+### Or take only the pieces you want
+
+Every package stands alone. The core has three dependencies and knows nothing about ASP.NET, Entity
+Framework or Kafka, so a worker or a console app takes only what it uses.
 
 ```bash
 # Core - use cases, IClock, Snowflake ids and public keys, request IDs
@@ -80,7 +120,7 @@ dotnet add package MagicCSharp.Events.Kafka           # optional transport
 dotnet add package MagicCSharp.Events.SQS             # optional transport
 
 # The rest, as needed
-dotnet add package MagicCSharp.AspNetCore             # request-ID middleware
+dotnet add package MagicCSharp.AspNetCore             # request-ID middleware, error handling
 dotnet add package MagicCSharp.Scheduling             # drift-free background jobs
 
 # Test projects
@@ -263,19 +303,29 @@ eventDispatcher.Dispatch(new OrderCreated { ... });
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
+builder.AddMagicApp();
 
-// Register use cases
-builder.Services.AddMagicUseCases();
-
-// Choose your event strategy
-builder.Services.RegisterLocalMagicEvents();        // Local development
-// builder.Services.RegisterMagicKafkaEvents(config);  // Production with Kafka
-
-// Setup repositories with Snowflake IDs
-builder.Services.RegisterSnowflakeKeyGen(generatorId: 1);
+var app = builder.Build();
+app.UseMagicApp(builder);
+app.Run();
 ```
 
-That's it. Clean, testable, production-ready.
+That is the whole of it with `MagicCSharp.App`. Wiring the pieces yourself instead:
+
+```csharp
+builder.Services.AddMagicCSharp();                  // use cases, IClock, request IDs
+builder.Services.RegisterSnowflakeKeyGen();         // ids — give each instance a distinct id in production
+
+builder.Services.RegisterMagicEvents();             // handler discovery — required before any transport
+builder.Services.RegisterLocalMagicEvents();        // in-process
+// builder.Services.RegisterMagicKafkaEvents(config);  // or Kafka
+
+builder.Services.AddMagicScheduling();              // schedule store + lock (single machine)
+builder.Services.AddMagicErrorHandling();           // exceptions to RFC 7807 responses
+```
+
+`RegisterMagicEvents()` comes first — it is what discovers your handlers. The transport call only registers
+the dispatcher, so on its own it fails at resolution.
 
 ## Complete Example
 
@@ -331,13 +381,15 @@ Watch the logs to see event-driven architecture in action - events flowing throu
 
 ## The MagicCSharp Ecosystem
 
-Eleven packages, split so you take only what you use. The core has three dependencies and knows nothing about
+Twelve packages, split so you take only what you use — plus `MagicCSharp.App`, which bundles the four a web
+service needs when you would rather not choose. The core has three dependencies and knows nothing about
 ASP.NET, Entity Framework or Kafka.
 
 | Package | Add it when you want | Brings with it |
 |---|---|---|
+| **[MagicCSharp.App](src/MagicCSharp.App/)** | A web service wired in two calls | the four below it |
 | **[MagicCSharp](src/MagicCSharp/)** | Use cases, `IClock`, Snowflake ids and public keys, request IDs, `Optional<T>` | DI + logging abstractions, IdGen |
-| **[MagicCSharp.AspNetCore](src/MagicCSharp.AspNetCore/)** | Request-ID middleware | the ASP.NET shared framework |
+| **[MagicCSharp.AspNetCore](src/MagicCSharp.AspNetCore/)** | Request-ID middleware, RFC 7807 error handling, startup preflight | the ASP.NET shared framework |
 | **[MagicCSharp.Scheduling](src/MagicCSharp.Scheduling/)** | Drift-free background jobs, one instance per occurrence | DistributedLock, hosting |
 | **[MagicCSharp.Data](src/MagicCSharp.Data/)** | Repository contracts, pagination, LINQ filter helpers | nothing — no persistence library |
 | **[MagicCSharp.Data.EntityFramework](src/MagicCSharp.Data.EntityFramework/)** | The repository base classes and DALs | EF Core |
@@ -351,11 +403,98 @@ ASP.NET, Entity Framework or Kafka.
 A domain project referencing `MagicCSharp.Data` gets the repository interfaces and no persistence library at
 all — which is the point of the split. Wanting `FakeClock` does not mean wanting Docker.
 
-### Scaffolding
+### The repository layout — optional
 
-`tools/` holds single-file scripts for the repetitive parts: `AddEntity` writes the four files an entity needs
-across three projects and registers it, `ValidateConventions` catches the mistakes that compile, and
-`SyncAllProjects` regenerates the all-projects solution. See [tools/README.md](tools/README.md).
+The packages above work in any project structure. Separately, MagicCSharp offers the structure MagicDoor runs
+its own backend on. Take it, take part of it, or ignore it — nothing in the packages reads it.
+
+```
+Apps/Shop/
+  Shop.App/                  host: Program.cs, controllers
+  Shop.Domains/Orders/
+    Default/                 use cases, event handlers
+    Models/                  entities, edits, filters
+    Tests/
+  Data/
+    Data.Models/             repository interfaces — no EF dependency
+    Data.EntityFramework/    DALs, repositories, context, migrations
+Libs/                        code more than one service uses
+```
+
+#### What it buys you
+
+**Several services, one repository, no version dance.** A change that spans two services is one commit and
+one pull request, not a package publish and a wait. Shared code lives in `Libs/` and is referenced directly,
+so there is no version of it to be behind.
+
+**But you still build one service at a time.** Each gets its own `.slnx`. You open `Acme.Shop.slnx` and
+build the projects you are working on; `Acme.All.slnx` exists for the times you need to see everything, and
+is regenerated from disk so it is never a merge conflict worth resolving.
+
+**The domain does not know how it is stored.** `Order` lives in the domain that owns it; `OrderDal` and
+`OrdersEfRepository` live under `Data/`. `Data.Models` holds only interfaces and does not reference Entity
+Framework at all, so the arrow points from storage toward the domain and never back. You can read a domain
+without reading a single EF attribute, and swap what is underneath without touching the logic.
+
+**Every entity looks the same.** `mcs add-entity` writes the four files an entity needs — across three
+projects, each of which has to agree about names, namespaces and generic arguments — and registers it. That
+is not typing saved so much as a class of mistake removed, and it means anyone can open any service and
+recognise what they are looking at.
+
+**The conventions are checked, not just agreed.** `mcs validate` catches the things that compile and fail
+later: a `DateTime.Now` that makes behaviour untestable, an event carrying an entity that will deserialize
+to nulls after a deploy. It exits non-zero, so CI can hold the line instead of a reviewer.
+
+#### Getting it
+
+```bash
+dotnet tool install -g MagicCSharp.Cli
+
+mcs init --prefix Acme                     # or in a repo you already have
+mcs create-app --name Shop --database shop
+```
+
+For a team, `dotnet new magiccsharp-repo -n Acme` scaffolds the same thing plus a tool manifest, so everyone
+runs one pinned version of the scaffolding after `dotnet tool restore`.
+
+`mcs` also creates domains and shared libraries, and rebuilds the wide solution. Nothing is ever overwritten
+— an existing file is reported and skipped — and re-running any command produces no diff.
+
+#### Generated code you own
+
+Every file `mcs` writes comes from a template, and you can replace any one of them with your own:
+
+```bash
+mcs templates list                        # all 19, and where each comes from
+mcs templates eject Entities/dal.cs.hbs   # copy one into your repo to edit
+```
+
+Your copy lands in `.magiccsharp/templates/`. **Commit it** — that directory is how the override reaches
+everyone else:
+
+```bash
+git add .magiccsharp && git commit -m "Use our own DAL template"
+```
+
+From then on it wins over the built-in for everyone who pulls. Deleting it reverts — there's no registry or
+cache anywhere else.
+
+The important part is that it works **per file**. Take over the DAL template to add your audit columns and
+the other eighteen still come from the tool, still improving as it does. That's the difference between
+customising a generator and forking one.
+
+Across several repositories, put the templates in a repository of their own and add it as a submodule at
+`.magiccsharp/templates`, so house style is defined once instead of copied around.
+
+#### See it built
+
+[**MagicCSharp-ExampleProject**](https://github.com/MagicDoorInc/MagicCSharp-ExampleProject) is this layout
+filled in: two services in one repository — one with Postgres behind Entity Framework, one with no database
+at all — sharing a single event contract and referencing nothing else of each other's. It lists the exact
+`mcs` commands that produced the structure, and separates them from the code written on top, so you can see
+where the tool stops and your work starts.
+
+**[Full guide →](docs/repository-layout.md)** · [Template overrides →](docs/template-overrides.md) · [CLI reference →](src/MagicCSharp.Cli/README.md)
 
 ## Real-World Benefits
 
