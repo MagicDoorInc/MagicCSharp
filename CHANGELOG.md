@@ -84,36 +84,26 @@ only what it uses.
 services in one repository, each with its own solution, sharing a set of libraries. Entirely opt-in; nothing
 in the packages reads it. See [docs/repository-layout.md](docs/repository-layout.md).
 
-**`mcs`, an installable CLI** — the tools no longer have to live inside your repository:
+**`MagicCSharp.Cli`, a .NET global tool** providing `mcs`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/MagicDoorInc/MagicCSharp/master/install.sh | bash
+dotnet tool install -g MagicCSharp.Cli
 mcs init --prefix Acme
 mcs create-app --name Shop --database shop
 ```
 
-Installs to `~/.magiccsharp` — deliberately not `~/.magicdoor`, which MagicDoor's own `md` CLI already uses,
-and which would be the wrong name on another team's machine. Re-running upgrades in place; `mcs update` does
-the same thing.
+Pin it per repository with a tool manifest so a team runs one version:
+`dotnet tool install MagicCSharp.Cli`, commit `.config/dotnet-tools.json`, and teammates
+`dotnet tool restore` then use `dotnet mcs`. `dotnet new magiccsharp-repo` scaffolds that manifest.
 
-`mcs` checks once a day, in the background, whether the installed build is behind the repository, and prints
-a one-line notice on the next command. It compares commits rather than package versions, because the tools
-are installed from a git ref and `scripts/version.txt` moves on the NuGet release schedule. It never blocks a
-command, only speaks on a terminal, and `MAGICCSHARP_NO_UPDATE_CHECK=1` disables it.
+The commands were single-file `dotnet run` scripts. Moving them into one project removed about 860 lines of
+copy-pasted helpers — `TemplateResolver` alone lived in six files — and made them testable: **50 tests**
+where there were none. `dotnet tool update` replaces a hand-written installer and update check, so
+`install.sh` and the vendored `tools/` directory are gone.
 
-**Team-owned templates.** Everything the generators write comes from a `.hbs` template, and a team can
-replace any single one without forking the rest. Templates resolve through three layers, first match winning:
-`.magiccsharp/templates/` in the repository, then `~/.magiccsharp/templates/` installed with the tools, then
-a vendored `tools/Templates/`.
-
-```bash
-mcs templates list                        # every template, and which layer provides it
-mcs templates eject Entities/dal.cs.hbs   # copy one in to customise
-```
-
-The directory comes from `"templates"` in `magiccsharp.json` — point it at a shared submodule, or set it to
-`""` to disable overrides. Because resolution is per file, an override taken a year ago does not stop you
-receiving improvements to every template you did not touch.
+Templates are embedded in the tool rather than installed as loose files, so there is no path to resolve and
+nothing to go missing. Overrides are unchanged: `.magiccsharp/templates/` in the repository still wins, per
+file.
 
 **`MagicCSharp.Templates`** — a `dotnet new` template, for teams who would rather commit the tooling than
 install it:

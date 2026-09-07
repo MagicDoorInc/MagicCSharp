@@ -7,6 +7,7 @@
     <Folder Name="/src/">
         <Project Path="src/MagicCSharp/MagicCSharp.csproj"/>
         <Project Path="src/MagicCSharp.AspNetCore/MagicCSharp.AspNetCore.csproj"/>
+        <Project Path="src/MagicCSharp.Cli/MagicCSharp.Cli.csproj"/>
         <Project Path="src/MagicCSharp.Data/MagicCSharp.Data.csproj"/>
         <Project Path="src/MagicCSharp.Data.EntityFramework/MagicCSharp.Data.EntityFramework.csproj"/>
         <Project Path="src/MagicCSharp.Data.Postgres/MagicCSharp.Data.Postgres.csproj"/>
@@ -21,6 +22,7 @@
         <Project Path="templates/MagicCSharp.Templates.csproj"/>
     </Folder>
     <Folder Name="/tests/">
+        <Project Path="tests/MagicCSharp.Cli.Tests/MagicCSharp.Cli.Tests.csproj"/>
         <Project Path="tests/MagicCSharp.Tests/MagicCSharp.Tests.csproj"/>
     </Folder>
     <Properties Name="Configuration">

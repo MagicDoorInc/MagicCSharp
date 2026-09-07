@@ -358,14 +358,15 @@ its own backend on: several services in one repository, each with its own soluti
 libraries. Take it, take part of it, or ignore it entirely — nothing in the packages reads it.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/MagicDoorInc/MagicCSharp/master/install.sh | bash
+dotnet tool install -g MagicCSharp.Cli
 
 mcs init --prefix Acme
 mcs create-app --name Shop --database shop
 dotnet run --project Apps/Shop/Shop.App                # a service that runs
 ```
 
-Or, without installing a CLI: `dotnet new install MagicCSharp.Templates && dotnet new magiccsharp-repo -n Acme`.
+For a team, pin it per repository instead — `dotnet new magiccsharp-repo -n Acme` scaffolds a tool manifest
+so everyone runs the same version after `dotnet tool restore`.
 
 ```
 Apps/Shop/
@@ -383,9 +384,8 @@ Libs/                        code more than one service uses
 Entities live in the domain that owns them; persistence lives in `Data/`. The arrow points from storage
 toward the domain and never back, which is what lets you read a domain without reading a single EF attribute.
 
-Seven single-file scripts maintain it — creating services, domains, shared libraries and entities, and
-linting the conventions the compiler can't check. Nothing is ever overwritten and re-running any of them
-produces no diff.
+`mcs` maintains it — creating services, domains, shared libraries and entities, and linting the conventions
+the compiler can't check. Nothing is ever overwritten and re-running any command produces no diff.
 
 **[Full guide →](docs/repository-layout.md)** · [Tool reference →](tools/README.md)
 

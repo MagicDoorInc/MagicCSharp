@@ -26,22 +26,8 @@
         <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     </PropertyGroup>
 
-    <!--
-        The scripts live in tools/ at the repository root, and are copied in here when the package is built.
-        Copying rather than duplicating keeps one source of truth: editing a script updates both the tools in
-        this repository and the ones a generated repository receives.
-    -->
-    <Target Name="CopyToolsIntoTemplate" BeforeTargets="BeforeBuild;Pack">
-        <ItemGroup>
-            <ToolsSource Include="..\tools\**\*" Exclude="..\tools\**\bin\**;..\tools\**\obj\**" />
-        </ItemGroup>
-        <Copy SourceFiles="@(ToolsSource)"
-              DestinationFiles="@(ToolsSource->'content\magiccsharp-repo\tools\%(RecursiveDir)%(Filename)%(Extension)')"
-              SkipUnchangedFiles="true" />
-    </Target>
-
-    <!-- Collected after the copy target, so the freshly copied tools are in the package. -->
-    <Target Name="IncludeTemplateContent" BeforeTargets="_GetPackageFiles" DependsOnTargets="CopyToolsIntoTemplate">
+    <!-- The repository skeleton. The tooling is the MagicCSharp.Cli global tool, not vendored scripts. -->
+    <Target Name="IncludeTemplateContent" BeforeTargets="_GetPackageFiles">
         <ItemGroup>
             <!-- PackagePath set explicitly rather than via ContentTargetFolders, which would nest the
                  already-content-rooted paths a second time. -->

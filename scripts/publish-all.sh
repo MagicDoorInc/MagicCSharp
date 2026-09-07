@@ -37,6 +37,7 @@ PACKAGES=(
     "src/MagicCSharp.Events.SQS/MagicCSharp.Events.SQS.csproj"
     "src/MagicCSharp.Testing/MagicCSharp.Testing.csproj"
     "src/MagicCSharp.Testing.Database/MagicCSharp.Testing.Database.csproj"
+    "src/MagicCSharp.Cli/MagicCSharp.Cli.csproj"
     "templates/MagicCSharp.Templates.csproj"
 )
 
@@ -127,32 +128,6 @@ for PROJECT in "${PACKAGES[@]}"; do
         echo "  ⚠ Warning: $PROJECT not found"
     fi
 done
-
-# Keep the scaffolding in step with the release. InitRepo pins this version in a new repository's
-# Directory.Packages.props, so a stale default would scaffold repos pointing at a version that predates
-# whatever is being published here.
-INITREPO="tools/InitRepo.cs"
-if [ -f "$INITREPO" ]; then
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "s/public string PackageVersion { get; set; } = \"[0-9]*\.[0-9]*\.[0-9]*\";/public string PackageVersion { get; set; } = \"$NEW_VERSION\";/" "$INITREPO"
-        sed -i '' "s/\[DefaultValue(\"[0-9]*\.[0-9]*\.[0-9]*\")\]/[DefaultValue(\"$NEW_VERSION\")]/" "$INITREPO"
-    else
-        sed -i "s/public string PackageVersion { get; set; } = \"[0-9]*\.[0-9]*\.[0-9]*\";/public string PackageVersion { get; set; } = \"$NEW_VERSION\";/" "$INITREPO"
-        sed -i "s/\[DefaultValue(\"[0-9]*\.[0-9]*\.[0-9]*\")\]/[DefaultValue(\"$NEW_VERSION\")]/" "$INITREPO"
-    fi
-    echo "  ✓ Updated $INITREPO scaffolding version"
-fi
-
-# Same for the dotnet new template's default, so a generated repository pins the version it shipped with.
-TEMPLATE_JSON="templates/content/magiccsharp-repo/.template.config/template.json"
-if [ -f "$TEMPLATE_JSON" ]; then
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "s/\"defaultValue\": \"[0-9]*\.[0-9]*\.[0-9]*\"/\"defaultValue\": \"$NEW_VERSION\"/" "$TEMPLATE_JSON"
-    else
-        sed -i "s/\"defaultValue\": \"[0-9]*\.[0-9]*\.[0-9]*\"/\"defaultValue\": \"$NEW_VERSION\"/" "$TEMPLATE_JSON"
-    fi
-    echo "  ✓ Updated $TEMPLATE_JSON pinned version"
-fi
 
 echo ""
 

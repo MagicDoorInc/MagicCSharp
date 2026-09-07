@@ -19,11 +19,10 @@ there is nothing else to install.
 ### Install the CLI
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/MagicDoorInc/MagicCSharp/master/install.sh | bash
+dotnet tool install -g MagicCSharp.Cli
 ```
 
-Puts the scripts in `~/.magiccsharp/tools` and a dispatcher named `mcs` on your PATH. Then, in any
-directory:
+Then, in any directory:
 
 ```bash
 mcs init --prefix Acme
@@ -40,44 +39,31 @@ dotnet run --project Apps/Shop/Shop.App
 | `mcs create-lib --name Events --tests` | a shared library |
 | `mcs sync` | rebuild the all-projects solution |
 | `mcs validate` | lint the conventions the compiler cannot |
-| `mcs update` | upgrade the tools |
+| `mcs templates list \| where \| eject` | see and override the generators' templates |
 
-`mcs` checks for a newer build once a day, in the background, and prints a one-line notice on the next
-command. It never blocks what you asked for, only says anything on a terminal, and
-`MAGICCSHARP_NO_UPDATE_CHECK=1` turns it off.
+Update with `dotnet tool update -g MagicCSharp.Cli`.
 
-The installer adds one line to your shell profile — `.zshrc`, or `.bash_profile`/`.bashrc` for bash — so
-`mcs` is on your PATH:
+### Pin it for a team
+
+A global install means everyone updates on their own schedule, which is fine alone and a nuisance in a team —
+one person's scaffolding drifts from another's. A tool manifest pins the version in the repository:
 
 ```bash
-export PATH="$HOME/.magiccsharp/bin:$PATH"
+dotnet new tool-manifest
+dotnet tool install MagicCSharp.Cli
+# commit .config/dotnet-tools.json
 ```
 
-Open a new shell afterwards, or source the profile. Re-running the installer will not add it twice, and if
-your shell is not one it recognises it prints the line for you to add rather than guessing at a file.
+Teammates then run `dotnet tool restore` once and use `dotnet mcs ...`. Upgrading is a commit everyone
+picks up, rather than a message in chat.
 
-Re-running upgrades in place. `MAGICCSHARP_HOME` moves the install (the PATH line follows it),
-`MAGICCSHARP_REF` pins a branch or tag, `NO_MODIFY_PATH=1` leaves your profile untouched.
-
-### Without installing anything
-
-If you would rather not install a CLI, the same scaffolding ships as a `dotnet new` template:
+`dotnet new magiccsharp-repo` sets this up for you:
 
 ```bash
 dotnet new install MagicCSharp.Templates
 dotnet new magiccsharp-repo -n Acme
-cd Acme
+cd Acme && dotnet tool restore
 ```
-
-| Option | Default | |
-|---|---|---|
-| `-n, --name` | — | Namespace and solution-name root |
-| `--MagicCSharpVersion` | the version the template shipped with | MagicCSharp packages to pin |
-| `--TargetFramework` | `net10.0` | `net10.0` or `net9.0` |
-
-That gives you everything below plus a `tools/` directory inside the repository — useful when you want the
-scripts committed alongside the code so a teammate cloning it needs nothing installed. The scripts' own
-`--help` examples are rewritten to your prefix.
 
 ### An existing repository
 
@@ -236,8 +222,7 @@ forking the rest. Override the DAL template to add your own audit columns; leave
 Templates are searched in order, **first match wins**:
 
 1. `.magiccsharp/templates/` in your repository — committed, so the whole team gets it
-2. `~/.magiccsharp/templates/` — installed with the tools
-3. `tools/Templates/` — a repository that vendored the tools instead of installing them
+2. the built-ins, embedded in `mcs` itself
 
 ```bash
 mcs templates list              # every template, and which layer provides it
@@ -245,7 +230,7 @@ mcs templates where             # the layers, in search order
 mcs templates eject Entities/dal.cs.hbs
 ```
 
-`eject` copies a built-in template into your override directory. Edit it, commit it, and every generator in
+`eject` writes a built-in template into your override directory. Edit it, commit it, and every generator in
 the repository uses your copy from then on. Delete it to go back to the built-in — there is no state anywhere
 else.
 
