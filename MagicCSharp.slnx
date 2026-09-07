@@ -24,6 +24,7 @@
     </Folder>
     <Folder Name="/tests/">
         <Project Path="tests/MagicCSharp.App.Tests/MagicCSharp.App.Tests.csproj"/>
+        <Project Path="tests/MagicCSharp.Data.EntityFramework.Tests/MagicCSharp.Data.EntityFramework.Tests.csproj"/>
         <Project Path="tests/MagicCSharp.AspNetCore.Tests/MagicCSharp.AspNetCore.Tests.csproj"/>
         <Project Path="tests/MagicCSharp.Cli.Tests/MagicCSharp.Cli.Tests.csproj"/>
         <Project Path="tests/MagicCSharp.Tests/MagicCSharp.Tests.csproj"/>

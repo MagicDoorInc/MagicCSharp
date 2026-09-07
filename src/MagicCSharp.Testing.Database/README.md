@@ -12,6 +12,10 @@ providers translate differently from Postgres, so a test that passes against the
 query, which is the half that breaks. Enum-as-string columns, `jsonb` round-trips and `timestamptz` offset
 rules have no equivalent anywhere else.
 
+MagicCSharp's own repository bases are tested this way — `tests/MagicCSharp.Data.EntityFramework.Tests` is
+fifty tests over a real Postgres, covering create, filter, update, delete, pagination, soft delete and the
+search column. It is the worked example of everything below.
+
 ## Cost control
 
 One container for the whole suite. One logical database per test class, so classes run in parallel without

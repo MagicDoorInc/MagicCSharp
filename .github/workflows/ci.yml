@@ -17,6 +17,8 @@ jobs:
           dotnet-version: '10.0.x'
 
       - run: dotnet build MagicCSharp.slnx -c Release
+      # Includes the repository tests, which start a Postgres container through Testcontainers. The runner
+      # has Docker. Without it, filter them out: dotnet test --filter "Category!=Database"
       - run: dotnet test MagicCSharp.slnx -c Release --no-build --verbosity normal
 
       - name: Conventions

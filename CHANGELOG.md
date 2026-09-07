@@ -213,7 +213,11 @@ supply the half that makes it work:
 Plus `ValidateServices()`, which resolves every registration at startup so a miswired dependency fails the
 deploy rather than the first request that needs it. Generated apps get all of this wired in.
 
-**Tests** — 204, where there were none.
+**Tests** — 254, where there were none. Fifty of them run the repository bases against a real PostgreSQL in
+a container, which is the only thing that can check the half of a repository that is SQL rather than C#:
+filters translating correctly, enums stored by name, `timestamptz` coming back as UTC, pagination's 1-based
+skip, soft delete staying out of default results, and the search column matching a non-ASCII name. They need
+Docker; `dotnet test --filter "Category!=Database"` skips them.
 
 ### Fixed
 
