@@ -158,6 +158,24 @@ the namespace prefix, so they work in any repository using the layout rather tha
 A repository scaffolded from empty with these — service, domain, shared library, entity — builds against the
 published packages and serves a request, which is the test the tooling is held to.
 
+**Works out of the box.** Three gaps where the framework defined something and then left the application to
+supply the half that makes it work:
+
+- `InMemoryScheduleStore`, and `AddMagicScheduling()` registering it alongside a file-system lock provider.
+  `ScheduledBackgroundService` resolves `IScheduleStore` at run time and the packages shipped no
+  implementation, so the advertised drift-free scheduling threw the moment it was used. Both defaults are
+  single-machine and say so; registering your own wins.
+- `AddMagicErrorHandling()` / `UseMagicErrorHandling()` in `MagicCSharp.AspNetCore`, mapping exceptions to
+  RFC 7807 problem responses. The framework threw `NotFoundException` for a row that is not there and
+  nothing turned it into a 404 — it reached the caller as a 500 with a stack trace. Also maps validation and
+  argument failures to 400 and a cancelled request to 499, and outside Development returns a generic message
+  while logging the detail, because an unhandled exception's message routinely carries a connection string.
+- `HttpException` and friends — `BadRequestException`, `ConflictException`, `UnprocessableEntityException` —
+  for when a use case genuinely means a status code.
+
+Plus `ValidateServices()`, which resolves every registration at startup so a miswired dependency fails the
+deploy rather than the first request that needs it. Generated apps get all of this wired in.
+
 **Tests** — 47, where there were none.
 
 ### Fixed

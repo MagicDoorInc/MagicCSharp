@@ -35,12 +35,20 @@ public class {{ name }}Program
         builder.Services.Add{{ name }}Repositories(builder.Configuration);
 {{~ end }}
 
+        // Turns a NotFoundException from a repository into a 404 rather than a 500 with a stack trace.
+        builder.Services.AddMagicErrorHandling();
+
         builder.Services.AddControllers();
         builder.Services.AddOpenApi();
 
         var app = builder.Build();
 
-        // First in the pipeline, so everything logged after it carries the request id.
+        // Fails here, at startup, if anything is registered but cannot be constructed — rather than on the
+        // first request that happens to need it.
+        app.Services.ValidateServices(builder.Services);
+
+        // First in the pipeline, so everything after is covered and everything logged carries the request id.
+        app.UseMagicErrorHandling();
         app.UseRequestId();
 
         if (app.Environment.IsDevelopment())
