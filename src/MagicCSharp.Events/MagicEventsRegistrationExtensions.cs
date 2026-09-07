@@ -11,17 +11,28 @@ namespace MagicCSharp.Events;
 public static class MagicEventsRegistrationExtensions
 {
     /// <summary>
-    ///     Register core event infrastructure including event handlers, serialization, and metrics.
-    ///     Does NOT register IEventDispatcher - use RegisterLocalMagicEvents(), RegisterMagicKafkaEvents(), or
-    ///     RegisterMagicSQSEvents().
+    ///     Discovers event handlers and registers serialization, metrics and <c>IAsyncEventDispatcher</c>.
+    ///     <para>
+    ///         Does not register <c>IEventDispatcher</c> — that comes from a transport:
+    ///         <c>AddLocalMagicEvents</c>, <c>AddMagicKafkaEvents</c> or <c>AddMagicSqsEvents</c>. Each of
+    ///         those calls this for you, so you rarely need it directly.
+    ///     </para>
+    ///     <para>Idempotent: calling it twice does not register the handlers twice.</para>
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="useOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection RegisterMagicEvents(
+    public static IServiceCollection AddMagicEvents(
         this IServiceCollection services,
         bool useOpenTelemetryMetrics = false)
     {
+        // Idempotent, because each transport calls this and an application may also call it directly.
+        // Without the guard every handler would be registered twice and each event handled twice.
+        if (services.Any(descriptor => descriptor.ServiceType == typeof(IEventTypeHolder)))
+        {
+            return services;
+        }
+
         // Step 1: Collect event types
         var eventTypes = new List<Type>();
 
@@ -109,11 +120,29 @@ public static class MagicEventsRegistrationExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection RegisterLocalMagicEvents(this IServiceCollection services)
+    public static IServiceCollection AddLocalMagicEvents(this IServiceCollection services, bool useOpenTelemetryMetrics = false)
     {
+        // Self-sufficient on purpose. This used to register only IEventDispatcher, so calling it without
+        // AddMagicEvents first left the application failing at resolution the first time it dispatched —
+        // and nothing said so. AddMagicEvents is idempotent, so calling both is fine.
+        services.AddMagicEvents(useOpenTelemetryMetrics);
         services.AddSingleton<IEventDispatcher, LocalEventDispatcher>();
 
         return services;
+    }
+
+    /// <inheritdoc cref="AddMagicEvents" />
+    [Obsolete("Renamed to AddMagicEvents, for consistency with every other registration method.")]
+    public static IServiceCollection RegisterMagicEvents(this IServiceCollection services, bool useOpenTelemetryMetrics = false)
+    {
+        return services.AddMagicEvents(useOpenTelemetryMetrics);
+    }
+
+    /// <inheritdoc cref="AddLocalMagicEvents" />
+    [Obsolete("Renamed to AddLocalMagicEvents, for consistency with every other registration method.")]
+    public static IServiceCollection RegisterLocalMagicEvents(this IServiceCollection services)
+    {
+        return services.AddLocalMagicEvents();
     }
 
     private static bool IsEventHandler(Type type)

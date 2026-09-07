@@ -45,7 +45,7 @@ public class ErrorHandlingTests
             409 => new ConflictException("no"),
             422 => new UnprocessableEntityException("no"),
             429 => new TooManyRequestsException(),
-            _ => new MagicCSharp.AspNetCore.NotImplementedException(),
+            _ => new HttpNotImplementedException(),
         };
 
         Assert.Equal(status, ErrorHandlingModule.Describe(exception, false).Status);

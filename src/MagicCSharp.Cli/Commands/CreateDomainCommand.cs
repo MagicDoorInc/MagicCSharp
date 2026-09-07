@@ -75,6 +75,15 @@ public class CreateDomainCommand : Command<CreateDomainCommand.Settings>
             return 1;
         }
 
+        // "Orders" is what people type; "Domains.Orders" is what the layout wants. Accepting the short
+        // form and silently building Shop.Domains//Default from it — a double slash and a wrong assembly
+        // name — was worse than either accepting or rejecting it outright.
+        if (!name.StartsWith("Domains.", StringComparison.Ordinal))
+        {
+            name = $"Domains.{name}";
+            Output.Note($"Interpreting --name as {name}");
+        }
+
         // Domains.Orders -> Domains/Orders; Domains.Orders.App -> Domains/Orders/App
         var directory = $"{appRoot}/{appName}.Domains/{string.Join('/', name.Split('.').Skip(1))}";
         var assemblyName = $"{config.Prefix}.{appName}.{name}";

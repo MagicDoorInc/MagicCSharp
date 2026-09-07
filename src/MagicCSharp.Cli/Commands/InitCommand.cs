@@ -76,6 +76,9 @@ public class InitCommand : Command<InitCommand.Settings>
         wrote |= TemplateRenderer.Write(Path.Combine("Apps", ".gitkeep"), "");
         wrote |= TemplateRenderer.Write(Path.Combine("Libs", ".gitkeep"), "");
 
+        // Without one, the first build leaves hundreds of bin/ and obj/ files staged.
+        wrote |= renderer.Render("Repo/gitignore.hbs", ".gitignore", model);
+
         Output.Blank();
 
         if (!wrote)

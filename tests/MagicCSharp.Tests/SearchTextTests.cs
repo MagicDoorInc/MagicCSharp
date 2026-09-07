@@ -66,4 +66,17 @@ public class SearchTextTests
     {
         Assert.Equal("unit 4b 2026", SearchText.Normalize(["Unit 4B (2026)"]));
     }
+
+    [Fact]
+    public void Non_ascii_letters_survive()
+    {
+        // "Søgaard" used to index as "sgaard", so nobody searching for the actual name ever found it.
+        Assert.Equal("søgaard kasper", SearchText.Normalize(["Søgaard, Kasper"]));
+    }
+
+    [Fact]
+    public void Non_latin_scripts_survive_too()
+    {
+        Assert.Equal("東京 tokyo", SearchText.Normalize(["東京 (Tokyo)"]));
+    }
 }

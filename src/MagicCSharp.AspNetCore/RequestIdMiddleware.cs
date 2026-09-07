@@ -10,7 +10,15 @@ namespace MagicCSharp.AspNetCore;
 /// </summary>
 public class RequestIdMiddleware
 {
-    private const string RequestIdHeaderName = "X-Request-ID";
+    /// <summary>The header this middleware reads and writes.</summary>
+    public const string HeaderName = "X-Request-ID";
+
+    /// <summary>
+    ///     A caller-supplied id is echoed back, but only if it is short and printable — it ends up in every
+    ///     log line for the request, and an unbounded header is a cheap way to flood a log or smuggle
+    ///     control characters into one.
+    /// </summary>
+    private const int MaxRequestIdLength = 128;
     private readonly RequestDelegate _next;
     private readonly IRequestIdHandler _requestIdHandler;
 
@@ -23,7 +31,8 @@ public class RequestIdMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         // Check for existing RequestId in header, or generate new one
-        var requestId = context.Request.Headers[RequestIdHeaderName].FirstOrDefault();
+        var supplied = context.Request.Headers[HeaderName].FirstOrDefault();
+        var requestId = IsAcceptable(supplied) ? supplied : null;
 
         if (string.IsNullOrWhiteSpace(requestId))
         {
@@ -36,9 +45,9 @@ public class RequestIdMiddleware
             // Add RequestId to response headers for client tracking
             context.Response.OnStarting(() =>
             {
-                if (!context.Response.Headers.ContainsKey(RequestIdHeaderName))
+                if (!context.Response.Headers.ContainsKey(HeaderName))
                 {
-                    context.Response.Headers[RequestIdHeaderName] = requestId;
+                    context.Response.Headers[HeaderName] = requestId;
                 }
 
                 return Task.CompletedTask;
@@ -46,5 +55,12 @@ public class RequestIdMiddleware
 
             await _next(context);
         }
+    }
+
+    private static bool IsAcceptable(string? candidate)
+    {
+        return !string.IsNullOrWhiteSpace(candidate)
+               && candidate.Length <= MaxRequestIdLength
+               && candidate.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.' or ':');
     }
 }

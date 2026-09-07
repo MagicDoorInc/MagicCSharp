@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
+using MagicCSharp.Infrastructure;
 using MagicCSharp.Infrastructure.Exceptions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -7,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using DomainNotFound = MagicCSharp.Infrastructure.Exceptions.NotFoundException;
-using HttpNotFound = MagicCSharp.AspNetCore.NotFoundException;
 
 namespace MagicCSharp.AspNetCore;
 
@@ -42,40 +43,82 @@ public static class ErrorHandlingModule
     /// </summary>
     public static IApplicationBuilder UseMagicErrorHandling(this IApplicationBuilder app)
     {
-        return app.UseExceptionHandler(handler => handler.Run(async context =>
+        // Plain middleware rather than UseExceptionHandler, because that logs every exception it handles
+        // at Error — including the 404s and 409s this module deliberately treats as routine, which makes
+        // an error dashboard useless. Catching here means one log line, at the level the status implies.
+        return app.Use(async (context, next) =>
         {
-            var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
-
-            if (feature?.Error is not { } exception)
+            try
             {
-                return;
+                await next(context);
             }
-
-            var environment = context.RequestServices.GetRequiredService<IHostEnvironment>();
-            var problem = Describe(exception, environment.IsDevelopment());
-
-            // Logged at the level the status implies: a 404 is routine, a 500 is not.
-            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("MagicCSharp.ErrorHandling");
-
-            if (problem.Status >= 500)
+            catch (Exception exception)
             {
-                logger.LogError(exception, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
+                if (context.Response.HasStarted)
+                {
+                    // Too late to write a body: the status line is already on the wire. Log it and let the
+                    // connection fail, rather than corrupting a half-sent response.
+                    Logger(context).LogError(exception, "Exception after the response started on {Method} {Path}",
+                        context.Request.Method, context.Request.Path);
+                    throw;
+                }
+
+                await WriteProblem(context, exception);
             }
-            else
-            {
-                logger.LogInformation("{Status} on {Method} {Path}: {Message}",
-                    problem.Status, context.Request.Method, context.Request.Path, exception.Message);
-            }
+        });
+    }
 
-            problem.Instance = context.Request.Path;
-            problem.Extensions["requestId"] = context.TraceIdentifier;
+    private static async Task WriteProblem(HttpContext context, Exception exception)
+    {
+        var environment = context.RequestServices.GetRequiredService<IHostEnvironment>();
+        var problem = Describe(exception, environment.IsDevelopment());
+        var logger = Logger(context);
 
-            context.Response.StatusCode = problem.Status ?? StatusCodes.Status500InternalServerError;
-            context.Response.ContentType = "application/problem+json";
+        if (problem.Status >= 500)
+        {
+            logger.LogError(exception, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
+        }
+        else
+        {
+            logger.LogInformation("{Status} on {Method} {Path}: {Message}",
+                problem.Status, context.Request.Method, context.Request.Path, exception.Message);
+        }
 
-            await context.Response.WriteAsJsonAsync(problem);
-        }));
+        problem.Instance = context.Request.Path;
+
+        // The same id the X-Request-ID header carries, so a bug report quoting the body can be found in
+        // the logs. TraceIdentifier is Kestrel's connection:request counter and does not match it.
+        problem.Extensions["requestId"] = RequestIdOf(context);
+
+        context.Response.Clear();
+        context.Response.StatusCode = problem.Status ?? StatusCodes.Status500InternalServerError;
+
+        // The content type goes to the write, not onto Response.ContentType first — WriteAsJsonAsync sets
+        // application/json itself and would overwrite an earlier assignment, which is why these went out
+        // mislabelled.
+        await context.Response.WriteAsJsonAsync(problem, (JsonSerializerOptions?)null, "application/problem+json");
+    }
+
+    private static ILogger Logger(HttpContext context)
+    {
+        return context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("MagicCSharp.ErrorHandling");
+    }
+
+    /// <summary>
+    ///     The id this request is known by, from <see cref="IRequestIdHandler" /> — the same value the
+    ///     X-Request-ID header carries and every log line for the request is tagged with, so a bug report
+    ///     quoting the body can be found in the logs.
+    ///     <para>
+    ///         Not read from the response header: the middleware sets that in an OnStarting callback that
+    ///         has not fired yet when this runs. Requires UseRequestId to sit outside this middleware, which
+    ///         is how UseMagicApp orders them; Kestrel's own identifier is the fallback if it does not.
+    ///     </para>
+    /// </summary>
+    private static string RequestIdOf(HttpContext context)
+    {
+        var current = context.RequestServices.GetService<IRequestIdHandler>()?.GetCurrentRequestId();
+
+        return string.IsNullOrWhiteSpace(current) ? context.TraceIdentifier : current;
     }
 
     /// <summary>

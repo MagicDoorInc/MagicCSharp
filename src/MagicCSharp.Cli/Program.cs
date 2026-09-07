@@ -8,6 +8,7 @@ var app = new CommandApp();
 app.Configure(config =>
 {
     config.SetApplicationName("mcs");
+    config.SetApplicationVersion(ToolVersion.Current);
 
     config.AddCommand<InitCommand>("init")
         .WithDescription("Set the current directory up as a MagicCSharp repository")
@@ -43,13 +44,23 @@ app.Configure(config =>
         templates.AddCommand<TemplatesEjectCommand>("eject").WithDescription("Copy a template into this repository to customise");
     });
 
-    // A generator throwing is a bug or a broken template, not something to bury in a stack trace.
+    // A wrong flag or a missing template is the user's problem to fix, and a stack trace helps nobody
+    // read it. Only a genuinely unexpected exception gets the full dump, because that one is ours.
     config.SetExceptionHandler((exception, _) =>
     {
         switch (exception)
         {
+            case CommandParseException parse:
+                Output.Error(parse.Message);
+                Output.Hint("Run 'mcs --help', or '<command> --help', for the options.");
+                return 1;
+            case CommandRuntimeException runtime:
+                Output.Error(runtime.Message);
+                return 1;
             case TemplateNotFoundException:
             case InvalidOperationException:
+            case IOException:
+            case UnauthorizedAccessException:
                 Output.Error(exception.Message);
                 return 1;
             default:

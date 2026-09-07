@@ -12,13 +12,13 @@ public static class MagicKafkaEventsRegistrationExtensions
 {
     /// <summary>
     ///     Register Kafka event dispatcher and background service.
-    ///     This also calls RegisterMagicEvents() to register core infrastructure.
+    ///     This also calls AddMagicEvents() to register core infrastructure.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">Kafka configuration.</param>
     /// <param name="useOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection RegisterMagicKafkaEvents(
+    public static IServiceCollection AddMagicKafkaEvents(
         this IServiceCollection services,
         KafkaMagicEventConfiguration configuration,
         bool useOpenTelemetryMetrics = false)
@@ -26,7 +26,7 @@ public static class MagicKafkaEventsRegistrationExtensions
         ArgumentNullException.ThrowIfNull(configuration);
 
         // Register core infrastructure
-        services.RegisterMagicEvents(useOpenTelemetryMetrics);
+        services.AddMagicEvents(useOpenTelemetryMetrics);
 
         var host = configuration.BootstrapServers;
         var groupId = configuration.GroupId;
@@ -77,5 +77,15 @@ public static class MagicKafkaEventsRegistrationExtensions
         services.AddHostedService<KafkaEventsBackgroundService>();
 
         return services;
+    }
+
+    /// <inheritdoc cref="AddMagicKafkaEvents" />
+    [Obsolete("Renamed to AddMagicKafkaEvents, for consistency with every other registration method.")]
+    public static IServiceCollection RegisterMagicKafkaEvents(
+        this IServiceCollection services,
+        KafkaMagicEventConfiguration configuration,
+        bool useOpenTelemetryMetrics = false)
+    {
+        return services.AddMagicKafkaEvents(configuration, useOpenTelemetryMetrics);
     }
 }

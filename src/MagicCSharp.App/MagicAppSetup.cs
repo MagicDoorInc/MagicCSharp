@@ -50,17 +50,17 @@ public static class MagicAppSetup
 
         // Snowflake IDs. Give each instance a distinct generator id in production, or two can issue the
         // same id in the same millisecond.
-        services.RegisterSnowflakeKeyGen(options.KeyGeneratorId);
+        services.AddSnowflakeKeyGen(options.KeyGeneratorId);
 
         if (options.Events)
         {
             // Handler discovery, then the transport. Local dispatch is registered only when nothing else
             // has claimed IEventDispatcher, so calling RegisterMagicKafkaEvents first works as expected.
-            services.RegisterMagicEvents(options.OpenTelemetryMetrics);
+            services.AddMagicEvents(options.OpenTelemetryMetrics);
 
             if (services.All(descriptor => descriptor.ServiceType != typeof(Events.Events.IEventDispatcher)))
             {
-                services.RegisterLocalMagicEvents();
+                services.AddLocalMagicEvents();
             }
         }
 
@@ -102,14 +102,15 @@ public static class MagicAppSetup
             app.Services.ValidateServices(builder.Services);
         }
 
+        // Request id first, so it is established for everything after — including the error handler's own
+        // log line and the requestId it puts in the problem body. With these the other way round the body
+        // carried Kestrel's connection counter while the header carried the real id.
+        app.UseRequestId();
+
         if (options.ErrorHandling)
         {
-            // First, so everything after it is covered.
             app.UseMagicErrorHandling();
         }
-
-        // Next, so every log line from here on carries the request id.
-        app.UseRequestId();
 
         if (options.Controllers)
         {

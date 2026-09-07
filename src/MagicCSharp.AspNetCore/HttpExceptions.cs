@@ -28,8 +28,12 @@ public class UnauthorizedException(string message = "Unauthorized", Exception? i
 /// <summary>403 — authenticated, but not allowed to do this.</summary>
 public class ForbiddenException(string message = "Forbidden", Exception? inner = null) : HttpException(403, message, inner);
 
-/// <summary>404 — no such thing. Prefer the domain <c>NotFoundException</c>, which maps here anyway.</summary>
-public class NotFoundException(string message = "Not found", Exception? inner = null) : HttpException(404, message, inner);
+/// <summary>
+///     404 — no such thing. Prefer the domain <c>NotFoundException</c>, which maps here anyway; this exists
+///     for a controller that has no domain call to make. Named Http-first because an unprefixed
+///     NotFoundException collides with the domain one in any file that uses both.
+/// </summary>
+public class HttpNotFoundException(string message = "Not found", Exception? inner = null) : HttpException(404, message, inner);
 
 /// <summary>409 — the request conflicts with the current state, e.g. a duplicate.</summary>
 public class ConflictException(string message, Exception? inner = null) : HttpException(409, message, inner);
@@ -40,5 +44,9 @@ public class UnprocessableEntityException(string message, Exception? inner = nul
 /// <summary>429 — too many requests.</summary>
 public class TooManyRequestsException(string message = "Too many requests", Exception? inner = null) : HttpException(429, message, inner);
 
-/// <summary>501 — a route that exists but is not built yet.</summary>
-public class NotImplementedException(string message = "Not implemented", Exception? inner = null) : HttpException(501, message, inner);
+/// <summary>
+///     501 — a route that exists but is not built yet. Named Http-first because an unprefixed
+///     NotImplementedException is ambiguous with <see cref="System.NotImplementedException" /> under
+///     implicit usings, which made any file importing this namespace fail to compile.
+/// </summary>
+public class HttpNotImplementedException(string message = "Not implemented", Exception? inner = null) : HttpException(501, message, inner);

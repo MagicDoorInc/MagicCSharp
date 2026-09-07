@@ -28,7 +28,7 @@ public class {{ name }}Program
 
         var app = builder.Build();
 
-        // Error handling, request IDs and controllers, in the order they need — and a preflight that
+        // Request IDs, error handling and controllers, in the order they need — and a preflight that
         // resolves every registration now rather than on the first request that needs it.
         app.UseMagicApp(builder);
 
