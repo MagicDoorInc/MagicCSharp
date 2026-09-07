@@ -358,12 +358,14 @@ its own backend on: several services in one repository, each with its own soluti
 libraries. Take it, take part of it, or ignore it entirely — nothing in the packages reads it.
 
 ```bash
-dotnet new install MagicCSharp.Templates
-dotnet new magiccsharp-repo -n Acme && cd Acme
+curl -fsSL https://raw.githubusercontent.com/MagicDoorInc/MagicCSharp/master/install.sh | bash
 
-dotnet run tools/CreateApp.cs -- --name Shop --database shop
+mcs init --prefix Acme
+mcs create-app --name Shop --database shop
 dotnet run --project Apps/Shop/Shop.App                # a service that runs
 ```
+
+Or, without installing a CLI: `dotnet new install MagicCSharp.Templates && dotnet new magiccsharp-repo -n Acme`.
 
 ```
 Apps/Shop/

@@ -351,12 +351,32 @@ public static class Naming
 public static class Templates
 {
     /// <summary>
+    ///     Where the .hbs templates live.
+    ///     <para>
+    ///         When the tools are installed globally the scripts run from outside the repository, so
+    ///         <c>tools/Templates</c> relative to the working directory is wrong — the installer sets
+    ///         MAGICCSHARP_TOOLS_DIR to the install location. Falling back to the relative path keeps a
+    ///         repository that vendored <c>tools/</c> working unchanged.
+    ///     </para>
+    /// </summary>
+    private static string TemplateRoot
+    {
+        get
+        {
+            var installed = Environment.GetEnvironmentVariable("MAGICCSHARP_TOOLS_DIR");
+            return string.IsNullOrWhiteSpace(installed)
+                ? Path.Combine("tools", "Templates")
+                : Path.Combine(installed, "Templates");
+        }
+    }
+
+    /// <summary>
     ///     Renders a template to a path, and refuses to overwrite. Regenerating over a file you have edited
     ///     would silently throw the edits away, so an existing file is reported and skipped.
     /// </summary>
     public static async Task<string> Render(string templateName, string targetPath, EntityModel model)
     {
-        var templatePath = Path.Combine("tools", "Templates", "Entities", templateName);
+        var templatePath = Path.Combine(TemplateRoot, "Entities", templateName);
         if (!File.Exists(templatePath))
         {
             throw new FileNotFoundException($"Template not found: {templatePath}");

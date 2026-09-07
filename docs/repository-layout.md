@@ -16,7 +16,42 @@ packages directly.
 You need the **.NET 10 SDK**. The scripts are single-file programs that declare their own dependencies, so
 there is nothing else to install.
 
-### A new repository
+### Install the CLI
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MagicDoorInc/MagicCSharp/master/install.sh | bash
+```
+
+Puts the scripts in `~/.magiccsharp/tools` and a dispatcher named `mcs` on your PATH. Then, in any
+directory:
+
+```bash
+mcs init --prefix Acme
+mcs create-app --name Shop --database shop
+dotnet run --project Apps/Shop/Shop.App
+```
+
+| | |
+|---|---|
+| `mcs init --prefix Acme` | set this directory up as a repository |
+| `mcs create-app --name Shop --database shop` | a service |
+| `mcs create-domain -s Acme.Shop.slnx -n Domains.Orders --models --tests` | a domain |
+| `mcs add-entity -s Acme.Shop.slnx -d Orders -n Order --paginated` | an entity and its repository |
+| `mcs create-lib --name Events --tests` | a shared library |
+| `mcs sync` | rebuild the all-projects solution |
+| `mcs validate` | lint the conventions the compiler cannot |
+| `mcs update` | upgrade the tools |
+
+`mcs` checks for a newer build once a day, in the background, and prints a one-line notice on the next
+command. It never blocks what you asked for, only says anything on a terminal, and
+`MAGICCSHARP_NO_UPDATE_CHECK=1` turns it off.
+
+Re-running the installer upgrades in place. `MAGICCSHARP_HOME` moves the install, `MAGICCSHARP_REF` pins a
+branch or tag, `NO_MODIFY_PATH=1` leaves your shell profile alone.
+
+### Without installing anything
+
+If you would rather not install a CLI, the same scaffolding ships as a `dotnet new` template:
 
 ```bash
 dotnet new install MagicCSharp.Templates
@@ -30,20 +65,21 @@ cd Acme
 | `--MagicCSharpVersion` | the version the template shipped with | MagicCSharp packages to pin |
 | `--TargetFramework` | `net10.0` | `net10.0` or `net9.0` |
 
-That gives you everything below plus `tools/`, and the scripts' own `--help` examples are rewritten to your
-prefix.
+That gives you everything below plus a `tools/` directory inside the repository — useful when you want the
+scripts committed alongside the code so a teammate cloning it needs nothing installed. The scripts' own
+`--help` examples are rewritten to your prefix.
 
 ### An existing repository
 
-Copy `tools/` from [the repository](https://github.com/MagicDoorInc/MagicCSharp/tree/master/tools) into your
-root, then:
+`mcs init` works there too — it writes only what is missing, so it composes with a repository that already has a README, a
+`.gitignore` and projects of its own:
 
 ```bash
-dotnet run tools/InitRepo.cs -- --prefix Acme
+cd my-existing-repo
+mcs init --prefix Acme
 ```
 
-`InitRepo` writes only what is missing, so it composes with a repository that already has a README, a
-`.gitignore` and projects of its own. See [Adding this to an existing repository](#adding-this-to-an-existing-repository).
+See [Adding this to an existing repository](#adding-this-to-an-existing-repository).
 
 The prefix is your namespace and solution-name root. `Acme` gives you `Acme.Shop.slnx`, assemblies named
 `Acme.Shop.App`, namespaces like `Acme.Shop.Domains.Orders`. Pick your company or product name; it is

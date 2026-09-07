@@ -84,8 +84,28 @@ only what it uses.
 services in one repository, each with its own solution, sharing a set of libraries. Entirely opt-in; nothing
 in the packages reads it. See [docs/repository-layout.md](docs/repository-layout.md).
 
-**`MagicCSharp.Templates`** — a `dotnet new` template, so starting a repository on this layout does not mean
-cloning the framework's source and copying a directory out of it:
+**`mcs`, an installable CLI** — the tools no longer have to live inside your repository:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MagicDoorInc/MagicCSharp/master/install.sh | bash
+mcs init --prefix Acme
+mcs create-app --name Shop --database shop
+```
+
+Installs to `~/.magiccsharp` — deliberately not `~/.magicdoor`, which MagicDoor's own `md` CLI already uses,
+and which would be the wrong name on another team's machine. Re-running upgrades in place; `mcs update` does
+the same thing.
+
+`mcs` checks once a day, in the background, whether the installed build is behind the repository, and prints
+a one-line notice on the next command. It compares commits rather than package versions, because the tools
+are installed from a git ref and `scripts/version.txt` moves on the NuGet release schedule. It never blocks a
+command, only speaks on a terminal, and `MAGICCSHARP_NO_UPDATE_CHECK=1` disables it.
+
+The scripts resolve their templates from `MAGICCSHARP_TOOLS_DIR` when it is set, falling back to
+`tools/Templates` — so a repository that vendored `tools/` keeps working unchanged.
+
+**`MagicCSharp.Templates`** — a `dotnet new` template, for teams who would rather commit the tooling than
+install it:
 
 ```bash
 dotnet new install MagicCSharp.Templates

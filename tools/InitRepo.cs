@@ -55,6 +55,26 @@ public class InitRepoSettings : CommandSettings
 
 public class InitRepoCommand : AsyncCommand<InitRepoSettings>
 {
+    /// <summary>
+    ///     Where the .hbs templates live.
+    ///     <para>
+    ///         When the tools are installed globally the scripts run from outside the repository, so
+    ///         <c>tools/Templates</c> relative to the working directory is wrong — the installer sets
+    ///         MAGICCSHARP_TOOLS_DIR to the install location. Falling back to the relative path keeps a
+    ///         repository that vendored <c>tools/</c> working unchanged.
+    ///     </para>
+    /// </summary>
+    private static string TemplateRoot
+    {
+        get
+        {
+            var installed = Environment.GetEnvironmentVariable("MAGICCSHARP_TOOLS_DIR");
+            return string.IsNullOrWhiteSpace(installed)
+                ? Path.Combine("tools", "Templates")
+                : Path.Combine(installed, "Templates");
+        }
+    }
+
     public override async Task<int> ExecuteAsync(CommandContext context, InitRepoSettings settings)
     {
         var prefix = settings.Prefix!;
@@ -125,7 +145,7 @@ public class InitRepoCommand : AsyncCommand<InitRepoSettings>
             return false;
         }
 
-        var templatePath = Path.Combine("tools", "Templates", templateName.Replace('/', Path.DirectorySeparatorChar));
+        var templatePath = Path.Combine(TemplateRoot, templateName.Replace('/', Path.DirectorySeparatorChar));
         if (!File.Exists(templatePath))
         {
             AnsiConsole.MarkupLine($"[red]Template not found:[/] {Markup.Escape(templatePath)}");
