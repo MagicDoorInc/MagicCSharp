@@ -223,7 +223,18 @@ interface says so.
 | `SyncAllProjects` | Rebuilds `{Prefix}.All.slnx` from disk. |
 | `ValidateConventions` | Lints the conventions the compiler cannot. Exits non-zero — use it in CI. |
 
-Every one takes `--help`.
+Every one takes `--help`, and [tools/README.md](../tools/README.md) has the options and a worked example for
+each.
+
+### Regenerating the wide solution
+
+```bash
+dotnet run tools/SyncAllProjects.cs
+```
+
+`CreateApp`, `CreateAppLib` and `CreateLib` run this themselves, so you rarely call it. The two times you do:
+after a merge or rebase leaves `{Prefix}.All.slnx` conflicted — take either side, or delete the file, and
+regenerate rather than resolving by hand — and after moving or deleting a project outside the tools.
 
 Two properties they all share, which is what makes them safe to run against a repository you have been
 working in:
