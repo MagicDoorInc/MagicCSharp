@@ -11,6 +11,7 @@
 // only the pieces that are missing.
 
 using System.ComponentModel;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Scriban;
 using Scriban.Runtime;
@@ -55,26 +56,6 @@ public class InitRepoSettings : CommandSettings
 
 public class InitRepoCommand : AsyncCommand<InitRepoSettings>
 {
-    /// <summary>
-    ///     Where the .hbs templates live.
-    ///     <para>
-    ///         When the tools are installed globally the scripts run from outside the repository, so
-    ///         <c>tools/Templates</c> relative to the working directory is wrong — the installer sets
-    ///         MAGICCSHARP_TOOLS_DIR to the install location. Falling back to the relative path keeps a
-    ///         repository that vendored <c>tools/</c> working unchanged.
-    ///     </para>
-    /// </summary>
-    private static string TemplateRoot
-    {
-        get
-        {
-            var installed = Environment.GetEnvironmentVariable("MAGICCSHARP_TOOLS_DIR");
-            return string.IsNullOrWhiteSpace(installed)
-                ? Path.Combine("tools", "Templates")
-                : Path.Combine(installed, "Templates");
-        }
-    }
-
     public override async Task<int> ExecuteAsync(CommandContext context, InitRepoSettings settings)
     {
         var prefix = settings.Prefix!;
@@ -85,9 +66,12 @@ public class InitRepoCommand : AsyncCommand<InitRepoSettings>
 
         var wrote = false;
 
+        // "templates" is written explicitly, even though it matches the default, so the override
+        // mechanism is discoverable from the config rather than only from documentation.
         wrote |= await WriteIfMissing("magiccsharp.json", $$"""
                                                            {
-                                                             "prefix": "{{prefix}}"
+                                                             "prefix": "{{prefix}}",
+                                                             "templates": "{{TemplateResolver.DefaultOverrideDirectory}}"
                                                            }
 
                                                            """);
@@ -145,14 +129,7 @@ public class InitRepoCommand : AsyncCommand<InitRepoSettings>
             return false;
         }
 
-        var templatePath = Path.Combine(TemplateRoot, templateName.Replace('/', Path.DirectorySeparatorChar));
-        if (!File.Exists(templatePath))
-        {
-            AnsiConsole.MarkupLine($"[red]Template not found:[/] {Markup.Escape(templatePath)}");
-            AnsiConsole.MarkupLine("[yellow]Run this from the repository root, with tools/ alongside.[/]");
-            throw new FileNotFoundException(templatePath);
-        }
-
+        var templatePath = TemplateResolver.Resolve(templateName);
         var template = Template.Parse(await File.ReadAllTextAsync(templatePath));
 
         var scriptObject = new ScriptObject();
@@ -163,5 +140,95 @@ public class InitRepoCommand : AsyncCommand<InitRepoSettings>
         await File.WriteAllTextAsync(targetPath, await template.RenderAsync(templateContext));
         AnsiConsole.MarkupLine($"  [green]created[/] {Markup.Escape(targetPath)}");
         return true;
+    }
+}
+
+/// <summary>
+///     Finds a template, letting a team override any single one without forking the rest.
+///     <para>
+///         Looked up in order, first match winning: the repository's own override directory, then the
+///         templates installed alongside the tools, then a vendored <c>tools/Templates</c>. Resolution is
+///         per file, so overriding <c>Entities/dal.cs.hbs</c> leaves every other template built-in.
+///     </para>
+/// </summary>
+public static class TemplateResolver
+{
+    /// <summary>Where a repository keeps its overrides unless magiccsharp.json says otherwise.</summary>
+    public const string DefaultOverrideDirectory = ".magiccsharp/templates";
+
+    /// <summary>
+    ///     The full path of a template, e.g. "Entities/dal.cs.hbs".
+    /// </summary>
+    /// <exception cref="FileNotFoundException">No layer provides it.</exception>
+    public static string Resolve(string relativePath)
+    {
+        var relative = relativePath.Replace('/', Path.DirectorySeparatorChar);
+
+        foreach (var root in Roots())
+        {
+            var candidate = Path.Combine(root, relative);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new FileNotFoundException(
+            $"Template '{relativePath}' not found in: {string.Join(", ", Roots())}");
+    }
+
+    /// <summary>The layers, most specific first. Non-existent ones are still listed, for error messages.</summary>
+    public static IReadOnlyList<string> Roots()
+    {
+        var roots = new List<string>();
+
+        var overrides = OverrideDirectory();
+        if (!string.IsNullOrWhiteSpace(overrides))
+        {
+            roots.Add(overrides);
+        }
+
+        // Set by the mcs dispatcher to the installed template directory.
+        var installed = Environment.GetEnvironmentVariable("MAGICCSHARP_TEMPLATES_DIR");
+        if (!string.IsNullOrWhiteSpace(installed))
+        {
+            roots.Add(installed);
+        }
+
+        // A repository that vendored the tools rather than installing them.
+        roots.Add(Path.Combine("tools", "Templates"));
+
+        return roots;
+    }
+
+    /// <summary>
+    ///     The repository's override directory: the "templates" key of magiccsharp.json, or
+    ///     <see cref="DefaultOverrideDirectory" /> when the key is absent. Read straight from the file rather
+    ///     than through RepoConfig, so InitRepo can resolve templates before the config exists.
+    /// </summary>
+    public static string? OverrideDirectory()
+    {
+        if (!File.Exists("magiccsharp.json"))
+        {
+            return DefaultOverrideDirectory;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText("magiccsharp.json"));
+            if (document.RootElement.TryGetProperty("templates", out var configured) &&
+                configured.ValueKind == JsonValueKind.String)
+            {
+                var value = configured.GetString();
+                // An explicit empty string opts out of overrides entirely.
+                return string.IsNullOrWhiteSpace(value) ? null : value;
+            }
+        }
+        catch (JsonException)
+        {
+            // A malformed config is RepoConfig's problem to report; template lookup just falls back.
+        }
+
+        return DefaultOverrideDirectory;
     }
 }

@@ -101,8 +101,19 @@ a one-line notice on the next command. It compares commits rather than package v
 are installed from a git ref and `scripts/version.txt` moves on the NuGet release schedule. It never blocks a
 command, only speaks on a terminal, and `MAGICCSHARP_NO_UPDATE_CHECK=1` disables it.
 
-The scripts resolve their templates from `MAGICCSHARP_TOOLS_DIR` when it is set, falling back to
-`tools/Templates` — so a repository that vendored `tools/` keeps working unchanged.
+**Team-owned templates.** Everything the generators write comes from a `.hbs` template, and a team can
+replace any single one without forking the rest. Templates resolve through three layers, first match winning:
+`.magiccsharp/templates/` in the repository, then `~/.magiccsharp/templates/` installed with the tools, then
+a vendored `tools/Templates/`.
+
+```bash
+mcs templates list                        # every template, and which layer provides it
+mcs templates eject Entities/dal.cs.hbs   # copy one in to customise
+```
+
+The directory comes from `"templates"` in `magiccsharp.json` — point it at a shared submodule, or set it to
+`""` to disable overrides. Because resolution is per file, an override taken a year ago does not stop you
+receiving improvements to every template you did not touch.
 
 **`MagicCSharp.Templates`** — a `dotnet new` template, for teams who would rather commit the tooling than
 install it:

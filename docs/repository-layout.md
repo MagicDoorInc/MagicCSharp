@@ -218,6 +218,58 @@ was that service's code in the wrong place.
 
 ---
 
+## Making the templates your own
+
+Everything the generators write comes from a `.hbs` template, and a team can replace any one of them without
+forking the rest. Override the DAL template to add your own audit columns; leave the other eighteen built-in.
+
+Templates are searched in order, **first match wins**:
+
+1. `.magiccsharp/templates/` in your repository — committed, so the whole team gets it
+2. `~/.magiccsharp/templates/` — installed with the tools
+3. `tools/Templates/` — a repository that vendored the tools instead of installing them
+
+```bash
+mcs templates list              # every template, and which layer provides it
+mcs templates where             # the layers, in search order
+mcs templates eject Entities/dal.cs.hbs
+```
+
+`eject` copies a built-in template into your override directory. Edit it, commit it, and every generator in
+the repository uses your copy from then on. Delete it to go back to the built-in — there is no state anywhere
+else.
+
+Because resolution is per file, an override you took a year ago does not stop you receiving improvements to
+every template you did not touch.
+
+### Configuring it
+
+`magiccsharp.json` holds the override directory:
+
+```json
+{
+  "prefix": "Acme",
+  "templates": ".magiccsharp/templates"
+}
+```
+
+Point it anywhere — a git submodule shared across repositories, a directory outside the repo, whatever suits.
+Set it to `""` to turn overrides off entirely, which makes `mcs templates eject` refuse rather than write
+somewhere that will be ignored.
+
+### What to override, and what it costs
+
+Good candidates are house style that the framework has no opinion about: a licence header on generated
+files, your own audit columns on the DAL base, a different default filter shape, a test file that starts
+from your fixtures.
+
+The cost is the usual one for a fork. Your copy stops tracking upstream, so a fix to the built-in template
+does not reach it — `mcs templates list` shows which files you have taken on, and re-ejecting with `--force`
+gives you the current built-in to merge against.
+
+
+---
+
 ## Adding to a service
 
 ### A domain

@@ -24,6 +24,7 @@ MAGICCSHARP_REF="${MAGICCSHARP_REF:-master}"
 MAGICCSHARP_REPO="${MAGICCSHARP_REPO:-MagicDoorInc/MagicCSharp}"
 
 TOOLS_DIR="$MAGICCSHARP_HOME/tools"
+TEMPLATES_DIR="$MAGICCSHARP_HOME/templates"
 BIN_DIR="$MAGICCSHARP_HOME/bin"
 
 bold=$'\033[1m'; red=$'\033[31m'; green=$'\033[32m'; yellow=$'\033[33m'; dim=$'\033[2m'; off=$'\033[0m'
@@ -86,9 +87,13 @@ commit="$(fetch "https://api.github.com/repos/$MAGICCSHARP_REPO/commits/$MAGICCS
 # ── Install ──────────────────────────────────────────────────────────────────────────────────────────
 
 # Replace rather than merge, so a script deleted upstream does not linger and shadow a renamed one.
-rm -rf "$TOOLS_DIR"
-mkdir -p "$TOOLS_DIR" "$BIN_DIR"
+rm -rf "$TOOLS_DIR" "$TEMPLATES_DIR"
+mkdir -p "$TOOLS_DIR" "$TEMPLATES_DIR" "$BIN_DIR"
 cp -R "$extracted/tools/." "$TOOLS_DIR/"
+
+# Templates live beside the tools rather than inside them, so they are somewhere a person can read, diff
+# against their own overrides, and copy from. Nothing reads this copy except as the fallback layer.
+cp -R "$extracted/tools/Templates/." "$TEMPLATES_DIR/"
 
 printf '%s\n' "$version" > "$MAGICCSHARP_HOME/VERSION"
 printf '%s\n' "$MAGICCSHARP_REF" > "$MAGICCSHARP_HOME/REF"
@@ -97,6 +102,7 @@ date +%s > "$MAGICCSHARP_HOME/.last-update-check"
 rm -f "$MAGICCSHARP_HOME/.update-available"
 
 ok "tools installed ($(find "$TOOLS_DIR" -name '*.cs' -maxdepth 1 | wc -l | tr -d ' ') scripts, packages $version${commit:+, build ${commit:0:7}})"
+ok "templates installed ($(find "$TEMPLATES_DIR" -name '*.hbs' | wc -l | tr -d ' ') files in $TEMPLATES_DIR)"
 
 # ── Dispatcher ───────────────────────────────────────────────────────────────────────────────────────
 
@@ -109,13 +115,16 @@ set -euo pipefail
 
 MAGICCSHARP_HOME="${MAGICCSHARP_HOME:-$HOME/.magiccsharp}"
 TOOLS_DIR="$MAGICCSHARP_HOME/tools"
+TEMPLATES_DIR="$MAGICCSHARP_HOME/templates"
 REPO="${MAGICCSHARP_REPO:-MagicDoorInc/MagicCSharp}"
 REF="$(tr -d '[:space:]' < "$MAGICCSHARP_HOME/REF" 2>/dev/null || true)"; REF="${REF:-master}"
 
 bold=$'\033[1m'; dim=$'\033[2m'; yellow=$'\033[33m'; off=$'\033[0m'
 
-# Scripts resolve their .hbs templates from here rather than ./tools/Templates.
+# Where the generators look for templates. A repository's own .magiccsharp/templates is searched first,
+# so this is the fallback layer, not the only one.
 export MAGICCSHARP_TOOLS_DIR="$TOOLS_DIR"
+export MAGICCSHARP_TEMPLATES_DIR="$TEMPLATES_DIR"
 
 # Reads a state file, empty when absent. `cat missing | tr` would fail the pipeline, and under
 # `set -e` with `pipefail` an assignment inherits that status and kills the script — which only shows
@@ -136,6 +145,12 @@ ${bold}Setup${off}
 ${bold}Inside a service${off}
   mcs create-domain --solution Acme.Shop.slnx --name Domains.Orders --models --tests
   mcs add-entity --solution Acme.Shop.slnx --domain Orders --name Order --paginated
+
+${bold}Templates${off}
+  mcs templates list                  every template, and which layer provides it
+  mcs templates eject Entities/dal.cs.hbs
+                                      copy one into this repository to customise
+  mcs templates where                 the layers, in search order
 
 ${bold}Maintenance${off}
   mcs sync                            rebuild the all-projects solution
@@ -216,6 +231,7 @@ case "$command" in
   create-domain)  run CreateAppLib "$@" ;;
   create-lib)     run CreateLib "$@" ;;
   add-entity)     run AddEntity "$@" ;;
+  templates)      run Templates "$@" ;;
   sync)           run SyncAllProjects "$@" ;;
   validate)       run ValidateConventions "$@" ;;
   *)

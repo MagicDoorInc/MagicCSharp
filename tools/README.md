@@ -122,6 +122,24 @@ dotnet ef migrations add CreateOrdersTable --project Apps/Shop/Data/Data.EntityF
 neighbours, so putting one in a URL leaks both when the record was created and roughly how many exist. Use it
 for invite links, webhook targets and API keys.
 
+## Templates — see and override the generators' templates
+
+```bash
+dotnet run tools/Templates.cs -- list
+dotnet run tools/Templates.cs -- list --overridden
+dotnet run tools/Templates.cs -- where
+dotnet run tools/Templates.cs -- eject Entities/dal.cs.hbs [--force]
+```
+
+Templates resolve through three layers, first match winning: `.magiccsharp/templates/` in the repository,
+then the installed `~/.magiccsharp/templates/`, then a vendored `tools/Templates/`.
+
+`eject` copies a built-in template into the repository so you can change it. Resolution is per file, so
+overriding one template leaves the rest built-in and still tracking upstream. Delete your copy to revert.
+
+The override directory comes from `"templates"` in `magiccsharp.json`, defaulting to
+`.magiccsharp/templates`; set it to `""` to disable overrides.
+
 ## SyncAllProjects — rebuild the wide solution
 
 ```bash
@@ -178,7 +196,7 @@ content differs. Run any tool twice and the second run produces no diff.
 tools/
   Directory.Build.props       pins the scripts to net10.0 — see below
   *.cs                        the tools
-  Templates/
+  Templates/                  built-in; a repository overrides individual files
     Repo/                     Directory.Build.props, Directory.Packages.props
     Apps/                     service host, appsettings, data projects
     Libraries/                library and test csproj
