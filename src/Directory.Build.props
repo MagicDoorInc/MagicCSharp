@@ -30,6 +30,12 @@
          every property restating its name. CS1591 would demand exactly that. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
 
+    <!-- A vulnerable dependency fails the build here, as it already does in a generated repository, whose
+         Directory.Build.props sets TreatWarningsAsErrors. Without this the framework could ship a package
+         that drags in an advisory and only the consumer would find out — which is exactly how
+         Testcontainers 4.1.0 and its SSH.NET 2024.1.0 got here. -->
+    <WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
+
     <!-- Ship symbols and source links so a stack trace through the framework is navigable. -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
