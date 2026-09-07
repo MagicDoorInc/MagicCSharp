@@ -5,11 +5,13 @@
 #
 # Flags:
 #   --push         Push packages to NuGet.org after building
+#   --dry-run      Build and pack everything, then undo the version bump and delete the packages
 #   --major        Increment major version (X.0.0)
 #   --minor        Increment minor version (0.X.0)
 #   --patch        Increment patch version (0.0.X) - DEFAULT
 #
 # Examples:
+#   ./publish-all.sh --dry-run          # Verify a release builds, change nothing
 #   ./publish-all.sh                    # Build locally, increment patch
 #   ./publish-all.sh --push             # Build and push, increment patch
 #   ./publish-all.sh --minor --push     # Build and push, increment minor
@@ -48,12 +50,16 @@ echo ""
 
 # Parse arguments
 PUSH=false
+DRY_RUN=false
 VERSION_TYPE="patch"
 
 for arg in "$@"; do
     case $arg in
         --push)
             PUSH=true
+            ;;
+        --dry-run)
+            DRY_RUN=true
             ;;
         --major)
             VERSION_TYPE="major"
@@ -66,7 +72,7 @@ for arg in "$@"; do
             ;;
         *)
             echo "Unknown argument: $arg"
-            echo "Usage: $0 [--push] [--major|--minor|--patch]"
+            echo "Usage: $0 [--push] [--dry-run] [--major|--minor|--patch]"
             exit 1
             ;;
     esac
@@ -128,6 +134,20 @@ for PROJECT in "${PACKAGES[@]}"; do
         echo "  ⚠ Warning: $PROJECT not found"
     fi
 done
+
+# The dotnet new template pins a MagicCSharp version in the repositories it scaffolds, in both
+# .config/dotnet-tools.json and Directory.Packages.props. Both come from one default in template.json, so
+# it has to move with the release — otherwise a freshly generated repository references a version older
+# than the tooling that generated it.
+TEMPLATE_JSON="templates/content/magiccsharp-repo/.template.config/template.json"
+if [ -f "$TEMPLATE_JSON" ]; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s/\"defaultValue\": \"[0-9]*\.[0-9]*\.[0-9]*\"/\"defaultValue\": \"$NEW_VERSION\"/" "$TEMPLATE_JSON"
+    else
+        sed -i "s/\"defaultValue\": \"[0-9]*\.[0-9]*\.[0-9]*\"/\"defaultValue\": \"$NEW_VERSION\"/" "$TEMPLATE_JSON"
+    fi
+    echo "  ✓ Updated $TEMPLATE_JSON pinned version"
+fi
 
 echo ""
 
@@ -196,6 +216,15 @@ echo "================================================"
 echo ""
 
 # Push to NuGet if requested
+if [ "$DRY_RUN" = true ]; then
+    echo "Dry run — restoring the version bump and removing the packages."
+    git checkout -- "$VERSION_FILE" "${PACKAGES[@]}" "$TEMPLATE_JSON" 2>/dev/null || true
+    rm -rf $OUTPUT_DIR
+    echo ""
+    echo "Everything built and packed. Nothing was published and the worktree is unchanged."
+    exit 0
+fi
+
 if [ "$PUSH" = true ]; then
     echo "Publishing to NuGet.org..."
     echo ""
