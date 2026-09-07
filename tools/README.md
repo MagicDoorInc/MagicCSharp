@@ -1,127 +1,68 @@
 # Tools
 
-Scaffolding and linting for a repository built on MagicCSharp. Each tool is a single-file .NET program —
-no project, no build step, dependencies declared inline with `#:package`. Requires the .NET 10 SDK; the
-libraries themselves target net9.0.
+Scaffolding and linting for a repository built on MagicCSharp. Each tool is a single-file .NET program — no
+project, no build step, dependencies declared inline with `#:package`. Requires the **.NET 10 SDK**.
+
+**The structure these create is optional.** The MagicCSharp packages work in any project layout. See
+[docs/repository-layout.md](../docs/repository-layout.md) for what the structure is, why each boundary is
+where it is, and how to adopt part or none of it.
+
+## Getting started
+
+Copy this directory into the root of your repository, then:
 
 ```bash
-dotnet run tools/AddEntity.cs -- --help
+dotnet run tools/InitRepo.cs -- --prefix Acme
+dotnet run tools/CreateApp.cs -- --name Shop --database shop
+dotnet run --project Apps/Shop/Shop.App
 ```
 
-## Setup
+Every tool takes `--help`.
 
-The tools operate on a repository that follows the MagicCSharp layout, marked by a `magiccsharp.json` at its
-root:
+## Reference
 
-```json
-{ "prefix": "Acme" }
+| Tool | Does | Key options |
+|---|---|---|
+| `InitRepo` | Sets the repository up. Run once. | `--prefix`, `--package-version` |
+| `CreateApp` | New service: host, solution, data projects | `--name`, `--database` / `--no-database`, `--port` |
+| `CreateAppLib` | New domain inside a service | `--solution`, `--name`, `--models`, `--tests` |
+| `CreateLib` | New shared library under `Libs/` | `--name`, `--tests` |
+| `AddEntity` | Entity across its four files, registered | `--solution`, `--domain`, `--name`, `--paginated`, `--use-key` |
+| `SyncAllProjects` | Rebuilds `{Prefix}.All.slnx` from disk | — |
+| `ValidateConventions` | Lints what the compiler cannot; exits non-zero | `--path` |
+
+## Two guarantees
+
+**Nothing is overwritten.** An existing file is reported and skipped, because regenerating over something you
+edited would throw the edits away. Delete a file if you want it regenerated.
+
+**Re-running changes nothing.** Registrations are not duplicated; solutions are rewritten only when the
+content differs. Run any tool twice and the second run produces no diff.
+
+`CreateApp`, `CreateAppLib` and `CreateLib` run `SyncAllProjects` themselves.
+
+## Layout of this directory
+
+```
+tools/
+  Directory.Build.props       pins the scripts to net10.0 — see below
+  *.cs                        the tools
+  Templates/
+    Repo/                     Directory.Build.props, Directory.Packages.props
+    Apps/                     service host, appsettings, data projects
+    Libraries/                library and test csproj
+    Entities/                 entity, repository interface, DAL, EF repository
 ```
 
-The prefix is the namespace and solution-name root: `Acme.Shop.slnx`, `Acme.Shop.Data.EntityFramework`. Every
-tool refuses to run without this file rather than guessing and scattering files into the wrong directories.
+`Directory.Build.props` here deliberately does **not** inherit the repository's. The scripts are compiled and
+run by the SDK on whichever machine is scaffolding, so a repository targeting net9.0 would otherwise produce
+scripts the .NET 10 runtime refuses to launch. Keep the file with the scripts when copying `tools/` across.
 
-## Layout
+The templates are ordinary text — edit them and every future generated file follows suit.
 
-```
-magiccsharp.json
-Acme.All.slnx                        every project, generated
-Acme.Shop.slnx                       one service
-Apps/
-  Shop/
-    Shop.App/                        controllers, host
-    Shop.Domains/
-      Orders/
-        Default/                     use cases, event handlers
-        Models/                      entities, edits, filters
-        Tests/
-    Data/
-      Data.Models/                   repository interfaces
-      Data.EntityFramework/          DALs, EF repositories, context, migrations
-Libs/
-  {Group}/Default/
-```
+## Not ported from MagicDoor's backend
 
-The split that matters: **entities are owned by their domain**, persistence is service-level. `Order` lives
-under `Orders/Models`; `OrderDal` and `OrdersEfRepository` live under `Data/`. A domain can be read without
-reading how it is stored.
-
-## Tools
-
-### AddEntity.cs
-
-Scaffolds an entity across the four files that have to agree about it.
-
-```bash
-dotnet run tools/AddEntity.cs -- --solution Acme.Shop.slnx --domain Orders --name Order --paginated
-dotnet run tools/AddEntity.cs -- --solution Acme.Shop.slnx --domain Access --name ApiKey --use-key
-```
-
-| Flag | Meaning |
-|---|---|
-| `-s, --solution` | The service's solution file |
-| `-d, --domain` | Owning domain; its Models project must exist |
-| `-n, --name` | Entity name, PascalCase singular |
-| `-p, --paginated` | Also give the repository page-at-a-time reads |
-| `-k, --use-key` | Key by unguessable string rather than Snowflake id |
-
-Writes `Order.cs` (entity, edit, filter), `IOrdersRepository.cs`, `OrderDal.cs` and `OrdersEfRepository.cs`,
-adds the `DbSet` to the context and registers the repository — imports included.
-
-**`--use-key` when the key is public.** A Snowflake id encodes the time it was issued and sits next to its
-neighbours, so putting one in a URL leaks both when the record was created and roughly how many exist. A
-random key leaks neither. Use it for invite links, webhook targets and API keys.
-
-**Existing files are skipped, never overwritten** — regenerating over a file you have edited would throw the
-edits away. Re-running is safe: registrations are not duplicated either.
-
-The generated `ToEntity`, `Apply` and `ApplyFilter` have `TODO`s. That is the intent: only you know the
-columns.
-
-Afterwards:
-```bash
-dotnet ef migrations add CreateOrdersTable --project Apps/Shop/Data/Data.EntityFramework
-```
-
-### SyncAllProjects.cs
-
-```bash
-dotnet run tools/SyncAllProjects.cs
-```
-
-Rebuilds `{Prefix}.All.slnx` from every `.csproj` on disk, grouped by the first two path segments. Idempotent:
-an already-current solution is left byte-identical, so it produces no diff. Run it after a rebase leaves the
-solution file conflicted — regenerating beats resolving.
-
-### ValidateConventions.cs
-
-```bash
-dotnet run tools/ValidateConventions.cs -- --path .
-```
-
-Exits non-zero on a violation, so it works as a CI step. Four rules, each for something that produces *working*
-code that fails later:
-
-| Rule | What goes wrong without it |
-|---|---|
-| No direct `DateTime.Now` / `UtcNow` | The behaviour becomes untestable — you cannot test a thirty-day rule without waiting thirty days. Inject `IClock`. |
-| Events carry only primitives | An event is deserialized by code built from a different commit. A property typed as an entity ties the wire format to that entity's shape. |
-| No `IOptions` in a use case | The use case cannot be constructed in a test without building a configuration, and its real dependencies hide inside a settings bag. |
-| Non-nullable DAL columns carry `[Required]` | Without it EF infers a nullable column, then throws on read when a row legitimately holds null. |
-| DAL columns don't use the `required` keyword | It forces assignment in the object initializer, which the `From()` then `Apply()` construction cannot do. The primary key is exempt — that one *is* set in the initializer. |
-
-Rules deliberately under-report. A false positive that has to be argued with is worse than a miss.
-
-Genuine exceptions are declared in the code, not special-cased in the tool:
-
-```csharp
-public DateTimeOffset OccurredOn { get; set; } = DateTimeOffset.UtcNow; // conventions: allow — an event records when it happened, and has no clock to inject
-```
-
-The reason is required — a bare `// conventions: allow` does not suppress anything, so an exemption has to
-argue for itself in review.
-
-## Not yet ported
-
-These exist in MagicDoor's backend and have not been brought across: `CreateApp`, `CreateAppLib`, `CreateLib`
-(project scaffolds), `AddEvent`, `AddLib`, and `GenerateAssemblyCatalog`. Until `CreateApp` lands, a new
-service's project skeleton is created by hand; `AddEntity` and the linter work against it either way.
+`AddEvent` (event scaffold), `AddLib` (add a shared library to a service solution, resolving transitive
+references) and `GenerateAssemblyCatalog`. The last matters if you split a service across many projects: .NET
+loads an assembly only when one of its types is first touched, so use cases in a project the host never
+references are not found by registration. Until it is ported, touch one type per project during startup.

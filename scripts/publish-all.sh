@@ -127,6 +127,21 @@ for PROJECT in "${PACKAGES[@]}"; do
     fi
 done
 
+# Keep the scaffolding in step with the release. InitRepo pins this version in a new repository's
+# Directory.Packages.props, so a stale default would scaffold repos pointing at a version that predates
+# whatever is being published here.
+INITREPO="tools/InitRepo.cs"
+if [ -f "$INITREPO" ]; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s/public string PackageVersion { get; set; } = \"[0-9]*\.[0-9]*\.[0-9]*\";/public string PackageVersion { get; set; } = \"$NEW_VERSION\";/" "$INITREPO"
+        sed -i '' "s/\[DefaultValue(\"[0-9]*\.[0-9]*\.[0-9]*\")\]/[DefaultValue(\"$NEW_VERSION\")]/" "$INITREPO"
+    else
+        sed -i "s/public string PackageVersion { get; set; } = \"[0-9]*\.[0-9]*\.[0-9]*\";/public string PackageVersion { get; set; } = \"$NEW_VERSION\";/" "$INITREPO"
+        sed -i "s/\[DefaultValue(\"[0-9]*\.[0-9]*\.[0-9]*\")\]/[DefaultValue(\"$NEW_VERSION\")]/" "$INITREPO"
+    fi
+    echo "  ✓ Updated $INITREPO scaffolding version"
+fi
+
 echo ""
 
 # Clean previous builds

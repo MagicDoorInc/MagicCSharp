@@ -80,13 +80,31 @@ only what it uses.
 - `JsonDefaults` sets `AllowOutOfOrderMetadataProperties`; `jsonb` does not preserve property order, so a
   polymorphic type's discriminator can come back anywhere in the object.
 
-**Tooling** — `tools/`, single-file .NET programs run with `dotnet run`. See [tools/README.md](tools/README.md).
+**The repository layout, offered as an option** — the structure MagicDoor runs its backend on: several
+services in one repository, each with its own solution, sharing a set of libraries. Entirely opt-in; nothing
+in the packages reads it. See [docs/repository-layout.md](docs/repository-layout.md).
+
+**Tooling** — `tools/`, single-file .NET programs run with `dotnet run`, needing only the .NET 10 SDK. See
+[tools/README.md](tools/README.md).
+- `InitRepo` sets a repository up: `magiccsharp.json`, `Directory.Build.props`, central package management,
+  the all-projects solution, `Apps/` and `Libs/`. Skips whatever already exists, so it composes with a
+  repository that is already running.
+- `CreateApp` creates a service — host project, its own solution, and the pair of data projects that keep
+  repository contracts separate from their Entity Framework implementation. `--no-database` for a service
+  that owns no tables. Picks a local port no other service has claimed.
+- `CreateAppLib` creates a domain inside a service: `Default` for use cases, `Models` for entities, `Tests`.
+  Wires `Default` to `Models`, never the reverse.
+- `CreateLib` creates a shared library under `Libs/`; dots in the name nest directories.
 - `AddEntity` writes the four files an entity needs across three projects, adds the `DbSet` and registers the
-  repository, imports included. Skips existing files rather than overwriting your edits.
+  repository, imports included.
 - `ValidateConventions` — four rules for mistakes that compile. Exits non-zero, so it works as a CI step.
 - `SyncAllProjects` regenerates the all-projects solution.
-- Scripts read `magiccsharp.json` at the repo root for the namespace prefix, so they work in any repository
-  using the layout rather than only in this one.
+
+Nothing is ever overwritten, and re-running any tool produces no diff. Scripts read `magiccsharp.json` for
+the namespace prefix, so they work in any repository using the layout rather than only in this one.
+
+A repository scaffolded from empty with these — service, domain, shared library, entity — builds against the
+published packages and serves a request, which is the test the tooling is held to.
 
 **Tests** — 47, where there were none.
 
@@ -128,8 +146,10 @@ only what it uses.
 in the backend have not been ported, so nothing yet proves the repository bases behave correctly against a live
 container. That is the next piece of work.
 
-Six scripts remain unported: `CreateApp`, `CreateAppLib`, `CreateLib`, `AddEvent`, `AddLib` and
-`GenerateAssemblyCatalog`. A new service's project skeleton is still created by hand.
+Three scripts remain unported: `AddEvent`, `AddLib`, and `GenerateAssemblyCatalog`. The last matters once a
+service spans many projects — .NET loads an assembly only when one of its types is first touched, so use
+cases in a project the host never references go unregistered. Touch one type per project at startup until it
+lands.
 
 ---
 

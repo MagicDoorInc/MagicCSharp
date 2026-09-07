@@ -1,0 +1,18 @@
+<Project>
+
+  <!--
+    Every project in the repository inherits these, so a .csproj carries only what is specific to it.
+
+    net10.0 is the current release. The MagicCSharp packages target net9.0 so that net9 applications can
+    still consume them; a net10 application consumes a net9 library without ceremony, so there is no reason
+    for a new repository to start a version behind.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

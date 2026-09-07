@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>{{ prefix }}.{{ name }}.Data.Models</AssemblyName>
+    <RootNamespace>{{ prefix }}.{{ name }}.Data</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Contracts only. This project deliberately does not reference Entity Framework, so a domain can
+         depend on the repository interfaces without depending on how they are implemented. -->
+    <PackageReference Include="MagicCSharp.Data" />
+  </ItemGroup>
+
+</Project>

@@ -351,11 +351,41 @@ ASP.NET, Entity Framework or Kafka.
 A domain project referencing `MagicCSharp.Data` gets the repository interfaces and no persistence library at
 all — which is the point of the split. Wanting `FakeClock` does not mean wanting Docker.
 
-### Scaffolding
+### The repository layout — optional
 
-`tools/` holds single-file scripts for the repetitive parts: `AddEntity` writes the four files an entity needs
-across three projects and registers it, `ValidateConventions` catches the mistakes that compile, and
-`SyncAllProjects` regenerates the all-projects solution. See [tools/README.md](tools/README.md).
+The packages above work in any project structure. Separately, MagicCSharp offers the structure MagicDoor runs
+its own backend on: several services in one repository, each with its own solution, sharing a set of
+libraries. Take it, take part of it, or ignore it entirely — nothing in the packages reads it.
+
+```bash
+cp -r tools/ ~/my-repo/ && cd ~/my-repo
+
+dotnet run tools/InitRepo.cs -- --prefix Acme          # one-time setup
+dotnet run tools/CreateApp.cs -- --name Shop --database shop
+dotnet run --project Apps/Shop/Shop.App                # a service that runs
+```
+
+```
+Apps/Shop/
+  Shop.App/                  host: Program.cs, controllers
+  Shop.Domains/Orders/
+    Default/                 use cases, event handlers
+    Models/                  entities, edits, filters
+    Tests/
+  Data/
+    Data.Models/             repository interfaces — no EF dependency
+    Data.EntityFramework/    DALs, repositories, context, migrations
+Libs/                        code more than one service uses
+```
+
+Entities live in the domain that owns them; persistence lives in `Data/`. The arrow points from storage
+toward the domain and never back, which is what lets you read a domain without reading a single EF attribute.
+
+Seven single-file scripts maintain it — creating services, domains, shared libraries and entities, and
+linting the conventions the compiler can't check. Nothing is ever overwritten and re-running any of them
+produces no diff.
+
+**[Full guide →](docs/repository-layout.md)** · [Tool reference →](tools/README.md)
 
 ## Real-World Benefits
 

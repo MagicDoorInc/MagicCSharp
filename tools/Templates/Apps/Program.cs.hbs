@@ -1,0 +1,55 @@
+using MagicCSharp.AspNetCore;
+using MagicCSharp.Events;
+using MagicCSharp.Infrastructure.KeyGen;
+using MagicCSharp.Modules;
+{{~ if database.enabled ~}}
+using {{ prefix }}.{{ name }}.Data.EntityFramework;
+{{~ end ~}}
+
+namespace {{ prefix }}.{{ name }}.App;
+
+/// <summary>
+///     Named rather than top-level so integration tests can reference it as
+///     <c>WebApplicationFactory&lt;{{ name }}Program&gt;</c>.
+/// </summary>
+public class {{ name }}Program
+{
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+
+        // Use cases, IClock and request-ID tracking. Discovers every IMagicUseCase implementation in the
+        // assemblies loaded so far — see AssemblyCatalog below for why that needs help.
+        builder.Services.AddMagicCSharp();
+
+        // Snowflake ids. Give each instance a distinct generator id in production, or two instances can
+        // issue the same id in the same millisecond.
+        builder.Services.RegisterSnowflakeKeyGen();
+
+        // Event handler discovery, then the transport. Swap RegisterLocalMagicEvents for
+        // RegisterMagicKafkaEvents or RegisterMagicSQSEvents without touching a use case.
+        builder.Services.RegisterMagicEvents();
+        builder.Services.RegisterLocalMagicEvents();
+{{~ if database.enabled }}
+
+        builder.Services.Add{{ name }}Repositories(builder.Configuration);
+{{~ end }}
+
+        builder.Services.AddControllers();
+        builder.Services.AddOpenApi();
+
+        var app = builder.Build();
+
+        // First in the pipeline, so everything logged after it carries the request id.
+        app.UseRequestId();
+
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapOpenApi();
+        }
+
+        app.MapControllers();
+
+        app.Run();
+    }
+}
