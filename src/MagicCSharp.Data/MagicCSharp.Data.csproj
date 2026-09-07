@@ -11,16 +11,8 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.Data</PackageId>
-        <Version>0.0.11</Version>
-        <Authors>MagicCSharp Contributors</Authors>
-        <Company>MagicCSharp</Company>
         <Description>Storage-agnostic data contracts for MagicCSharp: the repository interfaces, opt-in pagination, soft delete and search, offset pagination models, and LINQ filter helpers. No Entity Framework dependency — a domain project can reference this without taking on a persistence library. Add MagicCSharp.Data.EntityFramework for the implementations.</Description>
         <PackageTags>repository;pagination;filters;contracts;clean-architecture</PackageTags>
-        <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>

@@ -118,23 +118,16 @@ echo ""
 echo "$NEW_VERSION" > $VERSION_FILE
 echo "Updated $VERSION_FILE"
 
-# Update version in all .csproj files
-echo "Updating version in .csproj files..."
-for PROJECT in "${PACKAGES[@]}"; do
-    if [ -f "$PROJECT" ]; then
-        # Use sed to update the <Version> tag
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            # macOS
-            sed -i '' "s/<Version>.*<\/Version>/<Version>$NEW_VERSION<\/Version>/" "$PROJECT"
-        else
-            # Linux
-            sed -i "s/<Version>.*<\/Version>/<Version>$NEW_VERSION<\/Version>/" "$PROJECT"
-        fi
-        echo "  ✓ Updated $PROJECT"
-    else
-        echo "  ⚠ Warning: $PROJECT not found"
-    fi
-done
+# One line in src/Directory.Build.props, inherited by every package — rather than sed over fourteen
+# .csproj files and leaving them to drift, which is how version.txt, the csprojs and the dotnet new
+# template ended up disagreeing.
+SHARED_PROPS="src/Directory.Build.props"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s|<Version>.*</Version>|<Version>$NEW_VERSION</Version>|" "$SHARED_PROPS"
+else
+    sed -i "s|<Version>.*</Version>|<Version>$NEW_VERSION</Version>|" "$SHARED_PROPS"
+fi
+echo "  ✓ Updated $SHARED_PROPS"
 
 # The dotnet new template pins a MagicCSharp version in the repositories it scaffolds, in both
 # .config/dotnet-tools.json and Directory.Packages.props. Both come from one default in template.json, so
@@ -219,7 +212,11 @@ echo ""
 # Push to NuGet if requested
 if [ "$DRY_RUN" = true ]; then
     echo "Dry run — restoring the version bump and removing the packages."
-    git checkout -- "$VERSION_FILE" "${PACKAGES[@]}" "$TEMPLATE_JSON" 2>/dev/null || true
+    # One at a time: a single git checkout aborts entirely if any path is untracked, which would silently
+    # leave the other files bumped.
+    for f in "$VERSION_FILE" "$SHARED_PROPS" "$TEMPLATE_JSON"; do
+        git checkout -- "$f" 2>/dev/null || echo "  ! could not restore $f (untracked?) — check it by hand"
+    done
     rm -rf $OUTPUT_DIR
     echo ""
     echo "Everything built and packed. Nothing was published and the worktree is unchanged."

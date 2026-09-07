@@ -11,16 +11,8 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.Data.EntityFramework</PackageId>
-        <Version>0.0.11</Version>
-        <Authors>MagicCSharp Contributors</Authors>
-        <Company>MagicCSharp</Company>
         <Description>Entity Framework Core implementation of the MagicCSharp repository contracts. Base repositories for id- and key-keyed entities with batch writes, opt-in pagination, soft delete and search; the DAL base classes; and a DbContext that stores enums by name and normalizes timestamps to UTC. Provider-agnostic.</Description>
         <PackageTags>entity-framework;repository;dal;efcore;clean-architecture</PackageTags>
-        <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>

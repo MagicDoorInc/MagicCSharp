@@ -11,16 +11,8 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.AspNetCore</PackageId>
-        <Version>0.0.11</Version>
-        <Authors>MagicCSharp Contributors</Authors>
-        <Company>MagicCSharp</Company>
         <Description>ASP.NET Core integration for MagicCSharp: request ID middleware that accepts or generates a correlation ID per request and flows it through async calls and logs.</Description>
         <PackageTags>aspnetcore;middleware;request-id;correlation;clean-architecture</PackageTags>
-        <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>

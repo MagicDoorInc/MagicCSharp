@@ -11,15 +11,8 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.Cli</PackageId>
-        <Version>0.0.11</Version>
-        <Authors>MagicCSharp Contributors</Authors>
-        <Company>MagicCSharp</Company>
         <Description>Scaffolding for a MagicCSharp repository: create services, domains, shared libraries and entities, and lint the conventions the compiler cannot. Install globally with 'dotnet tool install -g MagicCSharp.Cli', or per repository with a tool manifest so the whole team gets the same version.</Description>
         <PackageTags>cli;dotnet-tool;scaffolding;clean-architecture;code-generation</PackageTags>
-        <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>

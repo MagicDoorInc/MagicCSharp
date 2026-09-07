@@ -1,0 +1,40 @@
+<Project>
+
+  <!--
+    Shared package metadata for every shipped library. Scoped to src/ so tests and examples are unaffected.
+
+    One place for the things that were previously repeated in fourteen .csproj files and drifted: three of
+    them still carried RepositoryUrl=github.com/yourusername/magiccsharp, and the author name disagreed
+    between packages.
+  -->
+  <PropertyGroup>
+    <!-- One version for every package. publish-all.sh rewrites this line alone, rather than sed-ing
+         fourteen .csproj files and leaving them to drift. -->
+    <Version>0.0.13</Version>
+
+    <Authors>MagicCSharp Contributors</Authors>
+    <Company>MagicCSharp</Company>
+    <Product>MagicCSharp</Product>
+    <Copyright>Copyright © MagicDoor Inc.</Copyright>
+    <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+
+    <!-- Without this the XML comments are invisible in IntelliSense, which is where most of the guidance
+         in this codebase lives. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- The XML comments here explain why something is the way it is; there is no value in a comment on
+         every property restating its name. CS1591 would demand exactly that. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- Ship symbols and source links so a stack trace through the framework is navigable. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+</Project>

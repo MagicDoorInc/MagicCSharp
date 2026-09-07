@@ -16,7 +16,7 @@
     "MagicCSharpVersion": {
       "type": "parameter",
       "datatype": "string",
-      "defaultValue": "0.1.0",
+      "defaultValue": "0.0.13",
       "replaces": "MAGICCSHARP_VERSION",
       "description": "Version of the MagicCSharp packages to pin."
     },

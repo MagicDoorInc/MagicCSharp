@@ -11,16 +11,8 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.Scheduling</PackageId>
-        <Version>0.0.11</Version>
-        <Authors>MagicCSharp Contributors</Authors>
-        <Company>MagicCSharp</Company>
         <Description>Drift-free scheduled background services for MagicCSharp. Runs a job on a time-of-day or interval schedule, coordinated across instances by a distributed lock so exactly one node runs each occurrence.</Description>
         <PackageTags>background-service;scheduling;cron;distributed-lock;clean-architecture</PackageTags>
-        <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>

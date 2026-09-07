@@ -8,15 +8,8 @@
 
         <!-- NuGet Package Properties -->
         <PackageId>MagicCSharp.Events</PackageId>
-        <Version>0.0.11</Version>
-        <Authors>MagicCSharp</Authors>
-        <Company>MagicCSharp</Company>
         <Description>Event dispatching and handling infrastructure for MagicCSharp applications</Description>
         <PackageTags>csharp;events;event-driven;dispatcher</PackageTags>
-        <RepositoryUrl>https://github.com/yourusername/magiccsharp</RepositoryUrl>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
