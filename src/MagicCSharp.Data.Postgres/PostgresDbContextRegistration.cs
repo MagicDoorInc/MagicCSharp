@@ -24,7 +24,9 @@ public static class PostgresDbContextRegistration
     ///     </para>
     ///     <para>
     ///         The connection is opened once during registration, so a wrong host or password fails at startup
-    ///         with a clear error instead of on the first request that happens to need the database.
+    ///         with a clear error instead of on the first request that happens to need the database. Set
+    ///         <c>{prefix}_VERIFY_CONNECTION</c> to <c>false</c> where that is wrong — a test that swaps the
+    ///         repositories out, or a container that starts before its database.
     ///     </para>
     /// </summary>
     /// <param name="services">The service collection.</param>
@@ -76,7 +78,10 @@ public static class PostgresDbContextRegistration
             IncludeErrorDetail = options.IncludeErrorDetail,
         }.ConnectionString;
 
-        if (options.VerifyConnectionOnStartup)
+        // Configuration overrides the code default, so a test that replaces every repository, or a
+        // container that starts before its database, can turn the check off without editing the
+        // registration it is otherwise happy with.
+        if (Verify(configuration, $"{configPrefix}_VERIFY_CONNECTION", options.VerifyConnectionOnStartup))
         {
             using var connection = new NpgsqlConnection(connectionString);
             connection.Open();
@@ -103,6 +108,17 @@ public static class PostgresDbContextRegistration
         });
 
         return services;
+    }
+
+    /// <summary>
+    ///     Whether to open a connection now. The configured value wins when it is set and parses; anything
+    ///     else falls back to what the caller asked for.
+    /// </summary>
+    private static bool Verify(IConfiguration configuration, string key, bool fallback)
+    {
+        var value = configuration[key];
+
+        return bool.TryParse(value, out var configured) ? configured : fallback;
     }
 
     private static string Required(IConfiguration configuration, string key)
@@ -160,6 +176,10 @@ public record PostgresConnectionOptions
     /// <summary>
     ///     Open a connection during registration so misconfiguration fails at startup. Turn off where the
     ///     database legitimately starts after the application.
+    ///     <para>
+    ///         Configuration wins over this: <c>{prefix}_VERIFY_CONNECTION=false</c> turns the check off
+    ///         without a code change.
+    ///     </para>
     /// </summary>
     public bool VerifyConnectionOnStartup { get; init; } = true;
 }

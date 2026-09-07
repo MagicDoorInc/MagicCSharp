@@ -486,6 +486,14 @@ customising a generator and forking one.
 Across several repositories, put the templates in a repository of their own and add it as a submodule at
 `.magiccsharp/templates`, so house style is defined once instead of copied around.
 
+#### See it built
+
+[**MagicCSharp-ExampleProject**](https://github.com/MagicDoorInc/MagicCSharp-ExampleProject) is this layout
+filled in: two services in one repository — one with Postgres behind Entity Framework, one with no database
+at all — sharing a single event contract and referencing nothing else of each other's. It lists the exact
+`mcs` commands that produced the structure, and separates them from the code written on top, so you can see
+where the tool stops and your work starts.
+
 **[Full guide →](docs/repository-layout.md)** · [Template overrides →](docs/template-overrides.md) · [CLI reference →](src/MagicCSharp.Cli/README.md)
 
 ## Real-World Benefits

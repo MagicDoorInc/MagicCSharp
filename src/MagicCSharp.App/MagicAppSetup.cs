@@ -1,5 +1,8 @@
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MagicCSharp.AspNetCore;
+using MagicCSharp.Infrastructure;
 using MagicCSharp.Events;
 using MagicCSharp.Infrastructure.KeyGen;
 using MagicCSharp.Modules;
@@ -79,7 +82,58 @@ public static class MagicAppSetup
             services.AddControllers();
         }
 
+        if (options.JsonConventions)
+        {
+            services.AddMagicJsonConventions();
+        }
+
         return services;
+    }
+
+    /// <summary>
+    ///     Teaches the HTTP layer the two conversions the framework's own types need.
+    ///     <para>
+    ///         Enums go over the wire as their name, matching how <c>MagicDbContext</c> stores them. The
+    ///         reasoning is the same in both places: inserting a member in the middle of an enum renumbers
+    ///         everything after it, and a client that hard-coded <c>2</c> is then wrong in a way nothing
+    ///         reports.
+    ///     </para>
+    ///     <para>
+    ///         <see cref="Optional{T}" /> round-trips, so a PATCH body can tell "set this to null" apart
+    ///         from "do not touch this". Without the converter both arrive as no value, which is the one
+    ///         distinction the type exists to make.
+    ///     </para>
+    ///     <para>
+    ///         Only the converters are applied, not <see cref="JsonDefaults" /> wholesale. Those options
+    ///         also set <c>IgnoreReadOnlyProperties</c>, which suits a jsonb column and would silently drop
+    ///         every computed property from a response body — <c>Pagination.TotalPages</c> among them.
+    ///     </para>
+    /// </summary>
+    public static IServiceCollection AddMagicJsonConventions(this IServiceCollection services)
+    {
+        // Controllers read Mvc.JsonOptions; minimal APIs read Http.Json.JsonOptions. They are separate
+        // objects, and configuring one leaves the other on framework defaults.
+        services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(mvc => Apply(mvc.JsonSerializerOptions));
+        services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(http => Apply(http.SerializerOptions));
+
+        return services;
+    }
+
+    /// <summary>
+    ///     Adds each converter unless one of its type is already there, so calling this twice — or calling
+    ///     it after registering your own — does not stack duplicates or override a deliberate choice.
+    /// </summary>
+    private static void Apply(JsonSerializerOptions options)
+    {
+        if (!options.Converters.Any(converter => converter is JsonStringEnumConverter))
+        {
+            options.Converters.Add(new JsonStringEnumConverter());
+        }
+
+        if (!options.Converters.Any(converter => converter is OptionalConverterFactory))
+        {
+            options.Converters.Add(new OptionalConverterFactory());
+        }
     }
 
     /// <summary>
@@ -155,6 +209,12 @@ public record MagicAppOptions
 
     /// <summary>Call <c>AddControllers</c> and <c>MapControllers</c>. Turn off for minimal APIs.</summary>
     public bool Controllers { get; init; } = true;
+
+    /// <summary>
+    ///     Serialize enums by name and let <c>Optional&lt;T&gt;</c> round-trip, for both controllers and
+    ///     minimal APIs. Turn off only if you are configuring <c>JsonSerializerOptions</c> yourself.
+    /// </summary>
+    public bool JsonConventions { get; init; } = true;
 
     /// <summary>
     ///     Resolve every registration at startup, so a miswired dependency fails the deploy rather than the

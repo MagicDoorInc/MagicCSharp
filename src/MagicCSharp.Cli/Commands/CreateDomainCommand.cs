@@ -18,8 +18,8 @@ public class CreateDomainCommand : Command<CreateDomainCommand.Settings>
 {
     public class Settings : CommandSettings
     {
-        [CommandOption("-s|--solution <SOLUTION>")]
-        [Description("The service's solution file, e.g. 'Acme.Shop.slnx'")]
+        [CommandOption("-s|--solution <SERVICE>")]
+        [Description("Which service, e.g. 'Shop'. Omit when the repository has only one.")]
         public string? Solution { get; init; }
 
         [CommandOption("-n|--name <NAME>")]
@@ -38,16 +38,8 @@ public class CreateDomainCommand : Command<CreateDomainCommand.Settings>
 
         public override ValidationResult Validate()
         {
-            if (string.IsNullOrWhiteSpace(Solution))
-            {
-                return ValidationResult.Error("Solution file is required. Use --solution <FILE>");
-            }
-
-            if (!File.Exists(Solution) || !Solution.EndsWith(".slnx", StringComparison.Ordinal))
-            {
-                return ValidationResult.Error($"Solution file not found or not a .slnx: {Solution}");
-            }
-
+            // The solution is not checked here: resolving a service name, or falling back to the only
+            // service there is, needs the repository config, which is not loaded until Execute.
             return Naming.IsDottedPascal(Name)
                 ? ValidationResult.Success()
                 : ValidationResult.Error($"Name must be PascalCase segments separated by dots: {Name}");
@@ -63,7 +55,13 @@ public class CreateDomainCommand : Command<CreateDomainCommand.Settings>
             return 1;
         }
 
-        var solution = settings.Solution!;
+        var solution = SolutionArgument.Resolve(config, settings.Solution);
+
+        if (solution == null)
+        {
+            return 1;
+        }
+
         var name = settings.Name!;
         var appName = config.AppNameFromSolution(solution);
         var appRoot = $"Apps/{appName}";
@@ -118,6 +116,16 @@ public class CreateDomainCommand : Command<CreateDomainCommand.Settings>
             projects.Add(testsProject);
         }
 
+        // The service has to reference the domain, or nothing happens: the assembly is not deployed with
+        // the app, so its use cases are never registered and its event handlers never run. Scaffolding a
+        // domain and leaving it unreferenced looked like it worked and did nothing.
+        var appProject = $"{appRoot}/{appName}.App/{config.Prefix}.{appName}.App.csproj";
+
+        if (File.Exists(appProject))
+        {
+            DotnetCli.EnsureReference(appProject, defaultProject);
+        }
+
         if (SolutionFile.AddProjects(solution, projects))
         {
             Output.Updated(solution, "projects");
@@ -130,7 +138,7 @@ public class CreateDomainCommand : Command<CreateDomainCommand.Settings>
 
         if (settings.IncludeModels)
         {
-            Output.Plain($"  mcs add-entity --solution {solution} --domain {name.Split('.').Last()} --name YourEntity --paginated");
+            Output.Plain($"  mcs add-entity --solution {appName} --domain {name.Split('.').Last()} --name YourEntity --paginated");
         }
         else
         {

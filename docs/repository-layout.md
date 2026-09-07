@@ -241,8 +241,11 @@ never reaches the others.
 ### A domain
 
 ```bash
-mcs create-domain --solution Acme.Shop.slnx --name Domains.Orders --models --tests
+mcs create-domain --solution Shop --name Domains.Orders --models --tests
 ```
+
+`--solution` takes the service name. Leave it out entirely when the repository has only one service; with
+several and no flag, the command lists them rather than guessing.
 
 Up to three projects under `Apps/Shop/Shop.Domains/Orders/`:
 
@@ -251,13 +254,17 @@ Up to three projects under `Apps/Shop/Shop.Domains/Orders/`:
   reaching the logic. `AddEntity` needs this, so pass `--models` unless you have a reason not to.
 - **`Tests/`** — comes with `MagicCSharp.Testing` referenced.
 
-`Default` gets a reference to `Models` automatically. Never add the reverse — `Models` is what the data
-projects depend on, and a cycle follows immediately.
+`Default` gets a reference to `Models` automatically, and the service's `App` project gets a reference to
+`Default`. That second one is not cosmetic: without it the domain's assembly is not deployed with the
+service, so its use cases are never registered and its event handlers never run.
+
+Never add the reverse reference — `Models` is what the data projects depend on, and a cycle follows
+immediately.
 
 ### An entity
 
 ```bash
-mcs add-entity --solution Acme.Shop.slnx --domain Orders --name Order --paginated
+mcs add-entity --solution Shop --domain Orders --name Order --paginated
 ```
 
 Four files across three projects, all of which have to agree about names, namespaces and generic arguments:

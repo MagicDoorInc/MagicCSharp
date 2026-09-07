@@ -187,20 +187,37 @@ supply the half that makes it work:
   while logging the detail, because an unhandled exception's message routinely carries a connection string.
 - `HttpException` and friends — `BadRequestException`, `ConflictException`, `UnprocessableEntityException` —
   for when a use case genuinely means a status code.
+- `GetOrThrow` on `IRepository`. `Update` and `Delete` throw `NotFoundException` for a missing key while
+  `Get` returns null, so every endpoint fetching by id wrote its own throw to get a 404 out of the error
+  handling. This is that line, once, naming the key in the exception.
+- `AddMagicJsonConventions()`, on by default in `AddMagicApp`. The framework had one notion of how its
+  types serialize, in `JsonDefaults`, and it was applied to Postgres jsonb columns and nowhere else — so the
+  same enum was a name in the database and a number over HTTP, and `Optional<T>` did not round-trip through
+  a request body at all, which is the one distinction that type exists to make. Only the two converters are
+  applied, for both controllers and minimal APIs; `JsonDefaults` wholesale also sets
+  `IgnoreReadOnlyProperties`, which would silently drop `Pagination.TotalPages` and every other computed
+  property from a response.
+- `{prefix}_VERIFY_CONNECTION` turns off the startup connection check from configuration. Opening a
+  connection while registering is right by default — a wrong password should fail the deploy, not the first
+  request — but there was no way to turn it off without editing the registration, which blocked booting a
+  service in a test that replaces every repository.
 
 Plus `ValidateServices()`, which resolves every registration at startup so a miswired dependency fails the
 deploy rather than the first request that needs it. Generated apps get all of this wired in.
 
-**Tests** — 47, where there were none.
+**Tests** — 152, where there were none.
 
 ### Fixed
 
 - **`AddMagicUseCases` picked an implementation with `FirstOrDefault`.** With two implementations of one
   interface it silently registered whichever reflection returned first — in a test project, often the double.
   It now throws and names both.
-- **`AddMagicUseCases` only saw assemblies already loaded.** .NET loads an assembly the first time one of its
-  types is touched, so use cases in a project the host had not referenced were never registered and failed at
-  resolution time. Documented on the method, with how to make a project visible.
+- **Discovery only saw assemblies .NET had already loaded.** It loads one the first time a type in it is
+  touched, so a domain project holding nothing but event handlers — referenced by the host, used by nothing —
+  was not there when the scan ran. The dispatch returned and no handler received it. Reading the reference
+  graph does not fix it either: the compiler leaves a reference out of the compiled metadata when no type from
+  it is used, which is exactly that project. `ApplicationAssemblies` now loads what is deployed next to the
+  executable, and both use-case and event-handler discovery go through it.
 - **`LocalEventDispatcher` blocked while Kafka and SQS do not.** The promise is that swapping the registration
   changes nothing else, but a handler that re-entered a lock its emitter held worked locally and deadlocked
   after the switch to Kafka. It is now fire-and-forget with in-flight tracking and a drain on process exit,
@@ -211,9 +228,17 @@ deploy rather than the first request that needs it. Generated apps get all of th
 - **`MagicCSharp` pinned `Microsoft.AspNetCore.Http.Abstractions` 2.2.0**, whose last release was ASP.NET Core
   2.2. The middleware moved to `MagicCSharp.AspNetCore`, which uses a framework reference.
 - Assembly scanning survives a `ReflectionTypeLoadException` instead of aborting on one unloadable assembly.
+- **`mcs create-domain` left the new domain unreferenced by its service.** Nothing failed — the projects
+  built and the solution opened — but the assembly was not deployed with the app, so its use cases were never
+  registered. It now adds the reference, as `create-app` already does for the data projects.
+- **The domain project template composed its own assembly name** as `{prefix}.Libraries.{name}`, leaving the
+  service out, so two services with a same-named domain both produced `Acme.Libraries.Domains.Orders`.
 
 ### Changed
 
+- **`mcs create-domain` and `add-entity` take a service name.** `--solution Shop` rather than
+  `--solution Acme.Shop.slnx`, and no flag at all when the repository has one service; with several and no
+  flag they list them rather than guessing. Full paths still work.
 - `IRepository<TEntity, TFilter, TEdit>` and `IKeyRepository<TEntity, TFilter, TEdit>` are replaced by one
   `IRepository<TEntity, TKey, TEdit, TFilter>` where `TKey : IEquatable<TKey>`.
 - Key generation moved from `MagicCSharp.Data` to `MagicCSharp` — a key generator is not a data-access

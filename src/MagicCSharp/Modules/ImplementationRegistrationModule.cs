@@ -20,25 +20,12 @@ public static class ImplementationRegistrationModule
     ///     Assemblies whose types can never implement an application marker interface. Skipping them keeps
     ///     startup scanning proportional to the application rather than to the whole framework surface.
     /// </summary>
-    private static readonly string[] SystemAssemblyPrefixes =
-    [
-        "System.",
-        "Microsoft.",
-        "netstandard",
-        "mscorlib",
-        "WindowsBase",
-        "Anonymously Hosted DynamicMethods Assembly",
-    ];
-
     /// <summary>
     ///     Registers every concrete implementation of every interface that extends <typeparamref name="TInterface" />,
     ///     under that sub-interface.
     ///     <para>
-    ///         Only assemblies already loaded into the current <see cref="AppDomain" /> are scanned. .NET loads an
-    ///         assembly lazily, the first time one of its types is touched, so a project whose types the host has not
-    ///         referenced yet is invisible here and its implementations are silently missed. Touch one type per
-    ///         project during startup — <c>_ = typeof(SomeType).Assembly;</c> — before calling this. The
-    ///         <c>GenerateAssemblyLoader</c> script writes that file for you.
+    ///         Everything the application references is scanned, whether or not .NET has loaded it yet — see
+    ///         <see cref="ApplicationAssemblies" /> for why that distinction matters.
     ///     </para>
     /// </summary>
     /// <param name="services">The service collection to register into.</param>
@@ -175,24 +162,7 @@ public static class ImplementationRegistrationModule
 
     private static List<Type> LoadTypes(Func<Assembly, bool>? assemblyFilter)
     {
-        var filter = assemblyFilter ?? IsApplicationAssembly;
-
-        return AppDomain.CurrentDomain.GetAssemblies()
-            .Where(assembly => !assembly.IsDynamic)
-            .Where(filter)
-            .SelectMany(GetTypesSafely)
-            .ToList();
-    }
-
-    private static bool IsApplicationAssembly(Assembly assembly)
-    {
-        var name = assembly.GetName().Name;
-        if (name == null)
-        {
-            return false;
-        }
-
-        return !SystemAssemblyPrefixes.Any(prefix => name.StartsWith(prefix, StringComparison.Ordinal));
+        return ApplicationAssemblies.All(assemblyFilter).SelectMany(GetTypesSafely).ToList();
     }
 
     /// <summary>

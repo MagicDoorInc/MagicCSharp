@@ -1,5 +1,6 @@
 using System.Reflection;
 using MagicCSharp.Events.Events;
+using MagicCSharp.Modules;
 using MagicCSharp.Events.Events.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -41,7 +42,7 @@ public static class MagicEventsRegistrationExtensions
         var handlerCount = 0;
 
         // Single pass: process all types once
-        foreach (var type in LoadAllAppDomainTypes())
+        foreach (var type in ApplicationTypes())
         {
             // Collect event types
             if (type.IsSubclassOf(typeof(MagicEvent)))
@@ -119,6 +120,7 @@ public static class MagicEventsRegistrationExtensions
     ///     to either later is a registration change and nothing else.
     /// </summary>
     /// <param name="services">The service collection.</param>
+    /// <param name="useOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddLocalMagicEvents(this IServiceCollection services, bool useOpenTelemetryMetrics = false)
     {
@@ -155,11 +157,15 @@ public static class MagicEventsRegistrationExtensions
         return type.GetGenericTypeDefinition() == typeof(IEventHandler<>);
     }
 
-    private static List<Type> LoadAllAppDomainTypes()
+    /// <summary>
+    ///     Every concrete type in the application. Goes through <see cref="ApplicationAssemblies" /> rather
+    ///     than reading <see cref="AppDomain" /> directly: a domain project holding nothing but event
+    ///     handlers is referenced by the host and touched by nothing, so .NET has not loaded it when this
+    ///     runs, and its handlers used to go missing without a word.
+    /// </summary>
+    private static List<Type> ApplicationTypes()
     {
-        return AppDomain.CurrentDomain
-            .GetAssemblies()
-            .Where(assembly => !assembly.IsDynamic)
+        return ApplicationAssemblies.All()
             .SelectMany(GetTypesSafely)
             .Where(type => !type.IsAbstract)
             .ToList();

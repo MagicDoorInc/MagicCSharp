@@ -17,8 +17,8 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
 {
     public class Settings : CommandSettings
     {
-        [CommandOption("-s|--solution <SOLUTION>")]
-        [Description("Solution file, e.g. 'Acme.Shop.slnx'")]
+        [CommandOption("-s|--solution <SERVICE>")]
+        [Description("Which service, e.g. 'Shop'. Omit when the repository has only one.")]
         public string? Solution { get; init; }
 
         [CommandOption("-n|--name <NAME>")]
@@ -41,16 +41,8 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
 
         public override ValidationResult Validate()
         {
-            if (string.IsNullOrWhiteSpace(Solution))
-            {
-                return ValidationResult.Error("Solution file is required. Use --solution <FILE>");
-            }
-
-            if (!File.Exists(Solution) || !Solution.EndsWith(".slnx", StringComparison.Ordinal))
-            {
-                return ValidationResult.Error($"Solution file not found or not a .slnx: {Solution}");
-            }
-
+            // The solution is not checked here: resolving a service name, or falling back to the only
+            // service there is, needs the repository config, which is not loaded until Execute.
             if (!Naming.IsPascalWord(Name))
             {
                 return ValidationResult.Error($"Entity name must be PascalCase with no dots: {Name}");
@@ -71,7 +63,13 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
             return 1;
         }
 
-        var solution = settings.Solution!;
+        var solution = SolutionArgument.Resolve(config, settings.Solution);
+
+        if (solution == null)
+        {
+            return 1;
+        }
+
         var entity = settings.Name!;
         var domain = settings.Domain!;
         var appName = config.AppNameFromSolution(solution);
@@ -92,7 +90,7 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
                 Output.Error($"Required project not found: {path}");
             }
 
-            Output.Hint($"Create the domain first: mcs create-domain --solution {solution} --name Domains.{domain} --models");
+            Output.Hint($"Create the domain first: mcs create-domain --solution {appName} --name Domains.{domain} --models");
             return 1;
         }
 
