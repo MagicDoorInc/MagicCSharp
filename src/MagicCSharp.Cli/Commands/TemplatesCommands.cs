@@ -130,8 +130,22 @@ public class TemplatesEjectCommand : Command<TemplatesEjectCommand.Settings>
 
         Output.Created(target);
         Output.Blank();
-        Output.Note("Commit it, and every generator in this repository uses your copy from now on.");
-        Output.Note("Delete it to go back to the built-in.");
+
+        // An override only reaches teammates if it is committed, and this is the moment to say so — the
+        // file exists, it works locally, and nothing yet suggests it is not shared.
+        if (Git.IsIgnored(target))
+        {
+            Output.Hint("This path is git-ignored, so the override will not reach anyone else.");
+            Output.Note($"Un-ignore {resolver.OverrideDirectory} before committing.");
+        }
+        else
+        {
+            Output.Note("Commit it so your team uses the same generated code:");
+            Output.Plain($"  git add {target} && git commit -m \"Use our own {settings.Template}\"");
+        }
+
+        Output.Blank();
+        Output.Note("Every generator in this repository uses your copy from now on. Delete it to go back.");
 
         return 0;
     }

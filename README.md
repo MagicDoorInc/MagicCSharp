@@ -396,8 +396,15 @@ mcs templates list                        # all 19, and where each comes from
 mcs templates eject Entities/dal.cs.hbs   # copy one into your repo to edit
 ```
 
-Your copy lands in `.magiccsharp/templates/`, is committed like any other file, and wins over the built-in
-from then on. Deleting it reverts — there's no registry or cache anywhere else.
+Your copy lands in `.magiccsharp/templates/`. **Commit it** — that directory is how the override reaches
+everyone else:
+
+```bash
+git add .magiccsharp && git commit -m "Use our own DAL template"
+```
+
+From then on it wins over the built-in for everyone who pulls. Deleting it reverts — there's no registry or
+cache anywhere else.
 
 The important part is that it works **per file**. Take over the DAL template to add your audit columns and
 the other eighteen still come from the tool, still improving as it does. That's the difference between

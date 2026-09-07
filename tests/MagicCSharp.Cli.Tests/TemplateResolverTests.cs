@@ -91,6 +91,18 @@ public class TemplateResolverTests
     }
 
     [Fact]
+    public void An_override_path_sits_under_the_configured_directory()
+    {
+        // The path eject writes to, and the one the commit advice names, have to be the same one the
+        // generators read back.
+        var resolver = new TemplateResolver(".magiccsharp/templates");
+
+        var path = resolver.OverridePath("Entities/dal.cs.hbs");
+
+        Assert.Equal(Path.Combine(".magiccsharp", "templates", "Entities", "dal.cs.hbs"), path);
+    }
+
+    [Fact]
     public void Every_built_in_template_parses_and_renders()
     {
         // A template with a syntax error would otherwise only surface when someone happened to run the

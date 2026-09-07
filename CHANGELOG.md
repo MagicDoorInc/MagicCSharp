@@ -112,7 +112,11 @@ did not touch.
 ```bash
 mcs templates list                        # every template, and which layer provides it
 mcs templates eject Entities/dal.cs.hbs   # copy one in to customise
+git add .magiccsharp                      # commit it and the team has it
 ```
+
+`eject` prints that commit command, and warns instead when the path is git-ignored — an override nobody
+committed works for whoever wrote it and reaches no one, which can go unnoticed for a long time.
 
 Across several repositories, keep the templates in a repository of their own and add it as a submodule at
 `.magiccsharp/templates`, so house style is defined once —

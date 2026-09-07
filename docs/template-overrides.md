@@ -24,25 +24,36 @@ nothing else to unset.
 
 ---
 
-## One repository, one-off change
+## One repository: commit the directory
 
-For a change that belongs to a single repository:
+`.magiccsharp/templates/` is ordinary source. Committing it is what turns "a template I changed on my
+machine" into "how this repository generates code" — teammates get it on their next pull, with nothing to
+install and no setting to turn on.
 
 ```bash
 mcs templates eject Entities/dal.cs.hbs
 $EDITOR .magiccsharp/templates/Entities/dal.cs.hbs
-git add .magiccsharp && git commit -m "Our DAL template records who created the row"
+
+git add .magiccsharp
+git commit -m "Our DAL template records who created the row"
 ```
 
-Committed, so everyone on that repository gets it. Nothing else to install.
+That is the whole mechanism for a single repository. `mcs templates eject` prints the commit command for
+you, and warns instead if the path is git-ignored — an ignored override works for whoever wrote it and
+silently reaches nobody, which can go unnoticed for a long time.
+
+Because the templates are versioned with the code, `git log .magiccsharp/templates` answers "when did
+generated DALs start carrying that column, and who decided", the same way it would for any other decision in
+the repository.
 
 ---
 
 ## Several repositories: a shared template repository
 
-**This is what to do once you have more than one repository.** Copying overrides between them means house
-style drifts, and a fix to one never reaches the others. Put the templates in a repository of their own and
-consume it as a submodule.
+Committing `.magiccsharp/templates/` works well for one repository. With several, the same files get copied
+between them, house style drifts, and a fix to one never reaches the others. At that point give the templates
+a repository of their own and consume it as a submodule — the override path stays exactly the same, it is
+just filled by a submodule instead of committed files.
 
 ### 1. Create the template repository
 
