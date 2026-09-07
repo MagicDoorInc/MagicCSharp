@@ -30,6 +30,7 @@ OUTPUT_DIR="./nupkgs"
 PACKAGES=(
     "src/MagicCSharp/MagicCSharp.csproj"
     "src/MagicCSharp.AspNetCore/MagicCSharp.AspNetCore.csproj"
+    "src/MagicCSharp.App/MagicCSharp.App.csproj"
     "src/MagicCSharp.Scheduling/MagicCSharp.Scheduling.csproj"
     "src/MagicCSharp.Data/MagicCSharp.Data.csproj"
     "src/MagicCSharp.Data.EntityFramework/MagicCSharp.Data.EntityFramework.csproj"

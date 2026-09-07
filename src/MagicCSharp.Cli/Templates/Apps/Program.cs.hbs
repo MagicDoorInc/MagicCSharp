@@ -1,7 +1,4 @@
-using MagicCSharp.AspNetCore;
-using MagicCSharp.Events;
-using MagicCSharp.Infrastructure.KeyGen;
-using MagicCSharp.Modules;
+using MagicCSharp.App;
 {{~ if database.enabled ~}}
 using {{ prefix }}.{{ name }}.Data.EntityFramework;
 {{~ end ~}}
@@ -18,45 +15,27 @@ public class {{ name }}Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Use cases, IClock and request-ID tracking. Discovers every IMagicUseCase implementation in the
-        // assemblies loaded so far — see AssemblyCatalog below for why that needs help.
-        builder.Services.AddMagicCSharp();
+        // Use cases, IClock, Snowflake IDs, request IDs, in-process events, scheduling defaults and
+        // problem-details error handling. Pass MagicAppOptions to change any of it; swap in
+        // RegisterMagicKafkaEvents before this line and the in-process dispatcher steps aside.
+        builder.AddMagicApp();
 
-        // Snowflake ids. Give each instance a distinct generator id in production, or two instances can
-        // issue the same id in the same millisecond.
-        builder.Services.RegisterSnowflakeKeyGen();
-
-        // Event handler discovery, then the transport. Swap RegisterLocalMagicEvents for
-        // RegisterMagicKafkaEvents or RegisterMagicSQSEvents without touching a use case.
-        builder.Services.RegisterMagicEvents();
-        builder.Services.RegisterLocalMagicEvents();
+        builder.Services.AddOpenApi();
 {{~ if database.enabled }}
 
         builder.Services.Add{{ name }}Repositories(builder.Configuration);
 {{~ end }}
 
-        // Turns a NotFoundException from a repository into a 404 rather than a 500 with a stack trace.
-        builder.Services.AddMagicErrorHandling();
-
-        builder.Services.AddControllers();
-        builder.Services.AddOpenApi();
-
         var app = builder.Build();
 
-        // Fails here, at startup, if anything is registered but cannot be constructed — rather than on the
-        // first request that happens to need it.
-        app.Services.ValidateServices(builder.Services);
-
-        // First in the pipeline, so everything after is covered and everything logged carries the request id.
-        app.UseMagicErrorHandling();
-        app.UseRequestId();
+        // Error handling, request IDs and controllers, in the order they need — and a preflight that
+        // resolves every registration now rather than on the first request that needs it.
+        app.UseMagicApp(builder);
 
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
         }
-
-        app.MapControllers();
 
         app.Run();
     }

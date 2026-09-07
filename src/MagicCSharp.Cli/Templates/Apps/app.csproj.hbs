@@ -6,9 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MagicCSharp" />
-    <PackageReference Include="MagicCSharp.AspNetCore" />
-    <PackageReference Include="MagicCSharp.Events" />
+    <!-- Brings in MagicCSharp, .AspNetCore, .Events and .Scheduling. Reference those directly instead if
+         you would rather wire each piece yourself. -->
+    <PackageReference Include="MagicCSharp.App" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
   </ItemGroup>
 {{ if database.enabled }}

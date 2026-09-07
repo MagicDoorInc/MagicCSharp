@@ -10,6 +10,7 @@
 
   <ItemGroup Label="MagicCSharp">
     <PackageVersion Include="MagicCSharp" Version="MAGICCSHARP_VERSION" />
+    <PackageVersion Include="MagicCSharp.App" Version="MAGICCSHARP_VERSION" />
     <PackageVersion Include="MagicCSharp.AspNetCore" Version="MAGICCSHARP_VERSION" />
     <PackageVersion Include="MagicCSharp.Data" Version="MAGICCSHARP_VERSION" />
     <PackageVersion Include="MagicCSharp.Data.EntityFramework" Version="MAGICCSHARP_VERSION" />

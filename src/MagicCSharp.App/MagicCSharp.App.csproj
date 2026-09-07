@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <!--
+            The convenience layer over the granular packages, not a replacement for them. Referencing this
+            is the same as referencing all four and wiring them yourself; the split still matters for
+            anything that is not a web service — a worker, a console app, a test project — which takes only
+            the pieces it needs.
+        -->
+        <ProjectReference Include="..\MagicCSharp\MagicCSharp.csproj"/>
+        <ProjectReference Include="..\MagicCSharp.AspNetCore\MagicCSharp.AspNetCore.csproj"/>
+        <ProjectReference Include="..\MagicCSharp.Events\MagicCSharp.Events.csproj"/>
+        <ProjectReference Include="..\MagicCSharp.Scheduling\MagicCSharp.Scheduling.csproj"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!-- NuGet Package Metadata -->
+        <PackageId>MagicCSharp.App</PackageId>
+        <Version>0.0.11</Version>
+        <Authors>MagicCSharp Contributors</Authors>
+        <Company>MagicCSharp</Company>
+        <Description>Everything a MagicCSharp web service needs, wired in two calls. Brings in the core, ASP.NET, events and scheduling packages and registers use cases, IClock, Snowflake IDs, request-ID tracking, in-process events, scheduling defaults, problem-details error handling and a startup preflight. Use the individual packages instead when you want to choose each piece.</Description>
+        <PackageTags>aspnetcore;bootstrap;clean-architecture;startup;meta-package</PackageTags>
+        <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+</Project>

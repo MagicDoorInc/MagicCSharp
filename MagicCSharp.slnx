@@ -6,6 +6,7 @@
     </Folder>
     <Folder Name="/src/">
         <Project Path="src/MagicCSharp/MagicCSharp.csproj"/>
+        <Project Path="src/MagicCSharp.App/MagicCSharp.App.csproj"/>
         <Project Path="src/MagicCSharp.AspNetCore/MagicCSharp.AspNetCore.csproj"/>
         <Project Path="src/MagicCSharp.Cli/MagicCSharp.Cli.csproj"/>
         <Project Path="src/MagicCSharp.Data/MagicCSharp.Data.csproj"/>

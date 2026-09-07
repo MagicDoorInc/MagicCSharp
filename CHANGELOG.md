@@ -158,6 +158,21 @@ the namespace prefix, so they work in any repository using the layout rather tha
 A repository scaffolded from empty with these — service, domain, shared library, entity — builds against the
 published packages and serves a request, which is the test the tooling is held to.
 
+**`MagicCSharp.App`** — the four packages a web service needs, wired in two calls:
+
+```csharp
+builder.AddMagicApp();
+// ...
+app.UseMagicApp(builder);
+```
+
+Use cases, `IClock`, Snowflake IDs, request-ID tracking, events, scheduling defaults, problem-details error
+handling and the startup preflight, in the order they need. `MagicAppOptions` turns any piece off, and
+registering a transport or schedule store first means the defaults step aside. A shortcut rather than a
+layer: everything it calls is public on the package that owns it, so outgrowing the defaults means replacing
+two lines with five, not working around a wrapper. Generated services use it, which took their `Program.cs`
+from thirteen wiring lines to two.
+
 **Works out of the box.** Three gaps where the framework defined something and then left the application to
 supply the half that makes it work:
 
