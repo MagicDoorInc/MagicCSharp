@@ -1,4 +1,5 @@
-using MagicCSharp.Data.KeyGen;
+using MagicCSharp.Infrastructure.KeyGen;
+using MagicCSharp.Data.EntityFramework.Repositories;
 using MagicCSharp.Data.Repositories;
 using MagicCSharp.Data.Utils;
 using MagicCSharp.Infrastructure;
@@ -15,9 +16,9 @@ public class OrderEfRepository(
     IKeyGenService keyGenService,
     IDbContextFactory<OrderManagementDbContext> contextFactory,
     IClock clock,
-    ILogger<OrderEfRepository> logger)
-    : BaseIdPaginationRepository<OrderManagementDbContext, OrderDal, Order, OrderFilter, OrderEdit>(contextFactory,
-        clock, logger), IOrderRepository
+    ILoggerFactory loggerFactory)
+    : BaseIdPaginatedRepository<OrderManagementDbContext, OrderDal, Order, OrderFilter, OrderEdit>(contextFactory,
+        clock, loggerFactory), IOrderRepository
 {
     protected override IQueryable<OrderDal> ApplyFilter(IQueryable<OrderDal> query, OrderFilter filter)
     {

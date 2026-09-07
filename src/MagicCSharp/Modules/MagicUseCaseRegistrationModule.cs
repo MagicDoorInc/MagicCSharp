@@ -18,41 +18,35 @@ public static class MagicUseCaseRegistrationModule
     }
 
     /// <summary>
-    ///     Scans all loaded assemblies for all interfaces that extend IMagicUseCase
-    ///     and automatically registers them with their implementations in the DI container.
+    ///     Scans the loaded assemblies for every interface that extends <see cref="IMagicUseCase" /> and registers
+    ///     each implementation of it. A use case's lifetime comes from its <see cref="MagicUseCaseAttribute" /> when
+    ///     it has one, and is Scoped otherwise.
+    ///     <para>
+    ///         <c>Lazy&lt;IMyUseCase&gt;</c> is registered alongside each interface, so a use case can depend on
+    ///         another without constructing it up front — the way out of a construction cycle between two use cases
+    ///         that call each other conditionally.
+    ///     </para>
+    ///     <para>
+    ///         Only assemblies already loaded are scanned; see <see cref="ImplementationRegistrationModule.AddImplementationsOf{TInterface}" />
+    ///         for why that matters and how to make a project visible.
+    ///     </para>
     /// </summary>
     /// <param name="services">The service collection to add the use cases to.</param>
+    /// <param name="assemblyFilter">
+    ///     Optional filter narrowing which loaded assemblies are scanned. Defaults to every non-framework assembly.
+    /// </param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddMagicUseCases(this IServiceCollection services)
+    public static IServiceCollection AddMagicUseCases(this IServiceCollection services, Func<Assembly, bool>? assemblyFilter = null)
     {
-        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        return services.AddImplementationsOf<IMagicUseCase>(
+            ServiceLifetime.Scoped,
+            true,
+            GetUseCaseLifetime,
+            assemblyFilter);
+    }
 
-        // First, find all interfaces that extend IMagicUseCase (excluding IMagicUseCase itself)
-        var useCaseInterfaces = assemblies.SelectMany(assembly => assembly.GetTypes())
-            .Where(type => type.IsInterface)
-            .Where(type => typeof(IMagicUseCase).IsAssignableFrom(type))
-            .Where(type => type != typeof(IMagicUseCase))
-            .ToList();
-
-        foreach (var useCaseInterface in useCaseInterfaces)
-        {
-            // Find the implementation of this interface across all assemblies
-            var implementationType = assemblies.SelectMany(assembly => assembly.GetTypes())
-                .FirstOrDefault(type => type.IsClass && !type.IsAbstract && useCaseInterface.IsAssignableFrom(type));
-
-            if (implementationType != null)
-            {
-                var attribute = implementationType.GetCustomAttribute<MagicUseCaseAttribute>();
-                var lifetime = attribute?.Lifetime ?? ServiceLifetime.Scoped;
-
-                // Register the interface with its implementation
-                services.Add(new ServiceDescriptor(useCaseInterface, implementationType, lifetime));
-
-                // Also register the concrete type
-                services.Add(new ServiceDescriptor(implementationType, implementationType, lifetime));
-            }
-        }
-
-        return services;
+    private static ServiceLifetime? GetUseCaseLifetime(Type implementationType)
+    {
+        return implementationType.GetCustomAttribute<MagicUseCaseAttribute>()?.Lifetime;
     }
 }

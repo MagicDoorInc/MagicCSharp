@@ -1,0 +1,43 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using MagicCSharp.Data.EntityFramework.Dals;
+using {{ entity_namespace }};
+
+namespace {{ prefix }}.{{ app_name }}.Data.EntityFramework.Dals;
+
+[Table("{{ table_name }}")]
+public class {{ entity_name }}Dal : Base{{ if use_key }}Key{{ else }}Id{{ end }}Dal<{{ entity_name }}, {{ entity_name }}Edit>
+{
+    // TODO: add the columns, each with [Column("snake_case_name")] and [Required] where it is not nullable
+
+    /// <summary>Row to entity. Read every column the entity exposes.</summary>
+    public override {{ entity_name }} ToEntity()
+    {
+        return new {{ entity_name }}
+        {
+            {{ if use_key }}Key = Key,{{ else }}Id = Id,{{ end }}
+            // TODO: map the columns
+            Created = Created,
+            Updated = Updated,
+        };
+    }
+
+    /// <summary>
+    ///     Edit onto row. Assign every writable field unconditionally — the repository decides whether
+    ///     anything changed by asking the change tracker afterwards.
+    /// </summary>
+    public override void Apply({{ entity_name }}Edit edit)
+    {
+        // TODO: map the columns
+    }
+
+    /// <summary>Build a new row. The {{ if use_key }}key{{ else }}id{{ end }} is assigned by the caller, before insert.</summary>
+    public static {{ entity_name }}Dal From({{ entity_name }}Edit edit, {{ if use_key }}string key{{ else }}long id{{ end }})
+    {
+        var dal = new {{ entity_name }}Dal
+        {
+            {{ if use_key }}Key = key,{{ else }}Id = id,{{ end }}
+        };
+        dal.Apply(edit);
+        return dal;
+    }
+}

@@ -4,6 +4,9 @@
 
 MagicCSharp is a complete toolkit for building enterprise-grade, distributed C# applications with clean architecture patterns. Go from prototype to production-ready distributed systems without the boilerplate.
 
+Eleven packages, split so you take only what you use. See [CHANGELOG.md](CHANGELOG.md) for what changed and how
+to migrate.
+
 ## Why MagicCSharp?
 
 ### Built for Scale from Day One
@@ -43,25 +46,46 @@ No more mixing HTTP logic with business rules. No more untestable code.
 
 ✅ **Snowflake IDs** - Globally unique, time-sortable IDs for distributed databases
 
+✅ **Public Keys** - Unguessable string keys for anything a user can see, in an alphabet without `0`/`O` or `I`/`l`
+
+✅ **Repositories** - CRUD, batch writes, pagination, soft delete and free-text search over Entity Framework
+
 ✅ **Request Tracking** - Trace requests across async boundaries
 
 ✅ **Testable Time** - Mock time in tests with `IClock`
+
+✅ **Test Doubles** - A controllable clock, deterministic ids, synchronous events, and repository tests against real PostgreSQL
+
+✅ **Scaffolding** - Generate an entity across its four files, and lint the conventions the compiler can't
 
 ## Quick Start
 
 ### Installation
 
+Take only what you use. The core has three dependencies and knows nothing about ASP.NET, Entity Framework or
+Kafka.
+
 ```bash
-# Core framework
+# Core - use cases, IClock, Snowflake ids and public keys, request IDs
 dotnet add package MagicCSharp
 
-# Data access & repositories
+# Data - repository contracts, pagination, filter helpers (no persistence library)
 dotnet add package MagicCSharp.Data
+dotnet add package MagicCSharp.Data.EntityFramework   # the implementations
+dotnet add package MagicCSharp.Data.Postgres          # pooled factory, migrations, UTC interceptor
 
-# Event-driven architecture
+# Events
 dotnet add package MagicCSharp.Events
-dotnet add package MagicCSharp.Events.Kafka  # Optional
-dotnet add package MagicCSharp.Events.SQS    # Optional
+dotnet add package MagicCSharp.Events.Kafka           # optional transport
+dotnet add package MagicCSharp.Events.SQS             # optional transport
+
+# The rest, as needed
+dotnet add package MagicCSharp.AspNetCore             # request-ID middleware
+dotnet add package MagicCSharp.Scheduling             # drift-free background jobs
+
+# Test projects
+dotnet add package MagicCSharp.Testing                # fakes, no heavy dependencies
+dotnet add package MagicCSharp.Testing.Database       # repository tests on real PostgreSQL
 ```
 
 ### Define a Use Case
@@ -114,12 +138,27 @@ public class CreateOrderUseCase(
 ```csharp
 // Just instantiation - no mocking the framework
 var orders = new FakeOrderRepository();
-var events = new FakeEventDispatcher();
+var events = new SyncEventDispatcher(asyncDispatcher);
 var useCase = new CreateOrderUseCase(orders, events);
 
 var result = await useCase.Execute(new CreateOrderRequest(userId: 1, productIds: [2, 3]));
 
 Assert.Equal(expectedOrderId, result.OrderId);
+Assert.True(events.HasDispatchedEvent<OrderCreated>());
+```
+
+`MagicCSharp.Testing` supplies the doubles for the framework's own seams — a clock you move by hand, ids
+derived from it, an event dispatcher that runs handlers inline so you can assert without sleeping, and an
+in-memory distributed lock. Anything time-dependent becomes testable in milliseconds:
+
+```csharp
+clock.SetTime(2026, 3, 1);
+await createLease.Execute(request);
+
+clock.AdvanceDays(31);
+await applyLateFees.Execute();
+
+Assert.Single(await fees.Get(new FeeFilter { LeaseId = leaseId }));
 ```
 
 **Chaining use cases is instant:**
@@ -292,51 +331,31 @@ Watch the logs to see event-driven architecture in action - events flowing throu
 
 ## The MagicCSharp Ecosystem
 
-### [MagicCSharp](src/MagicCSharp/) - Core Framework
+Eleven packages, split so you take only what you use. The core has three dependencies and knows nothing about
+ASP.NET, Entity Framework or Kafka.
 
-The foundation for clean architecture applications.
+| Package | Add it when you want | Brings with it |
+|---|---|---|
+| **[MagicCSharp](src/MagicCSharp/)** | Use cases, `IClock`, Snowflake ids and public keys, request IDs, `Optional<T>` | DI + logging abstractions, IdGen |
+| **[MagicCSharp.AspNetCore](src/MagicCSharp.AspNetCore/)** | Request-ID middleware | the ASP.NET shared framework |
+| **[MagicCSharp.Scheduling](src/MagicCSharp.Scheduling/)** | Drift-free background jobs, one instance per occurrence | DistributedLock, hosting |
+| **[MagicCSharp.Data](src/MagicCSharp.Data/)** | Repository contracts, pagination, LINQ filter helpers | nothing — no persistence library |
+| **[MagicCSharp.Data.EntityFramework](src/MagicCSharp.Data.EntityFramework/)** | The repository base classes and DALs | EF Core |
+| **[MagicCSharp.Data.Postgres](src/MagicCSharp.Data.Postgres/)** | Pooled context factory, design-time factory, UTC interceptor | Npgsql |
+| **[MagicCSharp.Events](src/MagicCSharp.Events/)** | Event dispatch and handler discovery | System.Text.Json |
+| **[MagicCSharp.Events.Kafka](src/MagicCSharp.Events.Kafka/)** | Kafka transport | Confluent.Kafka |
+| **[MagicCSharp.Events.SQS](src/MagicCSharp.Events.SQS/)** | SQS transport | AWSSDK.SQS |
+| **[MagicCSharp.Testing](src/MagicCSharp.Testing/)** | `FakeClock`, `FakeKeyGen`, synchronous events, in-memory locks | DistributedLock |
+| **[MagicCSharp.Testing.Database](src/MagicCSharp.Testing.Database/)** | Repository tests against real PostgreSQL | Testcontainers, xUnit |
 
-**Key Features:**
-- Use Case pattern with automatic DI registration
-- Three-layer architecture enforcement
-- Distributed locking across instances
-- Scheduled background services without drift
-- Request ID tracking across async calls
-- Testable time with `IClock`
+A domain project referencing `MagicCSharp.Data` gets the repository interfaces and no persistence library at
+all — which is the point of the split. Wanting `FakeClock` does not mean wanting Docker.
 
-[📖 Full Documentation](src/MagicCSharp/README.md)
+### Scaffolding
 
-### [MagicCSharp.Data](src/MagicCSharp.Data/) - Data Access
-
-Repository pattern and data infrastructure for distributed systems.
-
-**Key Features:**
-- Repository pattern with `IRepository<TEntity>`
-- Snowflake ID generation for distributed databases
-- Globally unique, time-sortable IDs
-- Multi-instance coordination
-- Clean separation between domain and data access
-
-[📖 Full Documentation](src/MagicCSharp.Data/README.md)
-
-### [MagicCSharp.Events](src/MagicCSharp.Events/) - Event-Driven Architecture
-
-Build event-driven systems that work locally or distributed.
-
-**Key Features:**
-- Unified `IEventDispatcher` interface
-- Local events for development
-- Kafka events for production
-- SQS events for AWS environments
-- OpenTelemetry metrics
-- Switch implementations without code changes
-
-**Packages:**
-- `MagicCSharp.Events` - Core event infrastructure
-- `MagicCSharp.Events.Kafka` - Kafka implementation
-- `MagicCSharp.Events.SQS` - AWS SQS implementation
-
-[📖 Full Documentation](src/MagicCSharp.Events/README.md)
+`tools/` holds single-file scripts for the repetitive parts: `AddEntity` writes the four files an entity needs
+across three projects and registers it, `ValidateConventions` catches the mistakes that compile, and
+`SyncAllProjects` regenerates the all-projects solution. See [tools/README.md](tools/README.md).
 
 ## Real-World Benefits
 

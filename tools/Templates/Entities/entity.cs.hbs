@@ -1,0 +1,25 @@
+using MagicCSharp.Infrastructure;
+using MagicCSharp.Infrastructure.Entities;
+
+namespace {{ entity_namespace }};
+
+/// <summary>The {{ entity_name }} as the rest of the application sees it.</summary>
+public record {{ entity_name }} : {{ entity_name }}Edit, IMagicEntity, {{ if use_key }}IKeyEntity{{ else }}IIdEntity{{ end }}
+{
+    {{ if use_key }}public required string Key { get; init; }{{ else }}public required long Id { get; init; }{{ end }}
+    public required DateTimeOffset Created { get; init; }
+    public required DateTimeOffset Updated { get; init; }
+}
+
+/// <summary>The writable fields. {{ entity_name }} derives from this, so an entity is accepted wherever an edit is.</summary>
+public record {{ entity_name }}Edit
+{
+    // TODO: add the writable fields
+}
+
+/// <summary>Query criteria. Every property is optional; a null one means "do not narrow on this".</summary>
+public class {{ entity_name }}Filter
+{
+    {{ if use_key }}public List<string>? Keys { get; init; }{{ else }}public List<long>? Ids { get; init; }{{ end }}
+    public ComparableRange<DateTimeOffset>? Created { get; init; }
+}

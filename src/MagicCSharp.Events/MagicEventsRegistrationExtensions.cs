@@ -103,14 +103,14 @@ public static class MagicEventsRegistrationExtensions
     }
 
     /// <summary>
-    ///     Register local event dispatcher for in-process event handling.
-    ///     This is perfect for local development, testing, and single-service applications.
+    ///     Register the in-process event dispatcher, for local development and single-service applications.
+    ///     Handlers run on a background task, the same fire-and-forget shape Kafka and SQS give you, so switching
+    ///     to either later is a registration change and nothing else.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection RegisterLocalMagicEvents(this IServiceCollection services)
     {
-        // Register local event dispatcher (wraps async with .Wait())
         services.AddSingleton<IEventDispatcher, LocalEventDispatcher>();
 
         return services;
@@ -130,8 +130,25 @@ public static class MagicEventsRegistrationExtensions
     {
         return AppDomain.CurrentDomain
             .GetAssemblies()
-            .SelectMany(assembly => assembly.GetTypes())
+            .Where(assembly => !assembly.IsDynamic)
+            .SelectMany(GetTypesSafely)
             .Where(type => !type.IsAbstract)
             .ToList();
+    }
+
+    /// <summary>
+    ///     An assembly referencing a type it cannot load throws on <see cref="Assembly.GetTypes" /> and would abort
+    ///     the whole scan. Keep the types that did load.
+    /// </summary>
+    private static IEnumerable<Type> GetTypesSafely(Assembly assembly)
+    {
+        try
+        {
+            return assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException ex)
+        {
+            return ex.Types.Where(type => type != null).Cast<Type>();
+        }
     }
 }

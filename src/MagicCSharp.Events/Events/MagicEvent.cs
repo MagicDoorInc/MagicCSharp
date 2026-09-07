@@ -13,5 +13,5 @@ public abstract record MagicEvent
     /// <summary>
     ///     Timestamp when this event occurred.
     /// </summary>
-    public DateTimeOffset OccurredOn { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset OccurredOn { get; set; } = DateTimeOffset.UtcNow; // conventions: allow — an event records when it happened, and has no clock to inject
 }

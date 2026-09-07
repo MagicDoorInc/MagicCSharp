@@ -1,7 +1,8 @@
 using System.Text.Json.Serialization;
-using MagicCSharp.Data.KeyGen;
+using MagicCSharp.Infrastructure.KeyGen;
 using MagicCSharp.Events;
 using MagicCSharp.Infrastructure;
+using MagicCSharp.AspNetCore;
 using MagicCSharp.Modules;
 using Microsoft.OpenApi.Models;
 using OrderManagement.Api.Modules;
