@@ -1,0 +1,84 @@
+# Governance
+
+## Where this came from
+
+MagicCSharp is the architecture MagicDoor's backend is built on, extracted so it can be used outside it.
+That architecture was shaped by building and running systems at Amazon and Disney before it — which is
+mostly to say the opinions here are not theoretical. They are what was left after finding out which
+structures survive a codebase getting large and a team changing, and which do not.
+
+That history is offered as an explanation of *why* the decisions look like this, not as a reason to trust
+them. The reasons are in the documentation, and where a decision has a cost, the cost is written next to it.
+Judge the design on those.
+
+**What is true today, precisely:** MagicDoor's backend runs this structure, with one fully-formed reference
+service in production and older services still on the flat layout they predate. It does not yet consume
+these NuGet packages — it runs a copy that was split out and has since diverged. Converging it onto the
+published packages is the plan, and until that has happened this document will keep saying so. "Battle
+tested" is a claim about the structure, not about the packages.
+
+## Who maintains it
+
+One maintainer, Kasper Sogaard, with MagicDoor paying for the time. That is the honest bus factor, and it is
+the main risk in adopting this. Two things reduce it:
+
+- **The framework is small on purpose** — around 7,000 lines of library code. If it were abandoned tomorrow,
+  vendoring it is a realistic afternoon rather than a rewrite.
+- **Nothing is hidden.** Every file the CLI writes comes from a template you can read and replace. Every
+  call `AddMagicApp` makes is public on the package that owns it. Outgrowing the framework means replacing
+  two lines with five, not unpicking it.
+
+A second maintainer with publish rights is wanted. The route is the ordinary one: contribute, and if the
+work is good and continues, you will be asked.
+
+## How decisions get made
+
+- **A bug fix or a documentation correction** needs one maintainer.
+- **A new public type, a new package, or a change to the shape of a generated file** needs an issue first
+  and agreement before code. These are the changes that are expensive to reverse once people have
+  repositories built on them.
+- **Disagreement** is settled by whoever maintains it. That is not a permanent arrangement; it is what one
+  maintainer means.
+
+## What happens when MagicDoor and MagicCSharp want different things
+
+They will, and the answer is decided in advance rather than argued each time.
+
+**The framework stays generic.** Nothing MagicDoor-specific is added to it — not a naming convention, not a
+library, not a default that only makes sense for property management software.
+
+MagicDoor's own conventions live where every other adopter's do:
+
+- **House style goes in a template repository**, consumed at `.magiccsharp/templates`. The per-file override
+  mechanism exists precisely so that a company can change what its generated code looks like without
+  forking the tool. See [docs/template-overrides.md](docs/template-overrides.md).
+- **Company-specific code goes in that company's own `Libs/`**, not here.
+
+If MagicDoor needs something the framework will not take, MagicDoor overrides a template or writes a
+library. The same valve is available to you, which is the point of it being a valve rather than a
+concession.
+
+If MagicDoor stops funding this, that will be said here plainly rather than left to be inferred from a
+quiet repository.
+
+## Versions and stability
+
+While the project is on `0.x`:
+
+- **Breaking changes happen on minor versions**, and the [CHANGELOG](CHANGELOG.md) documents how to migrate.
+  Pin an exact version if that is not acceptable yet.
+- **All packages share one version and ship together.** A mixed set is not tested.
+- **Public API** is anything a package exposes as `public`, plus the shape of the files `mcs` generates.
+  Generated code is API: people edit it, and changing its shape breaks their next merge.
+- **`1.0` means** the generated file shapes and the core registration methods are stable enough that a
+  breaking change would need a major version. It is not a statement about how finished the framework feels.
+
+## Scope
+
+What this project is for: the repository layout, the tool that generates and checks it, and the small set of
+packages the generated code depends on.
+
+What it is not for: being a general-purpose application framework. If ASP.NET, EF Core or the BCL already
+does something well, MagicCSharp should not wrap it. Several things are deliberately left to you —
+authentication, CORS, rate limiting, logging providers, metric exporters — and where that is a decision
+rather than an oversight, the documentation says so.

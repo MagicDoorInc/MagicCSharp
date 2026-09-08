@@ -570,14 +570,17 @@ This is the framework every C# team deserves.
 - [MagicCSharp.Events.Kafka](src/MagicCSharp.Events.Kafka/README.md) - Kafka integration
 - [MagicCSharp.Events.SQS](src/MagicCSharp.Events.SQS/README.md) - AWS SQS integration
 
+## Contributing
+
+The framework is small on purpose — around 7,000 lines — and issues, template changes and new `validate`
+rules are all welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers building it, running the tests without
+Docker, and what to raise before writing code.
+
+[GOVERNANCE.md](GOVERNANCE.md) says who maintains it, how decisions are made, what `0.x` means for breaking
+changes, and what happens when MagicDoor's needs and the framework's diverge.
+
+To report a vulnerability, see [SECURITY.md](SECURITY.md) — please do not open a public issue for one.
+
 ## License
 
-MIT License - See LICENSE file for details.
-
----
-
-**Ready to build enterprise-grade applications without the enterprise-grade complexity?**
-
-```bash
-dotnet add package MagicCSharp
-```
+MIT. See [LICENSE](LICENSE).
