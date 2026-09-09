@@ -86,28 +86,172 @@ await applyLateFees.Execute();          // now asserts against a month later
 
 Code that reads `DateTime.Now` cannot do this, which is why `mcs validate` refuses it.
 
-## What else is in the box
+## Repositories
 
-**Repositories** that turn a filter object into SQL, with pagination, soft delete and a search column, over
-Entity Framework and PostgreSQL. Entities live in your domain; the DAL and the EF attributes live behind
-`Data.Models`, which has no EF dependency at all, so the arrow points from storage toward the domain and
-never back.
+An entity is three records that agree: what you can write, what comes back, and what you can query by.
 
-**Events** with in-process, Kafka and SQS transports behind one `IEventDispatcher`. Handlers are discovered
-the same way use cases are. Dispatch is fire-and-forget on every transport — deliberately, so that moving
-from in-process to Kafka does not change how a handler behaves.
+```csharp
+public record Order : OrderEdit, IIdEntity
+{
+    public required long Id { get; init; }
+    public required DateTimeOffset Created { get; init; }
+    public required DateTimeOffset Updated { get; init; }
+}
 
-**Snowflake ids**, assigned before insert, so a caller knows an entity's id without a round trip and ids
-stay unique across instances without coordination.
+public record OrderEdit                    // Order derives from it, so an entity
+{                                          // is accepted wherever an edit is
+    public required long CustomerId { get; init; }
+    public required decimal Total { get; init; }
+    public required OrderStatus Status { get; init; }
+}
 
-**Background jobs** that schedule from the clock rather than from how long the last run took, so they do not
-drift.
+public class OrderFilter                   // a null property means "do not narrow on this"
+{
+    public long? CustomerId { get; init; }
+    public OrderStatus? Status { get; init; }
+    public ComparableRange<DateTimeOffset>? Created { get; init; }
+}
+```
 
-**RFC 7807 errors.** A repository throwing `NotFoundException` for a row that is not there reaches the
-caller as a 404 with a problem+json body, not a 500 with a stack trace — and outside Development the detail
-is logged rather than returned.
+The interface your domain depends on says what the entity supports. Pagination, soft delete and a search
+column are separate opt-ins, so a caller can see from the interface which of them exist:
 
-### The packages
+```csharp
+public interface IOrdersRepository :
+    IRepository<Order, long, OrderEdit, OrderFilter>,
+    IPaginatedRepository<Order, OrderFilter>;
+```
+
+That is everything the domain sees. The implementation lives behind it and inherits all of it except the two
+things only you know — how to build a row, and what the filter means:
+
+```csharp
+public class OrdersEfRepository(...)
+    : BaseIdPaginatedRepository<MagicShopContext, OrderDal, Order, OrderFilter, OrderEdit>(...),
+      IOrdersRepository
+{
+    protected override OrderDal CreateDal(OrderEdit edit) => OrderDal.From(edit, keyGen.GetId());
+
+    protected override IQueryable<OrderDal> ApplyFilter(IQueryable<OrderDal> query, OrderFilter filter)
+    {
+        query = query.ApplyNullableValueFilter(filter.CustomerId, x => (long?)x.CustomerId);
+        query = query.ApplyNullableValueFilter(filter.Status, x => (OrderStatus?)x.Status);
+        query = query.ApplyComparableRangeFilter(filter.Created, x => (DateTimeOffset?)x.Created);
+
+        return query;
+    }
+}
+```
+
+You get create, read by key or filter, four flavours of update, delete, counts and pages — each opening its
+own context, each translating to SQL. `GetOrThrow` raises the domain's `NotFoundException` so an endpoint
+that fetches by id needs no null branch.
+
+`OrderDal` is the row: the `[Table]` and `[Column]` attributes, the EF types, the mapping to and from
+`Order`. It lives in the data project, and `Order` does not know it exists — the arrow points from storage
+toward the domain and never back. The contracts package has no Entity Framework dependency at all, so a
+domain project referencing it gets the interfaces and no persistence library.
+
+Timestamps are written UTC. Enums are stored by name, so inserting a member into the middle of one does not
+change what existing rows mean.
+
+## Events
+
+An event is a record carrying ids and primitives — never an entity, because it will be deserialized by code
+built from a different commit than the one that published it:
+
+```csharp
+public record OrderPlacedEvent : MagicEvent
+{
+    public required long OrderId { get; init; }
+    public required long CustomerId { get; init; }
+}
+```
+
+Anything that depends on `IEventDispatcher` can publish one, and handlers are discovered the same way use
+cases are — implement the interface and it runs:
+
+```csharp
+public class SendConfirmationHandler(IEmailService email) : IEventHandler<OrderPlacedEvent>
+{
+    public static MagicEventPriority Priority => MagicEventPriority.NotifyUser;
+
+    public Task Handle(OrderPlacedEvent placed) => email.ConfirmOrder(placed.OrderId);
+}
+
+public class ReserveStockHandler(IInventory inventory) : IEventHandler<OrderPlacedEvent>
+{
+    public Task Handle(OrderPlacedEvent placed) => inventory.Reserve(placed.OrderId);
+}
+```
+
+Several handlers for one event run independently, ordered by `Priority` — which is `static`, because the
+registration reads it without constructing the handler. Adding a capability is adding a class; nothing that
+publishes the event changes.
+
+The transport is one registration, and it is the only line that differs between running locally and running
+on a queue:
+
+```csharp
+services.AddLocalMagicEvents();               // in-process
+services.AddMagicKafkaEvents(kafkaConfig);    // Kafka
+services.AddMagicSqsEvents(sqsConfig);        // SQS
+```
+
+**Dispatch is fire-and-forget on all three, deliberately.** In-process handlers run on a background task
+rather than blocking the caller, because that is what Kafka and SQS do, and a handler that only works when
+dispatch blocks would break on the day you switch. Treat an event as a notification: anything that *must*
+happen belongs in the use case, and a handler should be safe to run twice. Each transport's README states
+what it does and does not guarantee.
+
+## Time, ids and jobs
+
+`IClock` instead of `DateTime.Now`, so a test can move time rather than wait for it. `IKeyGenService` gives
+Snowflake ids — 64-bit, time-sortable, assigned before the insert, so a caller knows an entity's id without
+a round trip and two instances never collide without coordinating. For keys that appear in a URL there are
+unguessable string keys instead.
+
+Background jobs schedule from the clock rather than from when the last run finished, so an hourly job stays
+on the hour instead of drifting by however long each run took:
+
+```csharp
+public class ExpireHoldsJob(IServiceScopeFactory scopes, IClock clock, ILogger<ExpireHoldsJob> logger)
+    : ScheduledBackgroundService(scopes, new IntervalSchedule(TimeSpan.FromHours(1)), null, clock, logger)
+{
+    protected override string ScheduleKey => "expire-holds";
+    protected override string ServiceName => nameof(ExpireHoldsJob);
+
+    protected override async Task ExecuteScheduledTask(CancellationToken stoppingToken)
+    {
+        // A scope per run, because the job outlives any one of them.
+        await using var scope = scopes.CreateAsyncScope();
+
+        await scope.ServiceProvider.GetRequiredService<IExpireHoldsUseCase>().Execute();
+    }
+}
+```
+
+`TimeOfDaySchedule` is the other one, and takes a timezone, so "2am local" survives a daylight-saving
+change. Every instance wakes on the same boundary and takes a distributed lock named for the job, so only
+one runs it — the defaults suit a single machine, and running several means registering a lock provider and
+a schedule store that they share.
+
+## Errors
+
+A use case throws what it means. `NotFoundException` from the domain becomes a 404 with a problem+json body;
+a `ValidationException` or a bad argument becomes a 400; anything unexpected becomes a 500 whose detail is
+logged rather than returned, because an unhandled exception's message routinely contains a connection string
+or a row nobody should see. `HttpException` and its subclasses are there for the times a use case genuinely
+means a status code.
+
+```csharp
+public Task<Order> ById(long id) => orders.GetOrThrow(id);   // 404 if it is not there
+```
+
+The body carries the same request id as the `X-Request-ID` header, so an id quoted in a bug report finds the
+request in the logs.
+
+## The packages
 
 Fourteen, split so you take only what you use — plus `MagicCSharp.App`, which bundles the four a web service
 needs when you would rather not choose.

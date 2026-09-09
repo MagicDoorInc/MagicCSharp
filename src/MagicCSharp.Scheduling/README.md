@@ -12,11 +12,35 @@ nightly job creeps later every day. These schedules compute the *next* occurrenc
 sleep until then, so a run taking ten minutes does not move the following one.
 
 ```csharp
-public class NightlyRollupService(IServiceProvider services)
-    : ScheduledBackgroundService(services, new TimeOfDaySchedule(new TimeOnly(2, 0)));
+public class NightlyRollupService(
+    IServiceScopeFactory scopes,
+    IDistributedLockProvider? locks,
+    IClock clock,
+    ILogger<NightlyRollupService> logger)
+    : ScheduledBackgroundService(scopes, new TimeOfDaySchedule(new TimeOnly(2, 0)), locks, clock, logger)
+{
+    protected override string ScheduleKey => "nightly-rollup";
+    protected override string ServiceName => nameof(NightlyRollupService);
 
-public class SyncService(IServiceProvider services)
-    : ScheduledBackgroundService(services, new IntervalSchedule(TimeSpan.FromHours(6)));
+    protected override async Task ExecuteScheduledTask(CancellationToken stoppingToken)
+    {
+        // A scope per run: the service is a singleton and outlives any one of them.
+        await using var scope = scopes.CreateAsyncScope();
+
+        await scope.ServiceProvider.GetRequiredService<IRollUpLedgerUseCase>().Execute();
+    }
+}
+```
+
+`ScheduleKey` names the distributed lock, so every instance of this service competes for the same one.
+`IntervalSchedule` is the other schedule, for "every six hours" rather than "at a time of day".
+
+Register it as you would any hosted service, and add `AddMagicScheduling()` — without it there is no
+`IScheduleStore` and the service throws when it first tries to record a run:
+
+```csharp
+builder.Services.AddMagicScheduling();
+builder.Services.AddHostedService<NightlyRollupService>();
 ```
 
 `TimeOfDaySchedule` takes a timezone, so "2am local" survives a daylight-saving change.
