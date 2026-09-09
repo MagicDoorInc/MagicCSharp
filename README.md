@@ -1,585 +1,212 @@
 # MagicCSharp
 
-**Stop writing infrastructure code. Start building features.**
+A modular monolith for C#. One deployable service; inside it, a tree of domains, each owning its use cases,
+entities, endpoints and tests; one host and one database underneath.
 
-MagicCSharp is a complete toolkit for building enterprise-grade, distributed C# applications with clean architecture patterns. Go from prototype to production-ready distributed systems without the boilerplate.
+The shape is **decided** — where a class goes, what it may reference, where its endpoints live, what its
+assembly is called. It is **enforced**, because a reference pointing the wrong way fails the build and
+`mcs validate` fails CI. And it is **generated**, so nobody has to remember it. The result is a service that
+reads the same at a hundred use cases as it did at ten.
 
-Eleven packages, split so you take only what you use. See [CHANGELOG.md](CHANGELOG.md) for what changed and how
-to migrate.
+The packages underneath — use cases, a testable clock, Snowflake ids, repositories over Entity Framework,
+events with in-process, Kafka and SQS transports, drift-free scheduling, RFC 7807 errors — work in any
+project on their own. The layout is what makes them add up to something.
 
-## Why MagicCSharp?
+## The shape
 
-### Built for Scale from Day One
-
-**Start local, scale globally** - Write your code once using clean patterns. Switch from in-memory to distributed infrastructure with zero code changes.
-
-```csharp
-// Local development
-services.RegisterLocalMagicEvents();
-
-// Production with Kafka
-services.RegisterMagicKafkaEvents(kafkaConfig);
-
-// Your code stays the same
-eventDispatcher.Dispatch(new OrderCreated { OrderId = 123 });
+```
+Apps/Shop/
+  Shop.App/                      Program.cs — a list of references and little else
+  Shop.Domains/Orders/
+    Default/                     use cases, event handlers
+    Models/                      entities, edits, filters
+    App/                         this domain's controllers
+    Tests/
+    Fulfilment/                  a subdomain: the same shape, one level down
+  Data/
+    Data.Models/                 repository interfaces — no EF dependency
+    Data.EntityFramework/        DALs, repositories, context, migrations
+Libs/                            what more than one service uses
 ```
 
-### Clean Architecture That Scales
+A domain grows by gaining siblings, not by getting wider. Each one brings its own endpoints, so `Shop.App`
+never becomes the folder where every feature's controllers pile up.
 
-**Three-layer separation** keeps your business logic pure and testable:
-
-- **Controllers** - Handle HTTP concerns, DTOs, authentication
-- **Use Cases** - Pure business logic, orchestrate workflows
-- **Services** - External APIs, protocols, technical implementations
-
-No more mixing HTTP logic with business rules. No more untestable code.
-
-### Production-Ready Infrastructure
-
-**Everything you need for distributed systems:**
-
-✅ **Distributed Events** - Kafka, SQS, or in-memory with the same interface
-
-✅ **Distributed Locking** - Coordinate work across multiple instances
-
-✅ **Drift-Free Scheduling** - Background jobs that stay on schedule, coordinated across instances
-
-✅ **Snowflake IDs** - Globally unique, time-sortable IDs for distributed databases
-
-✅ **Public Keys** - Unguessable string keys for anything a user can see, in an alphabet without `0`/`O` or `I`/`l`
-
-✅ **Repositories** - CRUD, batch writes, pagination, soft delete and free-text search over Entity Framework
-
-✅ **Request Tracking** - Trace requests across async boundaries
-
-✅ **Testable Time** - Mock time in tests with `IClock`
-
-✅ **Errors That Make Sense** - Domain exceptions become RFC 7807 responses; a missing row is a 404, not a 500
-
-✅ **Fails At Startup, Not In Production** - Every registration resolved before the first request
-
-✅ **Test Doubles** - A controllable clock, deterministic ids, synchronous events, and repository tests against real PostgreSQL
-
-✅ **Scaffolding** - Generate an entity across its four files, and lint the conventions the compiler can't
-
-## Quick Start
-
-### The fast path
-
-Scaffold a repository and a running service:
+## Sixty seconds
 
 ```bash
 dotnet tool install -g MagicCSharp.Cli
+docker run -d --name shop-db -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:17
 
 mcs init --prefix Acme
 mcs create-app --name Shop --database shop
+mcs create-domain --solution Shop --name Orders --models --tests
+mcs create-domain --solution Shop --name Orders.App
+mcs add-entity --solution Shop --domain Orders --name Order --paginated
+
 dotnet run --project Apps/Shop/Shop.App
+curl localhost:5200/hello
 ```
 
-That gives you a service that builds, boots and answers — with use cases, `IClock`, Snowflake IDs,
-request-ID tracking, events, scheduling and problem-details error handling already wired.
-[More on the repository layout ↓](#the-repository-layout--optional)
+That is a service with a domain in it: a use-case project the host references, an `Order` entity across four
+files in three projects that agree about names and namespaces, its repository registered, and a place for
+the domain's controllers. Re-run any of those commands and nothing changes — an existing file is reported
+and skipped, never overwritten.
 
-### Adding it to an existing project
+The service needs the database because `create-app --database` wires one in. Leave `--database` off for a
+service that has none, or set `DB_VERIFY_CONNECTION=false` to let it boot without one.
 
-One package, two calls:
+## What the shape buys
 
-```bash
-dotnet add package MagicCSharp.App
-```
+**You stop deciding where things go.** Four questions get answered once, by the layout, instead of every
+time by whoever is there that week:
+
+| You are writing | It goes in |
+|---|---|
+| Code two or more services use — an event contract, a typed client | a shared library, `Libs/Events/` |
+| A business area with its own entities, rules and use cases | a domain, `Apps/Shop/Shop.Domains/Orders/` |
+| That domain's endpoints — controllers, request and response types | the domain's App, `.../Orders/App/` |
+| Code one service uses from several domains, that is not itself a domain | an app library, `Apps/Shop/Shop.Processors/` |
+
+**The build enforces it.** `Data.Models` holds interfaces and does not reference Entity Framework, so the
+arrow points from storage toward the domain and never back. A subdomain may depend on its parent; the
+reverse is a cycle and the compiler says so. You can read a domain without reading a single EF attribute.
+
+**`mcs validate` catches what still compiles.** A `DateTime.Now` that makes behaviour untestable. An event
+carrying an entity, which will deserialize to nulls after a deploy. It exits non-zero, so CI holds the line
+instead of a reviewer.
+
+**Every entity looks the same.** `mcs add-entity` writes the four files an entity needs — across three
+projects that each have to agree about names, namespaces and generic arguments — and registers it. That is
+not typing saved so much as a class of mistake removed, and it means anyone can open any service and
+recognise what they are looking at.
+
+**It holds when the domain gets big.** MagicDoor's insurance service is one deployable with a generic
+`Insurance` domain and three provider subdomains beneath it — Sure, DamageWaiver, ExternalInsurance — nearly
+ninety use cases and eleven controllers. Each provider brings its own endpoints, models and tests. No type in
+the parent's contract project names a provider, and its logic names one in a single statistics use case. To
+add a fourth provider you add a directory, not a service, and you do not open the other three.
+
+**One repository, several services, no version dance.** A change spanning two services is one commit, not a
+package publish and a wait. But you still build one service at a time: each has its own `.slnx`, and
+`Acme.All.slnx` is regenerated from disk for the times you need everything.
+
+**[The full guide →](docs/repository-layout.md)**
+
+## One slice, end to end
+
+From the [example project](https://github.com/MagicDoorInc/MagicCSharp-ExampleProject) — a use case with no
+HTTP and no Entity Framework in it:
 
 ```csharp
-var builder = WebApplication.CreateBuilder(args);
-builder.AddMagicApp();
-
-var app = builder.Build();
-app.UseMagicApp(builder);
-app.Run();
-```
-
-`MagicCSharp.App` brings in the core, ASP.NET, events and scheduling packages and wires them in the order
-they need. Pass `MagicAppOptions` to change any of it.
-
-### Or take only the pieces you want
-
-Every package stands alone. The core has three dependencies and knows nothing about ASP.NET, Entity
-Framework or Kafka, so a worker or a console app takes only what it uses.
-
-```bash
-# Core - use cases, IClock, Snowflake ids and public keys, request IDs
-dotnet add package MagicCSharp
-
-# Data - repository contracts, pagination, filter helpers (no persistence library)
-dotnet add package MagicCSharp.Data
-dotnet add package MagicCSharp.Data.EntityFramework   # the implementations
-dotnet add package MagicCSharp.Data.Postgres          # pooled factory, migrations, UTC interceptor
-
-# Events
-dotnet add package MagicCSharp.Events
-dotnet add package MagicCSharp.Events.Kafka           # optional transport
-dotnet add package MagicCSharp.Events.SQS             # optional transport
-
-# The rest, as needed
-dotnet add package MagicCSharp.AspNetCore             # request-ID middleware, error handling
-dotnet add package MagicCSharp.Scheduling             # drift-free background jobs
-
-# Test projects
-dotnet add package MagicCSharp.Testing                # fakes, no heavy dependencies
-dotnet add package MagicCSharp.Testing.Database       # repository tests on real PostgreSQL
-```
-
-### Define a Use Case
-
-**Use cases are just classes** - No base classes, no framework coupling, just pure C# with a marker interface.
-
-```csharp
-// Request/Result pattern keeps contracts clear
-public record CreateOrderRequest(long UserId, List<long> ProductIds);
-public record CreateOrderResult(long OrderId, decimal Total);
-
-// Define interface with IMagicUseCase marker
-public interface ICreateOrderUseCase : IMagicUseCase
+public class PlaceOrderUseCase(IOrdersRepository orders, IEventDispatcher events) : IPlaceOrderUseCase
 {
-    Task<CreateOrderResult> Execute(CreateOrderRequest request);
-}
-
-// Implementation - [MagicUseCase] attribute is optional (defaults to Scoped)
-// Add attribute only if you need a different lifetime (Singleton, Transient)
-public class CreateOrderUseCase(
-    IOrderRepository orders,
-    IEventDispatcher eventDispatcher) : ICreateOrderUseCase
-{
-    public async Task<CreateOrderResult> Execute(CreateOrderRequest request)
+    public async Task<Order> Execute(PlaceOrderRequest request)
     {
-        // Pure business logic - no HTTP, no infrastructure
-        var order = await orders.Create(request.UserId, request.ProductIds);
-
-        // Events work locally or distributed
-        eventDispatcher.Dispatch(new OrderCreated { OrderId = order.Id });
-
-        return new CreateOrderResult(order.Id, order.Total);
-    }
-}
-```
-
-**Why Use Cases?**
-
-✅ **Zero boilerplate** - Automatic registration, no configuration needed (attribute optional)
-
-✅ **Trivial to test** - Constructor injection, no mocks for the framework, just your dependencies
-
-✅ **Single responsibility** - One use case = one business workflow = easy to understand
-
-✅ **Reusable** - Use cases can call other use cases, building complex workflows from simple pieces
-
-✅ **Framework agnostic** - Works with any web framework, gRPC, message queues, CLI tools
-
-**Testing is trivial:**
-```csharp
-// Just instantiation - no mocking the framework
-var orders = new FakeOrderRepository();
-var events = new SyncEventDispatcher(asyncDispatcher);
-var useCase = new CreateOrderUseCase(orders, events);
-
-var result = await useCase.Execute(new CreateOrderRequest(userId: 1, productIds: [2, 3]));
-
-Assert.Equal(expectedOrderId, result.OrderId);
-Assert.True(events.HasDispatchedEvent<OrderCreated>());
-```
-
-`MagicCSharp.Testing` supplies the doubles for the framework's own seams — a clock you move by hand, ids
-derived from it, an event dispatcher that runs handlers inline so you can assert without sleeping, and an
-in-memory distributed lock. Anything time-dependent becomes testable in milliseconds:
-
-```csharp
-clock.SetTime(2026, 3, 1);
-await createLease.Execute(request);
-
-clock.AdvanceDays(31);
-await applyLateFees.Execute();
-
-Assert.Single(await fees.Get(new FeeFilter { LeaseId = leaseId }));
-```
-
-**Chaining use cases is instant:**
-```csharp
-// Complex workflows are just composition
-public interface IProcessOrderUseCase : IMagicUseCase
-{
-    Task Execute(ProcessOrderRequest request);
-}
-
-public class ProcessOrderUseCase(
-    ICreateOrderUseCase createOrder,
-    IChargePaymentUseCase chargePayment,
-    ISendConfirmationUseCase sendConfirmation) : IProcessOrderUseCase
-{
-    public async Task Execute(ProcessOrderRequest request)
-    {
-        // Each step is a tested, reusable use case
-        var order = await createOrder.Execute(new(request.UserId, request.ProductIds));
-        await chargePayment.Execute(new(order.OrderId, request.PaymentMethod));
-        await sendConfirmation.Execute(new(order.OrderId));
-    }
-}
-```
-
-Build complex business processes in minutes, not days.
-
-### Event-Driven Architecture
-
-**Decouple your system with events** - The same event code works in-memory, with Kafka, or AWS SQS.
-
-**Dispatch events from anywhere:**
-```csharp
-public class CreateOrderUseCase(
-    IOrderRepository orders,
-    IEventDispatcher eventDispatcher) : ICreateOrderUseCase
-{
-    public async Task Execute(CreateOrderRequest request)
-    {
-        var order = await orders.Create(request.UserId, request.ProductIds);
-
-        // Dispatch event - works locally or distributed
-        eventDispatcher.Dispatch(new OrderCreated
+        var order = await orders.Create(new OrderEdit
         {
-            OrderId = order.Id,
-            UserId = order.UserId,
-            Total = order.Total
+            CustomerId = request.CustomerId,
+            Total = request.Total,
+            Status = OrderStatus.Pending,
         });
 
-        return new CreateOrderResult(order.Id, order.Total);
+        events.Dispatch(new OrderPlacedEvent { OrderId = order.Id, CustomerId = order.CustomerId });
+
+        return order;
     }
 }
 ```
 
-**Handle events in separate use cases:**
-```csharp
-// Event handlers are automatically registered - no attribute needed
-public class SendOrderConfirmationHandler(
-    IEmailService emails) : IEventHandler<OrderCreated>
-{
-    public async Task Handle(OrderCreated evt)
-    {
-        // Runs async - doesn't block the order creation
-        await emails.SendOrderConfirmation(evt.OrderId);
-    }
-}
+Nothing registers it. `AddMagicApp` finds every `IMagicUseCase` at startup and registers it under its own
+interface, so the controller takes `IPlaceOrderUseCase` in its constructor and that is the whole wiring.
 
-public class UpdateInventoryHandler(
-    IInventoryRepository inventory) : IEventHandler<OrderCreated>
-{
-    public async Task Handle(OrderCreated evt)
-    {
-        // Multiple handlers process the same event independently
-        await inventory.DecrementStock(evt.OrderId);
-    }
-}
-```
-
-**Why events?**
-
-✅ **Decouple your code** - Emit events without knowing who's listening
-
-✅ **Scale independently** - Handlers run async, don't block the caller
-
-✅ **Add features without breaking existing code** - New handler = new capability
-
-✅ **Same interface everywhere** - Local development, Kafka production, SQS on AWS
-
-✅ **Testable** - Verify events were dispatched, test handlers in isolation
+Testing it needs no host, no database and no mocking framework — two fakes and a constructor:
 
 ```csharp
-// Switch from local to distributed with zero code changes
-services.RegisterLocalMagicEvents();          // Development
-services.RegisterMagicKafkaEvents(config);    // Production
-services.RegisterMagicSQSEvents(config);      // AWS
+var useCase = new PlaceOrderUseCase(new FakeOrdersRepository(), new RecordingEventDispatcher());
 
-// Your code never changes
-eventDispatcher.Dispatch(new OrderCreated { ... });
+var order = await useCase.Execute(new PlaceOrderRequest(CustomerId: 7, Total: 42.50m));
+
+Assert.Equal(OrderStatus.Pending, order.Status);
 ```
 
-### Setup
+That is the return on keeping HTTP and EF out of the use case, and it is why the layout puts them in
+different projects rather than different folders.
 
-```csharp
-var builder = WebApplication.CreateBuilder(args);
-builder.AddMagicApp();
+## The packages
 
-var app = builder.Build();
-app.UseMagicApp(builder);
-app.Run();
-```
-
-That is the whole of it with `MagicCSharp.App`. Wiring the pieces yourself instead:
-
-```csharp
-builder.Services.AddMagicCSharp();                  // use cases, IClock, request IDs
-builder.Services.RegisterSnowflakeKeyGen();         // ids — give each instance a distinct id in production
-
-builder.Services.RegisterMagicEvents();             // handler discovery — required before any transport
-builder.Services.RegisterLocalMagicEvents();        // in-process
-// builder.Services.RegisterMagicKafkaEvents(config);  // or Kafka
-
-builder.Services.AddMagicScheduling();              // schedule store + lock (single machine)
-builder.Services.AddMagicErrorHandling();           // exceptions to RFC 7807 responses
-```
-
-`RegisterMagicEvents()` comes first — it is what discovers your handlers. The transport call only registers
-the dispatcher, so on its own it fails at resolution.
-
-## Complete Example
-
-Want to see all the patterns in action? Check out the **OrderManagement** example - a complete, production-ready implementation demonstrating every MagicCSharp pattern.
-
-### What's Included
-
-The [OrderManagement example](examples/OrderManagement/) is a full-featured REST API showcasing:
-
-**Three-Layer Architecture in Practice**
-- Controllers handling HTTP concerns (DTOs, status codes)
-- Use Cases with pure business logic
-- Repository pattern with Entity Framework
-- Clean separation at every layer
-
-**Event-Driven Workflows**
-- Event dispatching from use cases
-- Multiple independent event handlers
-- Event chaining (events triggering events)
-- Async processing without blocking
-
-**Use Case Patterns**
-- Request/Result pattern for clear contracts
-- Use case chaining for complex workflows
-- Automatic DI registration (no attributes required)
-- Testable design with constructor injection
-
-**Production Infrastructure**
-- Snowflake ID generation for distributed systems
-- Entity Framework with migrations
-- Swagger documentation
-- Logging and observability
-
-### Try It Yourself
-
-```bash
-cd examples/OrderManagement
-dotnet restore
-dotnet run --project OrderManagement.Api
-
-# Visit https://localhost:5001/swagger
-```
-
-**Example APIs:**
-- `POST /api/orders` - Create an order (triggers events)
-- `POST /api/orders/{id}/payment` - Process payment
-- `POST /api/orders/process` - Create + pay in one request (use case chaining)
-- `GET /api/orders/user/{userId}` - Get user's orders
-
-Watch the logs to see event-driven architecture in action - events flowing through handlers asynchronously!
-
-[📖 Full Example Documentation](examples/OrderManagement/OrderManagement.Api/README.md)
-
-## The MagicCSharp Ecosystem
-
-Twelve packages, split so you take only what you use — plus `MagicCSharp.App`, which bundles the four a web
-service needs when you would rather not choose. The core has three dependencies and knows nothing about
-ASP.NET, Entity Framework or Kafka.
+Fourteen, split so you take only what you use — plus `MagicCSharp.App`, which bundles the four a web service
+needs when you would rather not choose.
 
 | Package | Add it when you want | Brings with it |
 |---|---|---|
 | **[MagicCSharp.App](src/MagicCSharp.App/)** | A web service wired in two calls | the four below it |
-| **[MagicCSharp](src/MagicCSharp/)** | Use cases, `IClock`, Snowflake ids and public keys, request IDs, `Optional<T>` | DI + logging abstractions, IdGen |
+| **[MagicCSharp](src/MagicCSharp/)** | Use cases, `IClock`, Snowflake ids, request IDs, `Optional<T>` | DI + logging abstractions, IdGen |
 | **[MagicCSharp.AspNetCore](src/MagicCSharp.AspNetCore/)** | Request-ID middleware, RFC 7807 error handling, startup preflight | the ASP.NET shared framework |
-| **[MagicCSharp.Scheduling](src/MagicCSharp.Scheduling/)** | Drift-free background jobs, one instance per occurrence | DistributedLock, hosting |
+| **[MagicCSharp.Scheduling](src/MagicCSharp.Scheduling/)** | Drift-free background jobs | DistributedLock, hosting |
 | **[MagicCSharp.Data](src/MagicCSharp.Data/)** | Repository contracts, pagination, LINQ filter helpers | nothing — no persistence library |
 | **[MagicCSharp.Data.EntityFramework](src/MagicCSharp.Data.EntityFramework/)** | The repository base classes and DALs | EF Core |
 | **[MagicCSharp.Data.Postgres](src/MagicCSharp.Data.Postgres/)** | Pooled context factory, design-time factory, UTC interceptor | Npgsql |
 | **[MagicCSharp.Events](src/MagicCSharp.Events/)** | Event dispatch and handler discovery | System.Text.Json |
 | **[MagicCSharp.Events.Kafka](src/MagicCSharp.Events.Kafka/)** | Kafka transport | Confluent.Kafka |
 | **[MagicCSharp.Events.SQS](src/MagicCSharp.Events.SQS/)** | SQS transport | AWSSDK.SQS |
-| **[MagicCSharp.Testing](src/MagicCSharp.Testing/)** | `FakeClock`, `FakeKeyGen`, synchronous events, in-memory locks | DistributedLock |
+| **[MagicCSharp.Testing](src/MagicCSharp.Testing/)** | `FakeClock`, `FakeKeyGen`, in-memory locks | DistributedLock |
 | **[MagicCSharp.Testing.Database](src/MagicCSharp.Testing.Database/)** | Repository tests against real PostgreSQL | Testcontainers, xUnit |
+| **[MagicCSharp.Cli](src/MagicCSharp.Cli/)** | The `mcs` tool | installed globally, not referenced |
+| **[MagicCSharp.Templates](templates/)** | `dotnet new magiccsharp-repo` | installed as a template pack |
 
 A domain project referencing `MagicCSharp.Data` gets the repository interfaces and no persistence library at
 all — which is the point of the split. Wanting `FakeClock` does not mean wanting Docker.
 
-### The repository layout — optional
+## Without the layout
 
-The packages above work in any project structure. Separately, MagicCSharp offers the structure MagicDoor runs
-its own backend on. Take it, take part of it, or ignore it — nothing in the packages reads it.
+The packages do not require any of it. A web service in two calls:
 
-```
-Apps/Shop/
-  Shop.App/                  host: Program.cs, controllers
-  Shop.Domains/Orders/
-    Default/                 use cases, event handlers
-    Models/                  entities, edits, filters
-    Tests/
-  Data/
-    Data.Models/             repository interfaces — no EF dependency
-    Data.EntityFramework/    DALs, repositories, context, migrations
-Libs/                        code more than one service uses
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+builder.AddMagicApp();
+
+var app = builder.Build();
+app.UseMagicApp(builder);
+app.Run();
 ```
 
-#### What it buys you
+That registers use cases, `IClock`, Snowflake ids, request IDs, in-process events, scheduling defaults and
+problem-details error handling, then builds the pipeline in the order those need. Every call it makes is
+public on the package that owns it, so outgrowing the defaults means replacing two lines with five rather
+than working around a framework. [How, and what each option does →](src/MagicCSharp.App/)
 
-**Several services, one repository, no version dance.** A change that spans two services is one commit and
-one pull request, not a package publish and a wait. Shared code lives in `Libs/` and is referenced directly,
-so there is no version of it to be behind.
+## Requirements
 
-**But you still build one service at a time.** Each gets its own `.slnx`. You open `Acme.Shop.slnx` and
-build the projects you are working on; `Acme.All.slnx` exists for the times you need to see everything, and
-is regenerated from disk so it is never a merge conflict worth resolving.
+The .NET 10 SDK. The libraries target net9.0; the CLI, the tests and generated repositories target net10.0.
+PostgreSQL for the data packages. Docker only for `MagicCSharp.Testing.Database`.
 
-**The domain does not know how it is stored.** `Order` lives in the domain that owns it; `OrderDal` and
-`OrdersEfRepository` live under `Data/`. `Data.Models` holds only interfaces and does not reference Entity
-Framework at all, so the arrow points from storage toward the domain and never back. You can read a domain
-without reading a single EF attribute, and swap what is underneath without touching the logic.
+## Going further
 
-**Every entity looks the same.** `mcs add-entity` writes the four files an entity needs — across three
-projects, each of which has to agree about names, namespaces and generic arguments — and registers it. That
-is not typing saved so much as a class of mistake removed, and it means anyone can open any service and
-recognise what they are looking at.
+- **[The repository layout](docs/repository-layout.md)** — the full guide: domains, subdomains, app
+  libraries, entities, and what the tool wires versus what it leaves you.
+- **[Template overrides](docs/template-overrides.md)** — every file `mcs` generates comes from a template
+  you can replace, one file at a time, keeping the rest. Teams put theirs in a repository of their own.
+- **[The `mcs` reference](src/MagicCSharp.Cli/)** — every command and what it does.
+- **[The example project](https://github.com/MagicDoorInc/MagicCSharp-ExampleProject)** — two services, a
+  domain with a subdomain, a shared event contract, and tests at three levels.
+- **[CHANGELOG](CHANGELOG.md)** — including how to migrate across a breaking version.
 
-**The conventions are checked, not just agreed.** `mcs validate` catches the things that compile and fail
-later: a `DateTime.Now` that makes behaviour untestable, an event carrying an entity that will deserialize
-to nulls after a deploy. It exits non-zero, so CI can hold the line instead of a reviewer.
+## Where it comes from
 
-#### Getting it
+This is the layout MagicDoor's backend is built on, extracted so it can be used outside it, and shaped by
+building systems at Amazon and Disney before that. The opinions are not theoretical — they are what was left
+after finding out which structures survive a codebase getting large and a team changing.
 
-```bash
-dotnet tool install -g MagicCSharp.Cli
-
-mcs init --prefix Acme                     # or in a repo you already have
-mcs create-app --name Shop --database shop
-```
-
-For a team, `dotnet new magiccsharp-repo -n Acme` scaffolds the same thing plus a tool manifest, so everyone
-runs one pinned version of the scaffolding after `dotnet tool restore`.
-
-`mcs` also creates domains and shared libraries, and rebuilds the wide solution. Nothing is ever overwritten
-— an existing file is reported and skipped — and re-running any command produces no diff.
-
-#### Generated code you own
-
-Every file `mcs` writes comes from a template, and you can replace any one of them with your own:
-
-```bash
-mcs templates list                        # all 19, and where each comes from
-mcs templates eject Entities/dal.cs.hbs   # copy one into your repo to edit
-```
-
-Your copy lands in `.magiccsharp/templates/`. **Commit it** — that directory is how the override reaches
-everyone else:
-
-```bash
-git add .magiccsharp && git commit -m "Use our own DAL template"
-```
-
-From then on it wins over the built-in for everyone who pulls. Deleting it reverts — there's no registry or
-cache anywhere else.
-
-The important part is that it works **per file**. Take over the DAL template to add your audit columns and
-the other nineteen still come from the tool, still improving as it does. That's the difference between
-customising a generator and forking one.
-
-Across several repositories, put the templates in a repository of their own and add it as a submodule at
-`.magiccsharp/templates`, so house style is defined once instead of copied around.
-
-#### See it built
-
-[**MagicCSharp-ExampleProject**](https://github.com/MagicDoorInc/MagicCSharp-ExampleProject) is this layout
-filled in: two services in one repository — one with Postgres behind Entity Framework, one with no database
-at all — sharing a single event contract and referencing nothing else of each other's. It lists the exact
-`mcs` commands that produced the structure, and separates them from the code written on top, so you can see
-where the tool stops and your work starts.
-
-**[Full guide →](docs/repository-layout.md)** · [Template overrides →](docs/template-overrides.md) · [CLI reference →](src/MagicCSharp.Cli/README.md)
-
-## Real-World Benefits
-
-### For Startups
-- **Move fast** - Focus on features, not infrastructure
-- **Scale when ready** - Start simple, scale later without rewrites
-- **Onboard quickly** - Clean patterns developers already know
-
-### For Enterprises
-- **Consistent architecture** - Same patterns across all services
-- **Testable by design** - `IClock`, dependency injection, clean separation
-- **Production-proven** - Distributed locking, event-driven, background jobs
-
-### For Teams
-- **Clear boundaries** - Controllers, Use Cases, Services separation
-- **Easy code review** - Consistent patterns across the codebase
-- **Maintainable** - Business logic isolated from infrastructure
-
-## The Story
-
-**Every great framework starts with a pain point.**
-
-After years at Amazon as a Senior Engineer and later Senior Engineering Manager, I knew what it took to build systems that scale. I'd seen it firsthand, massive distributed systems serving millions of customers. But there was one constant frustration: being forced to write Java when my heart was with C#.
-
-When I founded MagicDoor in 2023, the decision was immediate: **we'd be a C# shop.** Finally, I could build with the language I loved.
-
-Then reality hit.
-
-C# had great frameworks for building APIs. Powerful libraries for data access. But when it came to structuring enterprise-grade applications? There was no clear, well-defined path. No comprehensive answer to the questions that matter:
-
-*"How do we write code that's testable from day one?"*
-
-*"How do we build for distributed systems without painting ourselves into a corner?"*
-
-*"How do we move fast early but not create technical debt later?"*
-
-At Amazon scale, you learn what distributed systems demand:
-- **Clean separation** so teams can work independently
-- **Event-driven architecture** that scales horizontally
-- **Infrastructure that starts simple** but seamlessly transitions to production
-- **Patterns that prevent technical debt** before it starts
-
-**We couldn't find a C# framework or pattern that gave us all of this. So we built it.**
-
-MagicCSharp is born from real-world pain points, battle-tested in production at MagicDoor, and designed with one purpose: **let C# developers build enterprise-grade, distributed systems without fighting their tools.**
-
-This is the framework I wish I had at Amazon.
-This is the framework every C# team deserves.
-
-— Kasper Sogaard, Founder
-
-## Philosophy
-
-**Conventions over configuration** - Attributes and marker interfaces over XML configs
-
-**Interface-based** - Program to interfaces, swap implementations freely
-
-**Clean architecture** - Business logic stays pure and testable
-
-**Distributed-first** - Built for multi-instance from the ground up
-
-**Zero-compromise** - Local simplicity, distributed power
-
-## Learn More
-
-**Example Application:**
-- [OrderManagement Example](examples/OrderManagement/OrderManagement.Api/README.md) - Complete working example
-
-**Framework Documentation:**
-- [MagicCSharp Core](src/MagicCSharp/README.md) - Use cases, scheduling, locking
-- [MagicCSharp.Data](src/MagicCSharp.Data/README.md) - Repositories and Snowflake IDs
-- [MagicCSharp.Events](src/MagicCSharp.Events/README.md) - Event-driven architecture
-- [MagicCSharp.Events.Kafka](src/MagicCSharp.Events.Kafka/README.md) - Kafka integration
-- [MagicCSharp.Events.SQS](src/MagicCSharp.Events.SQS/README.md) - AWS SQS integration
+That is offered as an explanation of why the decisions look like this, not as a reason to trust them. Where
+a decision has a cost, the cost is written next to it. Judge them on that.
 
 ## Contributing
 
-The framework is small on purpose — around 7,000 lines — and issues, template changes and new `validate`
-rules are all welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers building it, running the tests without
-Docker, and what to raise before writing code.
-
-[GOVERNANCE.md](GOVERNANCE.md) says who maintains it, how decisions are made, what `0.x` means for breaking
-changes, and what happens when MagicDoor's needs and the framework's diverge.
-
-To report a vulnerability, see [SECURITY.md](SECURITY.md) — please do not open a public issue for one.
+The framework is small on purpose — issues, template changes and new `validate` rules are all welcome.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers building it, running the tests without Docker, and what to raise
+before writing code. [GOVERNANCE.md](GOVERNANCE.md) says who maintains it and what `0.x` means for breaking
+changes. To report a vulnerability see [SECURITY.md](SECURITY.md) — please do not open a public issue.
 
 ## License
 

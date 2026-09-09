@@ -5,16 +5,16 @@ vertical-slice API, whatever you already have. Nothing in the libraries reads `m
 where a file sits.
 
 What this document describes is the structure MagicDoor runs its backend on: a handful of services in one
-repository, each with its own solution, sharing a set of libraries. If that shape matches where you are
-heading, the tools in `tools/` create and maintain it for you. If it does not, ignore all of it and use the
-packages directly.
+repository, each with its own solution, sharing a set of libraries — and inside each service, a tree of
+domains that grows by gaining siblings rather than getting wider. If that shape matches where you are
+heading, the `mcs` command line tool creates and maintains it for you. If it does not, ignore all of it and
+use the packages directly.
 
 ---
 
 ## Setting it up
 
-You need the **.NET 10 SDK**. The scripts are single-file programs that declare their own dependencies, so
-there is nothing else to install.
+You need the **.NET 10 SDK**. `mcs` is a dotnet global tool, so there is nothing else to install.
 
 ### Install the CLI
 
@@ -230,7 +230,7 @@ mcs templates eject Entities/dal.cs.hbs
 ```
 
 Two layers, first match winning: `.magiccsharp/templates/` in your repository, then the built-ins embedded in
-`mcs`. Resolution is per file, so overriding the DAL template leaves the other nineteen built-in and still
+`mcs`. Resolution is per file, so overriding the DAL template leaves the other twenty built-in and still
 tracking upstream. Reverting is deleting your copy.
 
 **Once you have more than one repository, put the templates in a repository of their own** and add it as a
