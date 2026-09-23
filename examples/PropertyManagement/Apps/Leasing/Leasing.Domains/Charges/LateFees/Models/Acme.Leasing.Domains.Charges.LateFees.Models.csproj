@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Acme.Leasing.Domains.Charges.LateFees.Models</AssemblyName>
+    <RootNamespace>Acme.Leasing.Domains.Charges.LateFees.Models</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MagicCSharp" />
+  </ItemGroup>
+
+</Project>

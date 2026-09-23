@@ -1,0 +1,46 @@
+<Project>
+
+  <!--
+    Shared package metadata for every shipped library. Scoped to src/ so tests and examples are unaffected.
+
+    One place for the things that were previously repeated in fourteen .csproj files and drifted: three of
+    them still carried RepositoryUrl=github.com/yourusername/magiccsharp, and the author name disagreed
+    between packages.
+  -->
+  <PropertyGroup>
+    <!-- One version for every package. publish-all.sh rewrites this line alone, rather than sed-ing
+         fourteen .csproj files and leaving them to drift. -->
+    <Version>1.0.1</Version>
+
+    <Authors>MagicCSharp Contributors</Authors>
+    <Company>MagicCSharp</Company>
+    <Product>MagicCSharp</Product>
+    <Copyright>Copyright © MagicDoor Inc.</Copyright>
+    <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+
+    <!-- Without this the XML comments are invisible in IntelliSense, which is where most of the guidance
+         in this codebase lives. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- The XML comments here explain why something is the way it is; there is no value in a comment on
+         every property restating its name. CS1591 would demand exactly that. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- A vulnerable dependency fails the build here, as it already does in a generated repository, whose
+         Directory.Build.props sets TreatWarningsAsErrors. Without this the framework could ship a package
+         that drags in an advisory and only the consumer would find out — which is exactly how
+         Testcontainers 4.1.0 and its SSH.NET 2024.1.0 got here. -->
+    <WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
+
+    <!-- Ship symbols and source links so a stack trace through the framework is navigable. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+</Project>

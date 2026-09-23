@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Acme.Libraries.Web</AssemblyName>
+    <RootNamespace>Acme.Libraries.Web</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MagicCSharp.Data" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <AssemblyName>Acme.Leasing.App</AssemblyName>
+    <RootNamespace>Acme.Leasing.App</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Brings in MagicCSharp, .AspNetCore, .Events and .Scheduling. Reference those directly instead if
+         you would rather wire each piece yourself. -->
+    <PackageReference Include="MagicCSharp.App" />
+    <PackageReference Include="MagicCSharp.Events.Kafka" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Data\Data.EntityFramework\Acme.Leasing.Data.EntityFramework.csproj" />
+    <ProjectReference Include="..\Leasing.Domains\Leases\Default\Acme.Leasing.Domains.Leases.csproj" />
+    <ProjectReference Include="..\Leasing.Domains\Charges\Default\Acme.Leasing.Domains.Charges.csproj" />
+    <ProjectReference Include="..\Leasing.Domains\Charges\LateFees\Default\Acme.Leasing.Domains.Charges.LateFees.csproj" />
+    <ProjectReference Include="..\Leasing.Domains\Leases\App\Default\Acme.Leasing.Domains.Leases.App.csproj" />
+    <ProjectReference Include="..\Leasing.Domains\Charges\App\Default\Acme.Leasing.Domains.Charges.App.csproj" />
+    <ProjectReference Include="..\Leasing.Domains\Charges\LateFees\App\Default\Acme.Leasing.Domains.Charges.LateFees.App.csproj" />
+  </ItemGroup>
+
+</Project>

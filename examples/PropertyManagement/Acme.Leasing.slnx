@@ -1,0 +1,18 @@
+<Solution>
+  <Project Path="Apps/Leasing/Data/Data.EntityFramework/Acme.Leasing.Data.EntityFramework.csproj" />
+  <Project Path="Apps/Leasing/Data/Data.Models/Acme.Leasing.Data.Models.csproj" />
+  <Project Path="Apps/Leasing/Leasing.App/Acme.Leasing.App.csproj" />
+  <Project Path="Apps/Leasing/Leasing.Domains/Charges/App/Default/Acme.Leasing.Domains.Charges.App.csproj" />
+  <Project Path="Apps/Leasing/Leasing.Domains/Charges/Default/Acme.Leasing.Domains.Charges.csproj" />
+  <Project Path="Apps/Leasing/Leasing.Domains/Charges/LateFees/App/Default/Acme.Leasing.Domains.Charges.LateFees.App.csproj" />
+  <Project Path="Apps/Leasing/Leasing.Domains/Charges/LateFees/Default/Acme.Leasing.Domains.Charges.LateFees.csproj" />
+  <Project Path="Apps/Leasing/Leasing.Domains/Charges/LateFees/Models/Acme.Leasing.Domains.Charges.LateFees.Models.csproj" />
+  <Project Path="Apps/Leasing/Leasing.Domains/Charges/LateFees/Tests/Acme.Leasing.Domains.Charges.LateFees.Tests.csproj" />
+  <Project Path="Apps/Leasing/Leasing.Domains/Charges/Models/Acme.Leasing.Domains.Charges.Models.csproj" />
+  <Project Path="Apps/Leasing/Leasing.Domains/Charges/Tests/Acme.Leasing.Domains.Charges.Tests.csproj" />
+  <Project Path="Apps/Leasing/Leasing.Domains/Leases/App/Default/Acme.Leasing.Domains.Leases.App.csproj" />
+  <Project Path="Apps/Leasing/Leasing.Domains/Leases/Default/Acme.Leasing.Domains.Leases.csproj" />
+  <Project Path="Apps/Leasing/Leasing.Domains/Leases/Models/Acme.Leasing.Domains.Leases.Models.csproj" />
+  <Project Path="Apps/Leasing/Leasing.Domains/Leases/Tests/Acme.Leasing.Domains.Leases.Tests.csproj" />
+  <Project Path="Apps/Leasing/Leasing.Testing/Default/Acme.Leasing.Testing.csproj" />
+</Solution>

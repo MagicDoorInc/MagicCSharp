@@ -1,0 +1,27 @@
+version: 2
+
+updates:
+  # A vulnerable transitive dependency once shipped in a package here and was only caught when a consumer's
+  # build failed on it. NU1901-NU1904 are build errors now, and this is the half that opens the pull
+  # request rather than waiting for someone to notice.
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One pull request for the Microsoft packages, which move together and are noisy apart.
+      microsoft:
+        patterns:
+          - "Microsoft.*"
+          - "System.*"
+      testing:
+        patterns:
+          - "xunit*"
+          - "Testcontainers*"
+          - "Microsoft.NET.Test.Sdk"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

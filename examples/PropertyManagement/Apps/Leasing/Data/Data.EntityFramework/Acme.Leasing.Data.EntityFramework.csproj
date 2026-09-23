@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Acme.Leasing.Data.EntityFramework</AssemblyName>
+    <RootNamespace>Acme.Leasing.Data.EntityFramework</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MagicCSharp.Data.EntityFramework" />
+    <PackageReference Include="MagicCSharp.Data.Postgres" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Data.Models\Acme.Leasing.Data.Models.csproj" />
+    <ProjectReference Include="..\..\Leasing.Domains\Leases\Models\Acme.Leasing.Domains.Leases.Models.csproj" />
+    <ProjectReference Include="..\..\Leasing.Domains\Charges\Models\Acme.Leasing.Domains.Charges.Models.csproj" />
+    <ProjectReference Include="..\..\Leasing.Domains\Charges\LateFees\Models\Acme.Leasing.Domains.Charges.LateFees.Models.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>{{ assembly_name }}</AssemblyName>
+    <RootNamespace>{{ assembly_name }}</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The shared framework rather than a package: ControllerBase, HttpContext and the MVC attributes
+         come from it, and it adds nothing to the published output. Controllers in here are found by the
+         host because it references this project — there is no AddApplicationPart to write. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MagicCSharp" />
+    <!-- HttpExceptions, so a use case here can throw the thing that becomes a 404, and the request-id
+         types. Not MagicCSharp.App: that is the host bootstrap, and this is a library. -->
+    <PackageReference Include="MagicCSharp.AspNetCore" />
+  </ItemGroup>
+
+</Project>

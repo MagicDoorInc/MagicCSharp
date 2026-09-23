@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Acme.Libraries.Events</AssemblyName>
+    <RootNamespace>Acme.Libraries.Events</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MagicCSharp.Events" />
+  </ItemGroup>
+
+</Project>

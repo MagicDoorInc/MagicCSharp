@@ -1,0 +1,10 @@
+using MagicCSharp.Data.Repositories;
+using {{ entity_namespace }};
+
+namespace {{ prefix }}.{{ app_name }}.Data.Repositories;
+
+public interface I{{ plural }}Repository :
+    IRepository<{{ entity_name }}, {{ if use_key }}string{{ else }}long{{ end }}, {{ entity_name }}Edit, {{ entity_name }}Filter>{{ if is_paginated }},
+    IPaginatedRepository<{{ entity_name }}, {{ entity_name }}Filter>{{ end }}
+{
+}

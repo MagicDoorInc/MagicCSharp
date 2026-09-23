@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Acme.Leasing.Testing</AssemblyName>
+    <RootNamespace>Acme.Leasing.Testing</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MagicCSharp" />
+    <PackageReference Include="MagicCSharp.Events" />
+    <PackageReference Include="MagicCSharp.Testing" />
+    <PackageReference Include="MagicCSharp.Testing.Database" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Every domain, so AddMagicCSharp and AddMagicEvents find all the use cases and handlers the service
+         would, and a test exercises the same wiring the service runs. -->
+    <ProjectReference Include="..\..\Data\Data.EntityFramework\Acme.Leasing.Data.EntityFramework.csproj" />
+    <ProjectReference Include="..\..\Leasing.Domains\Leases\Default\Acme.Leasing.Domains.Leases.csproj" />
+    <ProjectReference Include="..\..\Leasing.Domains\Charges\Default\Acme.Leasing.Domains.Charges.csproj" />
+    <ProjectReference Include="..\..\Leasing.Domains\Charges\LateFees\Default\Acme.Leasing.Domains.Charges.LateFees.csproj" />
+  </ItemGroup>
+
+</Project>

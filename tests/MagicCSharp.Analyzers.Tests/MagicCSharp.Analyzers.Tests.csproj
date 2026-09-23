@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\MagicCSharp.Analyzers\MagicCSharp.Analyzers.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Newer than the 4.8 the analyzers are built against: the harness compiles its subjects against
+             the net10.0 runtime's own assemblies, which an older compiler may not read. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0"/>
+        <PackageReference Include="xunit" Version="2.9.2"/>
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit"/>
+    </ItemGroup>
+
+</Project>

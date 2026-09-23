@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Acme.Leasing.Domains.Leases</AssemblyName>
+    <RootNamespace>Acme.Leasing.Domains.Leases</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MagicCSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Models\Acme.Leasing.Domains.Leases.Models.csproj" />
+    <ProjectReference Include="..\..\..\Data\Data.Models\Acme.Leasing.Data.Models.csproj" />
+    <ProjectReference Include="..\..\..\..\..\Libs\Events\Default\Acme.Libraries.Events.csproj" />
+    <ProjectReference Include="..\..\Charges\Default\Acme.Leasing.Domains.Charges.csproj" />
+  </ItemGroup>
+
+</Project>

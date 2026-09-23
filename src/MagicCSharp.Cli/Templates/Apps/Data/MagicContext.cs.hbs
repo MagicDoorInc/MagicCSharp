@@ -1,0 +1,13 @@
+using MagicCSharp.Data.EntityFramework;
+using Microsoft.EntityFrameworkCore;
+
+namespace {{ prefix }}.{{ name }}.Data.EntityFramework;
+
+/// <summary>
+///     Deriving from MagicDbContext gets two conventions: enums stored by name, so inserting an enum member
+///     does not change what existing rows mean, and timestamps normalized to UTC before they are written.
+/// </summary>
+public class Magic{{ name }}Context(DbContextOptions options) : MagicDbContext(options)
+{
+    // AddEntity adds a DbSet here for each entity it scaffolds.
+}

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <ProjectReference Include="..\MagicCSharp\MagicCSharp.csproj"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!-- NuGet Package Metadata -->
+        <PackageId>MagicCSharp.Data</PackageId>
+        <Description>Storage-agnostic data contracts for MagicCSharp: the repository interfaces, opt-in pagination, soft delete and search, offset pagination models, and LINQ filter helpers. No Entity Framework dependency — a domain project can reference this without taking on a persistence library. Add MagicCSharp.Data.EntityFramework for the implementations.</Description>
+        <PackageTags>repository;pagination;filters;contracts;clean-architecture</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,40 @@
+name: Example
+
+# Builds examples/PropertyManagement the way a user would: the CLI and every package from nuget.org, never
+# from this repository's source. It is the check that a published release works — so it also runs weekly,
+# to catch a release that broke it without anyone touching the example.
+
+on:
+  push:
+    branches: [master]
+    paths: ['examples/**', '.github/workflows/example.yml']
+  pull_request:
+    paths: ['examples/**', '.github/workflows/example.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+
+jobs:
+  build-and-test:
+    name: Build and test from nuget.org
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/PropertyManagement
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - run: dotnet restore Acme.All.slnx
+      - run: dotnet build Acme.All.slnx --no-restore
+
+      - name: Conventions
+        run: |
+          VERSION=$(grep -o 'Include="MagicCSharp" Version="[^"]*' Directory.Packages.props | sed 's/.*Version="//')
+          dotnet tool install -g MagicCSharp.Cli --version "$VERSION"
+          mcs validate --path .
+
+      # The tests start their own PostgreSQL through Testcontainers; the runner has Docker.
+      - run: dotnet test Acme.All.slnx --no-build --verbosity normal
