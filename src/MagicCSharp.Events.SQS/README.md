@@ -52,10 +52,10 @@ var sqsConfig = new SqsMagicEventConfiguration(
 
 ```csharp
 // In your Startup.cs or Program.cs
-services.RegisterMagicSQSEvents(sqsConfig);
+services.AddMagicSqsEvents(sqsConfig);
 
 // Optional: Enable OpenTelemetry metrics
-// services.RegisterMagicSQSEvents(sqsConfig, useOpenTelemetryMetrics: true);
+// services.AddMagicSqsEvents(sqsConfig, useOpenTelemetryMetrics: true);
 ```
 
 ### 4. Dispatch Events
@@ -414,7 +414,7 @@ var sqsConfig = new SqsMagicEventConfiguration(
     VisibilityTimeout: int.Parse(configuration["AWS:SQS:VisibilityTimeout"]!)
 );
 
-services.RegisterMagicSQSEvents(sqsConfig);
+services.AddMagicSqsEvents(sqsConfig);
 ```
 
 ## Complete Example
@@ -451,7 +451,7 @@ var sqsConfig = new SqsMagicEventConfiguration(
     VisibilityTimeout: 30
 );
 
-services.RegisterMagicSQSEvents(sqsConfig);
+services.AddMagicSqsEvents(sqsConfig);
 
 // 4. Dispatch Events (in your service)
 public class OrderService(IEventDispatcher eventDispatcher, IOrderRepository orderRepository)

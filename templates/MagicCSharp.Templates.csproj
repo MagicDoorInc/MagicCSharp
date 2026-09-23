@@ -3,11 +3,14 @@
     <PropertyGroup>
         <PackageType>Template</PackageType>
         <PackageId>MagicCSharp.Templates</PackageId>
-        <Version>0.0.11</Version>
+        <!-- Read from the file publish-all.sh bumps. This project sits outside src/, so it does not inherit
+             the <Version> in src/Directory.Build.props, and a hardcoded value here was left behind at
+             0.0.11 while every other package moved on. -->
+        <Version>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../scripts/version.txt').Trim())</Version>
         <Authors>MagicCSharp Contributors</Authors>
         <Company>MagicCSharp</Company>
         <Title>MagicCSharp repository template</Title>
-        <Description>dotnet new template for a MagicCSharp repository: several services in one repository, each with its own solution, sharing a set of libraries — plus the scripts that create services, domains, shared libraries and entities, and lint the conventions the compiler cannot. Optional; the MagicCSharp packages work in any layout.</Description>
+        <Description>dotnet new template for a MagicCSharp repository: several services in one repository, each with its own solution, sharing a set of libraries. Pair it with the MagicCSharp.Cli tool (mcs) to create services, domains, shared libraries and entities, and to lint the conventions the compiler cannot. Optional; the MagicCSharp packages work in any layout.</Description>
         <PackageTags>dotnet-new;templates;clean-architecture;monorepo;scaffolding</PackageTags>
         <PackageProjectUrl>https://github.com/MagicDoorInc/MagicCSharp</PackageProjectUrl>
         <RepositoryUrl>https://github.com/MagicDoorInc/MagicCSharp.git</RepositoryUrl>

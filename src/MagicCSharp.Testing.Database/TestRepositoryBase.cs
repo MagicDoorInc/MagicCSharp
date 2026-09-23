@@ -167,7 +167,7 @@ public abstract class TestRepositoryBase<TContext> : IAsyncLifetime
                 return;
             }
 
-            container = new PostgreSqlBuilder().WithImage(ContainerImage).WithCommand("-c", "max_connections=500").Build();
+            container = new PostgreSqlBuilder(ContainerImage).WithCommand("-c", "max_connections=500").Build();
             await container.StartAsync();
             containerStarted = true;
         }

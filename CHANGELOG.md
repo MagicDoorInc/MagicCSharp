@@ -7,22 +7,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ---
 
-## Unreleased — 0.1.0
-
-Release with `./scripts/publish-all.sh --minor`.
+## 1.0.0 — 2026-09-23
 
 The framework and MagicDoor's backend were split apart in June and diverged: every shared file differed. This
-release brings the backend's improvements across, and splits the five packages into eleven so a consumer takes
-only what it uses.
+release brings the backend's improvements across, and splits the five packages into twelve so a consumer takes
+only what it uses. The scaffolding tool and the repository template ship alongside them, fourteen packages in all.
 
 **This release is breaking.** See [Migrating](#migrating-from-0011) below.
 
 ### Added
 
-**Packages** — six new, so no package forces a dependency you did not ask for:
+**Packages** — seven new, so no package forces a dependency you did not ask for:
 
 | Package | Holds |
 |---|---|
+| `MagicCSharp.App` | Wires a web service in two calls, bringing in core, ASP.NET, events and scheduling |
 | `MagicCSharp.AspNetCore` | Request-ID middleware, moved out of core |
 | `MagicCSharp.Scheduling` | Background services and schedule policies, moved out of core |
 | `MagicCSharp.Data.EntityFramework` | Repository base classes, DALs and `MagicDbContext`, moved out of `MagicCSharp.Data` |

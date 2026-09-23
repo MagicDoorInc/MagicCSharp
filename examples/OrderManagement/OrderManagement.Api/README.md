@@ -265,12 +265,12 @@ To scale this example to production:
 
 ```csharp
 // Development
-services.RegisterLocalMagicEvents();
+services.AddLocalMagicEvents();
 
 // Production
-services.RegisterMagicKafkaEvents(kafkaConfig);
+services.AddMagicKafkaEvents(kafkaConfig);
 // OR
-services.RegisterMagicSQSEvents(sqsConfig);
+services.AddMagicSqsEvents(sqsConfig);
 
 // Your code stays the same!
 ```
@@ -291,10 +291,10 @@ services.AddScoped<IOrderRepository, MongoOrderRepository>();
 
 ```csharp
 // Development
-services.RegisterSnowflakeKeyGen(); // Random ID
+services.AddSnowflakeKeyGen(); // Random ID
 
 // Production (multiple instances)
-services.RegisterSnowflakeKeyGen(generatorId: instanceId);
+services.AddSnowflakeKeyGen(generatorId: instanceId);
 ```
 
 ### Add Distributed Locking

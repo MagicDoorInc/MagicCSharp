@@ -1006,12 +1006,12 @@ MagicCSharp.Data includes a Snowflake ID generator for creating globally, distri
 
 ```csharp
 // In your Startup.cs or Program.cs
-services.RegisterSnowflakeKeyGen();
+services.AddSnowflakeKeyGen();
 
 // For distributed systems: Specify unique generator ID (0-1023)
 // Each instance/server should use a different ID
-services.RegisterSnowflakeKeyGen(generatorId: 1);  // Server 1
-services.RegisterSnowflakeKeyGen(generatorId: 2);  // Server 2
+services.AddSnowflakeKeyGen(generatorId: 1);  // Server 1
+services.AddSnowflakeKeyGen(generatorId: 2);  // Server 2
 ```
 
 ### ID Structure

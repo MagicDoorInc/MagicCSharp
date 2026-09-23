@@ -10,11 +10,11 @@ dispatching, serialization, and handler execution with priority ordering and com
 Two calls, and the first is not optional:
 
 ```csharp
-services.RegisterMagicEvents();        // handler discovery, serializer, IAsyncEventDispatcher
-services.RegisterLocalMagicEvents();   // then a transport — or RegisterMagicKafkaEvents / RegisterMagicSQSEvents
+services.AddMagicEvents();        // handler discovery, serializer, IAsyncEventDispatcher
+services.AddLocalMagicEvents();    // then a transport — or AddMagicKafkaEvents / AddMagicSqsEvents
 ```
 
-`RegisterMagicEvents` is what finds your `IEventHandler<T>` implementations and registers
+`AddMagicEvents` is what finds your `IEventHandler<T>` implementations and registers
 `IAsyncEventDispatcher`. The transport call only registers `IEventDispatcher`, so calling it alone leaves
 the application failing at resolution the first time anything dispatches. `MagicCSharp.App` does both for
 you.
@@ -100,12 +100,12 @@ public class CreateUserProfileHandler(IProfileRepository profileRepository)
 
 ```csharp
 // In your Startup.cs or Program.cs
-services.RegisterMagicEvents();
+services.AddMagicEvents();
 // Register the LocalEventHandler as the IEventDispatcher
-services.RegisterLocalMagicEvents();
+services.AddLocalMagicEvents();
 
 // Optional: Enable OpenTelemetry metrics
-// services.RegisterMagicEvents(useOpenTelemetryMetrics: true);
+// services.AddMagicEvents(useOpenTelemetryMetrics: true);
 ```
 
 ### 4. Dispatch Events
@@ -210,12 +210,12 @@ public class OrderService(LocalEventDispatcher dispatcher) // Don't do this!
 
 **Local Development**
 
-Use `RegisterLocalMagicEvents()` to register `LocalEventDispatcher` as the implementation of `IEventDispatcher`. This
+Use `AddLocalMagicEvents()` to register `LocalEventDispatcher` as the implementation of `IEventDispatcher`. This
 executes all handlers synchronously in the same process:
 
 ```csharp
 // In your Startup.cs or Program.cs
-services.RegisterLocalMagicEvents();
+services.AddLocalMagicEvents();
 
 // This registers:
 // - IEventDispatcher → LocalEventDispatcher (executes handlers in-process)
@@ -250,17 +250,17 @@ public class OrderService(IEventDispatcher eventDispatcher)
 
 **Distributed Events (Kafka/SQS)**
 
-For distributed systems, use `RegisterMagicKafkaEvents()` or `RegisterMagicSQSEvents()`. These register the distributed
+For distributed systems, use `AddMagicKafkaEvents()` or `AddMagicSqsEvents()`. These register the distributed
 event dispatcher as `IEventDispatcher`:
 
 ```csharp
 // In your Startup.cs or Program.cs
 
 // Register Kafka
-services.RegisterMagicKafkaEvents(kafkaConfig);
+services.AddMagicKafkaEvents(kafkaConfig);
 // OR
 // Register SQS
-services.RegisterMagicSQSEvents(sqsConfig);
+services.AddMagicSqsEvents(sqsConfig);
 
 // This registers:
 // - IEventDispatcher → KafkaEventDispatcher (or SqsEventDispatcher)
@@ -304,7 +304,7 @@ public class OrderService(IEventDispatcher eventDispatcher)
 Track event processing with built-in metrics:
 
 ```csharp
-services.RegisterMagicEvents(useOpenTelemetryMetrics: true);
+services.AddMagicEvents(useOpenTelemetryMetrics: true);
 ```
 
 **Metrics Collected:**
@@ -383,7 +383,7 @@ public void CreateUser_DispatchesEvent()
 {
     // Arrange
     var services = new ServiceCollection();
-    services.RegisterLocalMagicEvents();
+    services.AddLocalMagicEvents();
     services.AddTransient<IEventHandler<UserCreatedEvent>, SendWelcomeEmailHandler>();
     // ... register other dependencies
 
@@ -499,7 +499,7 @@ public class SendConfirmationHandler(IEmailService emailService)
 }
 
 // 3. Register
-services.RegisterLocalMagicEvents();
+services.AddLocalMagicEvents();
 
 // 4. Dispatch
 public class OrderService(IEventDispatcher eventDispatcher)

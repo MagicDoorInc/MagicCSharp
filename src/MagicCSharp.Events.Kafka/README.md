@@ -43,10 +43,10 @@ var kafkaConfig = new KafkaMagicEventConfiguration(
 
 ```csharp
 // In your Startup.cs or Program.cs
-services.RegisterMagicKafkaEvents(kafkaConfig);
+services.AddMagicKafkaEvents(kafkaConfig);
 
 // Optional: Enable OpenTelemetry metrics
-// services.RegisterMagicKafkaEvents(kafkaConfig, useOpenTelemetryMetrics: true);
+// services.AddMagicKafkaEvents(kafkaConfig, useOpenTelemetryMetrics: true);
 ```
 
 ### 3. Dispatch Events
@@ -123,7 +123,7 @@ public class SendConfirmationHandler(IEmailService emailService)
 No need to configure Kafka manually - everything is set up for you:
 
 ```csharp
-services.RegisterMagicKafkaEvents(new KafkaMagicEventConfiguration(
+services.AddMagicKafkaEvents(new KafkaMagicEventConfiguration(
     BootstrapServers: "kafka1:9092,kafka2:9092",
     GroupId: "order-service",
     Topic: "domain-events"
@@ -215,14 +215,14 @@ You can configure different services to use different topics:
 
 ```csharp
 // Order Service
-services.RegisterMagicKafkaEvents(new KafkaMagicEventConfiguration(
+services.AddMagicKafkaEvents(new KafkaMagicEventConfiguration(
     BootstrapServers: "localhost:9092",
     GroupId: "order-service",
     Topic: "order-events"  // Only order events
 ));
 
 // User Service
-services.RegisterMagicKafkaEvents(new KafkaMagicEventConfiguration(
+services.AddMagicKafkaEvents(new KafkaMagicEventConfiguration(
     BootstrapServers: "localhost:9092",
     GroupId: "user-service",
     Topic: "user-events"  // Only user events
@@ -346,7 +346,7 @@ var kafkaConfig = new KafkaMagicEventConfiguration(
     Topic: configuration["Kafka:Topic"]!
 );
 
-services.RegisterMagicKafkaEvents(kafkaConfig);
+services.AddMagicKafkaEvents(kafkaConfig);
 ```
 
 ## Complete Example
@@ -380,7 +380,7 @@ var kafkaConfig = new KafkaMagicEventConfiguration(
     Topic: "domain-events"
 );
 
-services.RegisterMagicKafkaEvents(kafkaConfig);
+services.AddMagicKafkaEvents(kafkaConfig);
 
 // 4. Dispatch Events (in your service)
 public class OrderService(IEventDispatcher eventDispatcher, IOrderRepository orderRepository)

@@ -57,7 +57,7 @@ Pass the same options to both calls.
 Register the transport before `AddMagicApp`, and it is left alone:
 
 ```csharp
-builder.Services.RegisterMagicKafkaEvents(kafkaConfig);
+builder.Services.AddMagicKafkaEvents(kafkaConfig);
 builder.AddMagicApp();
 ```
 
