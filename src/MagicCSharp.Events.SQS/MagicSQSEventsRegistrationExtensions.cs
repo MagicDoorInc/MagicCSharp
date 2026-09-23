@@ -56,14 +56,4 @@ public static class MagicSQSEventsRegistrationExtensions
 
         return services;
     }
-
-    /// <inheritdoc cref="AddMagicSqsEvents" />
-    [Obsolete("Renamed to AddMagicSqsEvents, for consistency with every other registration method.")]
-    public static IServiceCollection RegisterMagicSQSEvents(
-        this IServiceCollection services,
-        SqsMagicEventConfiguration configuration,
-        bool useOpenTelemetryMetrics = false)
-    {
-        return services.AddMagicSqsEvents(configuration, useOpenTelemetryMetrics);
-    }
 }

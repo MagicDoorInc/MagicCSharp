@@ -34,11 +34,4 @@ public static class KeyGenServiceExtensions
 
         return services;
     }
-
-    /// <inheritdoc cref="AddSnowflakeKeyGen" />
-    [Obsolete("Renamed to AddSnowflakeKeyGen, for consistency with every other registration method.")]
-    public static IServiceCollection RegisterSnowflakeKeyGen(this IServiceCollection services, int? generatorId = null)
-    {
-        return services.AddSnowflakeKeyGen(generatorId);
-    }
 }

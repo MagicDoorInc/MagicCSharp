@@ -58,7 +58,7 @@ public static class MagicAppSetup
         if (options.Events)
         {
             // Handler discovery, then the transport. Local dispatch is registered only when nothing else
-            // has claimed IEventDispatcher, so calling RegisterMagicKafkaEvents first works as expected.
+            // has claimed IEventDispatcher, so calling AddMagicKafkaEvents first works as expected.
             services.AddMagicEvents(options.OpenTelemetryMetrics);
 
             if (services.All(descriptor => descriptor.ServiceType != typeof(Events.Events.IEventDispatcher)))

@@ -332,6 +332,16 @@ The repository *interfaces* stay in `MagicCSharp.Data.Repositories`; only the im
 **`IKeyGenService`** gained four members. A hand-written implementation needs `GetKey`, `IsValidKey` and
 `IsValidId`; `SnowflakeKeyGenService` and `FakeKeyGen` already have them.
 
+**Registration methods** are `Add*`, like every other `IServiceCollection` extension. Same arguments:
+
+| Before | After |
+|---|---|
+| `RegisterMagicEvents` | `AddMagicEvents` |
+| `RegisterLocalMagicEvents` | `AddLocalMagicEvents` |
+| `RegisterMagicKafkaEvents` | `AddMagicKafkaEvents` |
+| `RegisterMagicSQSEvents` | `AddMagicSqsEvents` |
+| `RegisterSnowflakeKeyGen` | `AddSnowflakeKeyGen` |
+
 **Duplicate use cases now throw at startup** rather than registering silently. If startup fails naming two
 implementations, that resolution was already ambiguous — delete one, register it by hand, or use
 `AddImplementationsOfBase<T>` if the interface really is a catalog.

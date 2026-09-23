@@ -78,14 +78,4 @@ public static class MagicKafkaEventsRegistrationExtensions
 
         return services;
     }
-
-    /// <inheritdoc cref="AddMagicKafkaEvents" />
-    [Obsolete("Renamed to AddMagicKafkaEvents, for consistency with every other registration method.")]
-    public static IServiceCollection RegisterMagicKafkaEvents(
-        this IServiceCollection services,
-        KafkaMagicEventConfiguration configuration,
-        bool useOpenTelemetryMetrics = false)
-    {
-        return services.AddMagicKafkaEvents(configuration, useOpenTelemetryMetrics);
-    }
 }

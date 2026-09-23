@@ -43,8 +43,8 @@ if (builder.Environment.IsDevelopment())
 else
 {
     // In production, you would use:
-    // - builder.Services.RegisterMagicKafkaEvents(kafkaConfig);
-    // - builder.Services.RegisterMagicSQSEvents(sqsConfig);
+    // - builder.Services.AddMagicKafkaEvents(kafkaConfig);
+    // - builder.Services.AddMagicSqsEvents(sqsConfig);
     throw new Exception("Production Environment is not set");
 }
 

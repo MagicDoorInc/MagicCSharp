@@ -17,7 +17,7 @@ public class {{ name }}Program
 
         // Use cases, IClock, Snowflake IDs, request IDs, in-process events, scheduling defaults and
         // problem-details error handling. Pass MagicAppOptions to change any of it; swap in
-        // RegisterMagicKafkaEvents before this line and the in-process dispatcher steps aside.
+        // AddMagicKafkaEvents before this line and the in-process dispatcher steps aside.
         builder.AddMagicApp();
 
         builder.Services.AddOpenApi();

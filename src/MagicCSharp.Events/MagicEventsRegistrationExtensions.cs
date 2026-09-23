@@ -133,20 +133,6 @@ public static class MagicEventsRegistrationExtensions
         return services;
     }
 
-    /// <inheritdoc cref="AddMagicEvents" />
-    [Obsolete("Renamed to AddMagicEvents, for consistency with every other registration method.")]
-    public static IServiceCollection RegisterMagicEvents(this IServiceCollection services, bool useOpenTelemetryMetrics = false)
-    {
-        return services.AddMagicEvents(useOpenTelemetryMetrics);
-    }
-
-    /// <inheritdoc cref="AddLocalMagicEvents" />
-    [Obsolete("Renamed to AddLocalMagicEvents, for consistency with every other registration method.")]
-    public static IServiceCollection RegisterLocalMagicEvents(this IServiceCollection services)
-    {
-        return services.AddLocalMagicEvents();
-    }
-
     private static bool IsEventHandler(Type type)
     {
         if (!type.IsGenericType)
