@@ -17,7 +17,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="DistributedLock.Core" Version="1.0.8"/>
+        <PackageReference Include="DistributedLock.Core" Version="1.0.9"/>
     </ItemGroup>
 
     <ItemGroup>
