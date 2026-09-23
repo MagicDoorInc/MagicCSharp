@@ -60,23 +60,29 @@ public class EventRegistrationTests
         // Lower priority runs first: RunLast must come after the default.
         Assert.Equal([typeof(FirstHandler), typeof(LastHandler)], handlers);
     }
-}
 
-public record OrderPlaced : MagicEvent
-{
-    public long OrderId { get; init; }
-}
+    public record OrderPlaced : MagicEvent
+    {
+        public long OrderId { get; init; }
+    }
 
-public class FirstHandler : IEventHandler<OrderPlaced>
-{
-    public static MagicEventPriority Priority => MagicEventPriority.AddDataNoDependencies;
+    public class FirstHandler : IEventHandler<OrderPlaced>
+    {
+        public static MagicEventPriority Priority => MagicEventPriority.AddDataNoDependencies;
 
-    public Task Handle(OrderPlaced magicEvent) => Task.CompletedTask;
-}
+        public Task Handle(OrderPlaced magicEvent)
+        {
+            return Task.CompletedTask;
+        }
+    }
 
-public class LastHandler : IEventHandler<OrderPlaced>
-{
-    public static MagicEventPriority Priority => MagicEventPriority.RunLast;
+    public class LastHandler : IEventHandler<OrderPlaced>
+    {
+        public static MagicEventPriority Priority => MagicEventPriority.RunLast;
 
-    public Task Handle(OrderPlaced magicEvent) => Task.CompletedTask;
+        public Task Handle(OrderPlaced magicEvent)
+        {
+            return Task.CompletedTask;
+        }
+    }
 }

@@ -32,7 +32,7 @@ public class ApiSerializationTests : IAsyncLifetime
         builder.WebHost.UseTestServer();
         builder.Services.AddLogging(logging => logging.ClearProviders());
 
-        builder.AddMagicApp(new MagicAppOptions { Scheduling = false, Preflight = false });
+        builder.AddMagicApp(new MagicAppOptions { ShouldRegisterScheduling = false, ShouldRunPreflight = false });
         builder.Services.AddControllers().AddApplicationPart(typeof(ApiSerializationTests).Assembly);
 
         app = builder.Build();
@@ -122,53 +122,4 @@ public class ApiSerializationTests : IAsyncLifetime
 
         Assert.Contains("doubled", body);
     }
-}
-
-public enum SampleStatus
-{
-    Pending,
-    Paid,
-    Cancelled,
-}
-
-public record StatusBody
-{
-    public SampleStatus Status { get; init; }
-}
-
-public record PatchBody
-{
-    public string Name { get; init; } = "";
-    public Optional<string?> Nickname { get; init; }
-}
-
-public record ComputedBody
-{
-    public int Value { get; init; }
-    public int Doubled => Value * 2;
-}
-
-[ApiController]
-[Route("serialization")]
-public class SerializationController : ControllerBase
-{
-    [HttpGet("status")]
-    public StatusBody GetStatus() => new StatusBody { Status = SampleStatus.Cancelled };
-
-    [HttpPost("status")]
-    public StatusBody PostStatus([FromBody] StatusBody body) => body;
-
-    [HttpPost("patch")]
-    public object Patch([FromBody] PatchBody body)
-    {
-        return new
-        {
-            name = body.Name,
-            nicknameWasGiven = body.Nickname.HasValue,
-            nickname = body.Nickname.HasValue ? body.Nickname.Value : null,
-        };
-    }
-
-    [HttpGet("computed")]
-    public ComputedBody GetComputed() => new ComputedBody { Value = 21 };
 }

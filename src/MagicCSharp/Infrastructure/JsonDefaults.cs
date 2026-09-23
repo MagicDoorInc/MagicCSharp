@@ -69,7 +69,7 @@ public static class JsonDefaults
                 continue;
             }
 
-            propertyInfo.ShouldSerialize = (_, value) => value is IOptional { HasValue: true };
+            propertyInfo.ShouldSerialize = (_, value) => value is IOptional && ((IOptional)value).HasValue;
         }
     }
 }

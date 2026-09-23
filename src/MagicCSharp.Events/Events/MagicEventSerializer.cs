@@ -53,8 +53,12 @@ public class MagicEventSerializer(IEnumerable<Type> eventTypes) : IEventSerializ
     {
         var body = JsonSerializer.Serialize((object)magicEvent, SerializerOptions);
         var jsonDocument = JsonDocument.Parse(body);
-        var wrapper = new MagicEventWrapper(magicEvent.GetType().Name, jsonDocument.RootElement);
-        return JsonSerializer.Serialize(wrapper, SerializerOptions);
+        var magicEventWrapper = new MagicEventWrapper
+        {
+            Type = magicEvent.GetType().Name,
+            Body = jsonDocument.RootElement,
+        };
+        return JsonSerializer.Serialize(magicEventWrapper, SerializerOptions);
     }
 
     public MagicEvent? DeserializeMagicEvent(string json)
@@ -78,28 +82,12 @@ public class MagicEventSerializer(IEnumerable<Type> eventTypes) : IEventSerializ
     /// <summary>
     ///     Wrapper record for event serialization with type information.
     /// </summary>
-    public record MagicEventWrapper(
-        string Type,
-        JsonElement Body);
-}
-
-/// <summary>
-///     JSON converter that handles long values as strings to prevent precision loss in JavaScript.
-/// </summary>
-public sealed class LongToStringConverter : JsonConverter<long>
-{
-    public override bool CanConvert(Type typeToConvert)
+    public record MagicEventWrapper
     {
-        return typeToConvert == typeof(long);
-    }
+        /// <summary>The event type's simple name — the discriminator on the wire.</summary>
+        public required string Type { get; init; }
 
-    public override long Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        return reader.TokenType == JsonTokenType.Number ? reader.GetInt64() : long.Parse(reader.GetString()!);
-    }
-
-    public override void Write(Utf8JsonWriter writer, long value, JsonSerializerOptions options)
-    {
-        writer.WriteStringValue(value.ToString());
+        /// <summary>The event itself, serialized.</summary>
+        public required JsonElement Body { get; init; }
     }
 }

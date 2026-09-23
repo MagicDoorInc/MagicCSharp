@@ -82,7 +82,7 @@ public record AppLibrary
     ///     Plans a library, or explains why the name will not do. Validation is here rather than in the
     ///     command's <c>Validate</c> because the rules need the service name.
     /// </summary>
-    public static AppLibrary? Plan(RepoConfig config, string appName, string name)
+    public static AppLibrary? Plan(RepositoryConfig config, string appName, string name)
     {
         var segments = name.Split('.');
 
@@ -123,7 +123,7 @@ public record AppLibrary
         };
     }
 
-    private static string? ParentOf(RepoConfig config, string appName, string[] segments)
+    private static string? ParentOf(RepositoryConfig config, string appName, string[] segments)
     {
         if (segments.Length < 2)
         {

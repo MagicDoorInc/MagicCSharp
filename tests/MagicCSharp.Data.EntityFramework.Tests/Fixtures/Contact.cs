@@ -30,7 +30,7 @@ public class ContactFilter
 {
     public string? Search { get; init; }
     public string? City { get; init; }
-    public bool IncludeDeleted { get; init; }
+    public bool ShouldIncludeDeleted { get; init; }
 }
 
 [Table("contacts")]
@@ -65,74 +65,5 @@ public class ContactDal : BaseIdDal<Contact, ContactEdit>, IDalDeleted, IDalSear
     {
         Name = edit.Name;
         City = edit.City;
-    }
-}
-
-/// <summary>
-///     Search and pagination. Note what this cannot also be: soft delete lives on a sibling base class, so
-///     one repository cannot inherit both. That is why the soft-delete tests use their own repository over
-///     this same table.
-/// </summary>
-public class ContactsRepository(
-    IDbContextFactory<TestDbContext> contextFactory,
-    TimeProvider timeProvider,
-    ILoggerFactory loggerFactory)
-    : BaseIdSearchRepository<TestDbContext, ContactDal, Contact, ContactFilter, ContactEdit>(contextFactory, timeProvider, loggerFactory)
-{
-    public required IKeyGenService Ids { get; init; }
-
-    /// <summary>Both sides of a search go through the same map, which is what makes "st" find "street".</summary>
-    protected override IReadOnlyDictionary<string, string>? SearchSynonyms =>
-        new Dictionary<string, string> { ["street"] = "st" };
-
-    protected override ContactDal CreateDal(ContactEdit edit)
-    {
-        return new ContactDal { Id = Ids.GetId(), Name = edit.Name, City = edit.City };
-    }
-
-    protected override IQueryable<ContactDal> ApplyFilter(IQueryable<ContactDal> query, ContactFilter filter)
-    {
-        if (!filter.IncludeDeleted)
-        {
-            query = query.Where(contact => contact.Deleted == null);
-        }
-
-        if (filter.City != null)
-        {
-            query = query.Where(contact => contact.City == filter.City);
-        }
-
-        return ApplySearch(query, filter.Search);
-    }
-
-    /// <summary>Exposed so a test can drive the search column the way a use case would.</summary>
-    public Task SetKeywords(long id, params string[] keywords)
-    {
-        return UpdateSearch(id, keywords);
-    }
-}
-
-/// <summary>The same table through the soft-delete base, since one class cannot have both.</summary>
-public class ContactsSoftDeleteRepository(
-    IDbContextFactory<TestDbContext> contextFactory,
-    TimeProvider timeProvider,
-    ILoggerFactory loggerFactory)
-    : BaseIdSoftDeleteRepository<TestDbContext, ContactDal, Contact, ContactFilter, ContactEdit>(contextFactory, timeProvider, loggerFactory)
-{
-    public required IKeyGenService Ids { get; init; }
-
-    protected override ContactDal CreateDal(ContactEdit edit)
-    {
-        return new ContactDal { Id = Ids.GetId(), Name = edit.Name, City = edit.City };
-    }
-
-    protected override IQueryable<ContactDal> ApplyFilter(IQueryable<ContactDal> query, ContactFilter filter)
-    {
-        if (!filter.IncludeDeleted)
-        {
-            query = query.Where(contact => contact.Deleted == null);
-        }
-
-        return filter.City != null ? query.Where(contact => contact.City == filter.City) : query;
     }
 }

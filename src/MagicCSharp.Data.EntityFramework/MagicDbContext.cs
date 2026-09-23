@@ -94,14 +94,15 @@ public abstract class MagicDbContext(DbContextOptions options) : DbContext(optio
             // shape of a type never changes, so the property list is worked out once per type.
             var properties = TimestampPropertiesByType.GetOrAdd(entry.Entity.GetType(), type => type.GetProperties()
                 .Where(property => property.PropertyType == typeof(DateTimeOffset) || property.PropertyType == typeof(DateTimeOffset?))
-                .Where(property => property is { CanRead: true, CanWrite: true })
+                .Where(property => property.CanRead && property.CanWrite)
                 .ToArray());
 
             foreach (var property in properties)
             {
-                if (property.GetValue(entry.Entity) is DateTimeOffset value && value.Offset != TimeSpan.Zero)
+                var value = property.GetValue(entry.Entity) as DateTimeOffset?;
+                if (value != null && value.Value.Offset != TimeSpan.Zero)
                 {
-                    property.SetValue(entry.Entity, value.ToUniversalTime());
+                    property.SetValue(entry.Entity, value.Value.ToUniversalTime());
                 }
             }
         }

@@ -28,14 +28,14 @@ public class SchedulingRegistrationTests
         // The defaults are single-machine. Anyone deploying more than one instance registers their own, and
         // the convenience method must not quietly win over it.
         var services = new ServiceCollection();
-        var mine = new InMemoryScheduleStore();
+        var inMemoryScheduleStore = new InMemoryScheduleStore();
 
-        services.AddSingleton<IScheduleStore>(mine);
+        services.AddSingleton<IScheduleStore>(inMemoryScheduleStore);
         services.AddMagicScheduling();
 
         using var provider = services.BuildServiceProvider();
 
-        Assert.Same(mine, provider.GetRequiredService<IScheduleStore>());
+        Assert.Same(inMemoryScheduleStore, provider.GetRequiredService<IScheduleStore>());
     }
 
     [Fact]

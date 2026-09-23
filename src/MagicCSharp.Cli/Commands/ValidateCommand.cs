@@ -6,13 +6,23 @@ using Spectre.Console.Cli;
 
 namespace MagicCSharp.Cli.Commands;
 
-public record Violation(string Rule, string File, int Line, string Message, string Why);
-
-public record SourceFile(string Path, string[] Lines)
+public record Violation
 {
+    public required string Rule { get; init; }
+    public required string File { get; init; }
+    public required int Line { get; init; }
+    public required string Message { get; init; }
+    public required string Why { get; init; }
+}
+
+public record SourceFile
+{
+    public required string Path { get; init; }
+    public required string[] Lines { get; init; }
+
     public string Name => System.IO.Path.GetFileName(Path);
     public string RelativePath => System.IO.Path.GetRelativePath(Directory.GetCurrentDirectory(), Path).Replace('\\', '/');
-    public string Text { get; } = string.Join('\n', Lines);
+    public string Text => string.Join('\n', Lines);
 }
 
 /// <summary>
@@ -52,7 +62,7 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
             .Where(path => !System.IO.Path.GetRelativePath(root, path)
                 .Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)
                 .Any(segment => segment is "bin" or "obj" or "Migrations" || segment.StartsWith('.')))
-            .Select(path => new SourceFile(path, File.ReadAllLines(path)))
+            .Select(path => new SourceFile { Path = path, Lines = File.ReadAllLines(path) })
             .ToList();
 
         AnsiConsole.MarkupLine($"[grey]Scanning {files.Count} files under {Markup.Escape(settings.Path)}[/]");
@@ -94,27 +104,29 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
     {
         var pattern = new Regex(@"\bDateTime(Offset)?\.(Now|UtcNow|Today)\b");
 
-        foreach (var file in files)
+        foreach (var sourceFile in files)
         {
             // A TimeProvider implementation is the one place allowed to read it.
-            if (Regex.IsMatch(file.Text, @":\s*TimeProvider\b"))
+            if (Regex.IsMatch(sourceFile.Text, @":\s*TimeProvider\b"))
             {
                 continue;
             }
 
-            foreach (var (line, number) in file.Lines.Select((line, index) => (line, index + 1)))
+            foreach (var (line, number) in sourceFile.Lines.Select((line, index) => (line, index + 1)))
             {
                 if (IsComment(line) || !pattern.IsMatch(line) || IsAllowed(line))
                 {
                     continue;
                 }
 
-                yield return new Violation(
-                    "Wall clock read directly",
-                    file.RelativePath,
-                    number,
-                    line.Trim(),
-                    "Inject TimeProvider and call GetUtcNow(), so a test can move time with FakeTimeProvider.");
+                yield return new Violation
+                {
+                    Rule = "Wall clock read directly",
+                    File = sourceFile.RelativePath,
+                    Line = number,
+                    Message = line.Trim(),
+                    Why = "Inject TimeProvider and call GetUtcNow(), so a test can move time with FakeTimeProvider.",
+                };
             }
         }
     }
@@ -124,7 +136,7 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
     ///     property whose type is an entity ties the event's wire format to that entity's shape, so a field
     ///     added on one side arrives as null on the other. Ids and primitives keep the contract stable.
     /// </summary>
-    private static IEnumerable<Violation> EventPropertiesArePrimitive(IReadOnlyList<SourceFile> files)
+    internal static IEnumerable<Violation> EventPropertiesArePrimitive(IReadOnlyList<SourceFile> files)
     {
         var primitives = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -135,12 +147,28 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
 
         var property = new Regex(@"^\s*public\s+(?:required\s+)?(?<type>[A-Za-z0-9_.<>\[\]?]+)\s+(?<name>[A-Za-z0-9_]+)\s*\{\s*(get|init|set)");
 
-        foreach (var file in files.Where(file => file.Text.Contains(": MagicEvent") || file.Text.Contains(", MagicEvent")))
+        var typeDeclaration = new Regex(@"^\s*(?:public|internal|abstract|sealed|partial|\s)*\b(?:class|record|struct|interface)\s+\w+");
+        var derivesFromMagicEvent = new Regex(@"[:,]\s*MagicEvent\b");
+
+        foreach (var sourceFile in files.Where(sourceFile => derivesFromMagicEvent.IsMatch(sourceFile.Text)))
         {
-            foreach (var (line, number) in file.Lines.Select((line, index) => (line, index + 1)))
+            // Only the properties of a type that is an event, not of every type in a file that mentions one.
+            var isInEvent = false;
+
+            for (var index = 0; index < sourceFile.Lines.Length; index++)
             {
+                var line = sourceFile.Lines[index];
+                var number = index + 1;
+
+                if (typeDeclaration.IsMatch(line) && !IsComment(line))
+                {
+                    var baseList = index + 1 < sourceFile.Lines.Length ? line + sourceFile.Lines[index + 1] : line;
+                    isInEvent = derivesFromMagicEvent.IsMatch(baseList);
+                    continue;
+                }
+
                 var match = property.Match(line);
-                if (!match.Success || IsComment(line))
+                if (!isInEvent || !match.Success || IsComment(line))
                 {
                     continue;
                 }
@@ -162,12 +190,14 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
                     continue;
                 }
 
-                yield return new Violation(
-                    "Event carries a non-primitive property",
-                    file.RelativePath,
-                    number,
-                    $"{match.Groups["name"].Value} is {match.Groups["type"].Value}",
-                    "Events are deserialized by code from another commit. Carry ids and primitives; let the handler load the rest.");
+                yield return new Violation
+                {
+                    Rule = "Event carries a non-primitive property",
+                    File = sourceFile.RelativePath,
+                    Line = number,
+                    Message = $"{match.Groups["name"].Value} is {match.Groups["type"].Value}",
+                    Why = "Events are deserialized by code from another commit. Carry ids and primitives; let the handler load the rest.",
+                };
             }
         }
     }
@@ -181,21 +211,23 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
     {
         var pattern = new Regex(@"\bIOptions(Snapshot|Monitor)?<");
 
-        foreach (var file in files.Where(file => file.Name.EndsWith("UseCase.cs")))
+        foreach (var sourceFile in files.Where(sourceFile => sourceFile.Name.EndsWith("UseCase.cs")))
         {
-            foreach (var (line, number) in file.Lines.Select((line, index) => (line, index + 1)))
+            foreach (var (line, number) in sourceFile.Lines.Select((line, index) => (line, index + 1)))
             {
                 if (IsComment(line) || !pattern.IsMatch(line))
                 {
                     continue;
                 }
 
-                yield return new Violation(
-                    "IOptions injected into a use case",
-                    file.RelativePath,
-                    number,
-                    line.Trim(),
-                    "Inject the values themselves, or a small interface. A use case should be constructible in a test with no configuration.");
+                yield return new Violation
+                {
+                    Rule = "IOptions injected into a use case",
+                    File = sourceFile.RelativePath,
+                    Line = number,
+                    Message = line.Trim(),
+                    Why = "Inject the values themselves, or a small interface. A use case should be constructible in a test with no configuration.",
+                };
             }
         }
     }
@@ -218,26 +250,26 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
 
         var typeDeclaration = new Regex(@"^\s*(?:public|internal|abstract|sealed|partial|\s)*\b(?<kind>interface|class|record|struct)\b");
 
-        foreach (var file in files.Where(file => file.Name.EndsWith("Dal.cs")))
+        foreach (var sourceFile in files.Where(sourceFile => sourceFile.Name.EndsWith("Dal.cs")))
         {
-            var inInterface = false;
-            var setInFrom = AssignedIn(file, @"\bstatic\s+\w+\s+From\s*\(");
-            var setInApply = AssignedIn(file, @"\bvoid\s+Apply\s*\(");
+            var isInInterface = false;
+            var setInFrom = AssignedIn(sourceFile, @"\bstatic\s+\w+\s+From\s*\(");
+            var setInApply = AssignedIn(sourceFile, @"\bvoid\s+Apply\s*\(");
 
-            for (var index = 0; index < file.Lines.Length; index++)
+            for (var index = 0; index < sourceFile.Lines.Length; index++)
             {
-                var line = file.Lines[index];
+                var line = sourceFile.Lines[index];
 
                 var declaration = typeDeclaration.Match(line);
                 if (declaration.Success && !IsComment(line))
                 {
                     // An interface declares the shape; it carries no columns and cannot be annotated.
-                    inInterface = declaration.Groups["kind"].Value == "interface";
+                    isInInterface = declaration.Groups["kind"].Value == "interface";
                 }
 
                 var match = property.Match(line);
 
-                if (!match.Success || IsComment(line) || inInterface)
+                if (!match.Success || IsComment(line) || isInInterface)
                 {
                     continue;
                 }
@@ -247,19 +279,21 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
                     var name = match.Groups["name"].Value;
                     var isSetOnceInFrom = setInFrom.Contains(name) && !setInApply.Contains(name);
 
-                    if (isSetOnceInFrom || HasAttributeAbove(file, index, "Key"))
+                    if (isSetOnceInFrom || HasAttributeAbove(sourceFile, index, "Key"))
                     {
                         continue;
                     }
 
-                    yield return new Violation(
-                        "DAL property is 'required' but not set once in From()",
-                        file.RelativePath,
-                        index + 1,
-                        setInApply.Contains(name)
+                    yield return new Violation
+                    {
+                        Rule = "DAL property is 'required' but not set once in From()",
+                        File = sourceFile.RelativePath,
+                        Line = index + 1,
+                        Message = setInApply.Contains(name)
                             ? $"{name} is 'required' and Apply() assigns it"
                             : $"{name} is 'required' and From() does not assign it",
-                        "'required' is for a column From()'s initializer sets once and Apply() leaves alone. For any other column use [Required].");
+                        Why = "'required' is for a column From()'s initializer sets once and Apply() leaves alone. For any other column use [Required].",
+                    };
                     continue;
                 }
 
@@ -269,17 +303,19 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
                     continue;
                 }
 
-                if (HasAttributeAbove(file, index, "Required") || HasAttributeAbove(file, index, "Key"))
+                if (HasAttributeAbove(sourceFile, index, "Required") || HasAttributeAbove(sourceFile, index, "Key"))
                 {
                     continue;
                 }
 
-                yield return new Violation(
-                    "DAL column is non-nullable but not marked [Required]",
-                    file.RelativePath,
-                    index + 1,
-                    $"{match.Groups["name"].Value} is {match.Groups["type"].Value}",
-                    "Add [Required] so EF generates NOT NULL, or make the property nullable to match the column.");
+                yield return new Violation
+                {
+                    Rule = "DAL column is non-nullable but not marked [Required]",
+                    File = sourceFile.RelativePath,
+                    Line = index + 1,
+                    Message = $"{match.Groups["name"].Value} is {match.Groups["type"].Value}",
+                    Why = "Add [Required] so EF generates NOT NULL, or make the property nullable to match the column.",
+                };
             }
         }
     }
@@ -290,13 +326,13 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
     ///     for <c>Apply()</c> its statements — a line-based read, which is all a DAL written from the template
     ///     needs.
     /// </summary>
-    private static HashSet<string> AssignedIn(SourceFile file, string methodSignature)
+    private static HashSet<string> AssignedIn(SourceFile sourceFile, string methodSignature)
     {
         var assigned = new HashSet<string>(StringComparer.Ordinal);
         var signature = new Regex(methodSignature);
         var assignment = new Regex(@"^\s*(?:dal\.)?(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*=(?!=)");
 
-        var start = Array.FindIndex(file.Lines, line => signature.IsMatch(line) && !IsComment(line));
+        var start = Array.FindIndex(sourceFile.Lines, line => signature.IsMatch(line) && !IsComment(line));
         if (start < 0)
         {
             return assigned;
@@ -305,9 +341,9 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
         var depth = 0;
         var hasEnteredBody = false;
 
-        for (var index = start; index < file.Lines.Length; index++)
+        for (var index = start; index < sourceFile.Lines.Length; index++)
         {
-            var line = file.Lines[index];
+            var line = sourceFile.Lines[index];
 
             if (hasEnteredBody && !IsComment(line))
             {
@@ -334,11 +370,11 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
     ///     Whether the attribute block immediately above a property contains the given attribute. Walks up
     ///     through attribute and blank lines only, so it cannot pick up an attribute on a different member.
     /// </summary>
-    private static bool HasAttributeAbove(SourceFile file, int propertyIndex, string attributeName)
+    private static bool HasAttributeAbove(SourceFile sourceFile, int propertyIndex, string attributeName)
     {
         for (var index = propertyIndex - 1; index >= 0; index--)
         {
-            var line = file.Lines[index].Trim();
+            var line = sourceFile.Lines[index].Trim();
 
             if (line.Length == 0)
             {

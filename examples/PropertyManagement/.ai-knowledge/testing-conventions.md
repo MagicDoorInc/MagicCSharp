@@ -2,13 +2,17 @@
 
 ## What a test here looks like
 
-Tests drive the real use cases against a real PostgreSQL. Each domain's `Tests` project derives from
-`LeasingTestBase` (in `Leasing.Testing`), which gives every test class:
+Tests drive the real use cases against a real PostgreSQL. A service's domain `Tests` projects share one test
+base, in a `{Service}.Testing` library (`mcs create-app-lib --solution {Service} --name Testing`), deriving from
+`TestRepositoryBase<TContext>` in `MagicCSharp.Testing.Database`. It gives every test class:
 
 - its own database in a shared Testcontainers container, with the schema built by the migrations;
 - the service's real use cases, repositories and event handlers, wired as the service wires them;
 - three swaps: a `FakeTimeProvider` the test moves, a `SyncEventDispatcher` that runs handlers before `Dispatch`
   returns, and in-memory locks.
+
+The example's [`LeasingTestBase`](https://github.com/MagicDoorInc/MagicCSharp/blob/master/examples/PropertyManagement/Apps/Leasing/Leasing.Testing/Default/LeasingTestBase.cs)
+is a complete one to start from. The examples below derive from it.
 
 ```csharp
 public class PayChargeUseCaseTests : LeasingTestBase
@@ -47,7 +51,7 @@ Docker must be running. `dotnet test Acme.All.slnx` runs everything.
   failing row should name the behaviour it checked.
 - **Arrange, Act, Assert**, marked with comments.
 - **Set up through use cases**, the way a caller would: `CreateProperty()`, `SignLease()`,
-  `SetLateFeePolicy()` on the base. Add a helper there when a second test class needs the same setup.
+  `SetLateFeePolicy()` on the example's base. Add a helper there when a second test class needs the same setup.
 - **One frozen clock per class**, set in the constructor. Never the wall clock. The fake only moves forward, so
   set the starting point first and advance from there.
 - **Assert on what the handlers did**, not only that an event was dispatched, when the reaction is the point.
@@ -62,7 +66,7 @@ Every scheduled workflow gets a test through time:
 3. Move the clock (`TimeProvider.SetUtcNow`, `TimeProvider.Advance`) and run it again.
 4. Assert the effect happened once — and did not happen too early.
 
-`ApplyLateFeesUseCaseTests` is the model: the last day of grace (nothing), the day after (one fee), three days
+The example's `ApplyLateFeesUseCaseTests` is the model: the last day of grace (nothing), the day after (one fee), three days
 later (still one), paid rent (nothing), and two properties in different time zones at the same instant.
 
 ## Before you finish

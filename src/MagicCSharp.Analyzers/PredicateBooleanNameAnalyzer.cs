@@ -24,7 +24,7 @@ public sealed class PredicateBooleanNameAnalyzer : DiagnosticAnalyzer
         "A boolean named 'Active' or 'enabled' reads like a noun or a verb. Prefix it so 'if (lease.IsActive)' " +
         "reads as a question. To rename a property that is part of a contract (a DTO, an event, stored JSON), " +
         "add the new property and keep the old one marked [Obsolete] and forwarding to it; [Obsolete] members " +
-        "and members whose name is dictated by an override or interface are skipped, and so are parameters of AI " +
+        "and members whose name is dictated by an override or interface are skipped, as are their parameters and those of AI " +
         "tool methods (marked [Description]), whose names are the tool's JSON schema.");
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
@@ -68,6 +68,13 @@ public sealed class PredicateBooleanNameAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // An override's or interface implementation's parameters are named by the contract it implements — EF's
+        // SaveChanges(bool acceptAllChangesOnSuccess) — and renaming one only makes it disagree with the base.
+        if (parameter != null && IsContractParameter(parameter))
+        {
+            return;
+        }
+
         var type = TypeOf(symbol);
         if (type == null || !IsMisnamedBoolean(type, symbol.Name))
         {
@@ -91,6 +98,12 @@ public sealed class PredicateBooleanNameAnalyzer : DiagnosticAnalyzer
         }
 
         return method.AssociatedSymbol != null;
+    }
+
+    private static bool IsContractParameter(IParameterSymbol parameter)
+    {
+        var method = parameter.ContainingSymbol as IMethodSymbol;
+        return method != null && SymbolFacts.IsInheritedMember(method);
     }
 
     private static bool IsMisnamedBoolean(ITypeSymbol type, string name)

@@ -17,8 +17,8 @@ builder.Services.AddPostgresDbContextFactory<MagicShopContext>(builder.Configura
 ```
 
 Reads `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD`. Each is required — a missing one throws
-rather than quietly defaulting to localhost. Pass a different `configPrefix` to point a second context at
-another database (`VECTOR_DB_HOST`, and so on).
+rather than quietly defaulting to localhost. Set a different `ConfigPrefix` on `PostgresConnectionOptions` to point
+a second context at another database (`VECTOR_DB_HOST`, and so on).
 
 Registers a *pooled* factory, which is what makes the repositories' context-per-operation cheap: pooling
 reuses the context and its internal service provider rather than rebuilding the model each time. Opens one
@@ -29,8 +29,8 @@ repository out, or a container that starts before its database.
 Pool sizes, timeouts and retry live in `PostgresConnectionOptions`. Size `MaxPoolSize` against the server's
 limit divided by the number of instances you run, or a rolling deploy will exhaust the server.
 
-Two hooks for the provider: `configureDataSource` for an Npgsql type plugin such as pgvector's `UseVector()`,
-and `configureNpgsql` for the options inside `UseNpgsql`. A query that `Include`s two collections at once
+Two hooks for the provider, also on `PostgresConnectionOptions`: `ConfigureDataSource` for an Npgsql type plugin
+such as pgvector's `UseVector()`, and `ConfigureNpgsql` for the options inside `UseNpgsql`. A query that `Include`s two collections at once
 throws rather than multiplying the rows — that is almost never what was meant, and throwing turns a silent
 performance cliff into a fix-once error.
 

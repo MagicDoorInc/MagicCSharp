@@ -3,6 +3,9 @@
 The conventions for this repository. Each guide owns one topic; when two seem to overlap, the one named for
 the topic wins. Read the guides the task below needs, not all of them.
 
+Examples in the guides come from the [property-management example](https://github.com/MagicDoorInc/MagicCSharp/tree/master/examples/PropertyManagement),
+a service built to these conventions — open it when a guide's example needs its surroundings.
+
 | You are about to… | Read |
 |---|---|
 | Place new code, add a domain or subdomain, decide what may call what | `architecture-and-project-structure.md` |
@@ -15,6 +18,7 @@ the topic wins. Read the guides the task below needs, not all of them.
 | Read the current time, or handle dates and time zones | `time-and-dates.md` |
 | Write tests | `testing-conventions.md` |
 | Choose names, formatting, `var`, braces, records | `coding-style.md` |
+| Learn this repository's services, domains and local exceptions | `project.md` |
 
 ## Finishing
 

@@ -21,11 +21,11 @@ public static class MagicEventsRegistrationExtensions
     ///     <para>Idempotent: calling it twice does not register the handlers twice.</para>
     /// </summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="useOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
+    /// <param name="shouldUseOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddMagicEvents(
         this IServiceCollection services,
-        bool useOpenTelemetryMetrics = false)
+        bool shouldUseOpenTelemetryMetrics = false)
     {
         // Idempotent, because each transport calls this and an application may also call it directly.
         // Without the guard every handler would be registered twice and each event handled twice.
@@ -102,7 +102,7 @@ public static class MagicEventsRegistrationExtensions
         services.AddSingleton<IAsyncEventDispatcher, AsyncEventDispatcher>();
 
         // Register metrics handler
-        if (useOpenTelemetryMetrics)
+        if (shouldUseOpenTelemetryMetrics)
         {
             services.AddSingleton<IEventsMetricsHandler, EventsMetricsHandler>();
         }
@@ -120,14 +120,14 @@ public static class MagicEventsRegistrationExtensions
     ///     to either later is a registration change and nothing else.
     /// </summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="useOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
+    /// <param name="shouldUseOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddLocalMagicEvents(this IServiceCollection services, bool useOpenTelemetryMetrics = false)
+    public static IServiceCollection AddLocalMagicEvents(this IServiceCollection services, bool shouldUseOpenTelemetryMetrics = false)
     {
         // Self-sufficient on purpose. This used to register only IEventDispatcher, so calling it without
         // AddMagicEvents first left the application failing at resolution the first time it dispatched —
         // and nothing said so. AddMagicEvents is idempotent, so calling both is fine.
-        services.AddMagicEvents(useOpenTelemetryMetrics);
+        services.AddMagicEvents(shouldUseOpenTelemetryMetrics);
         services.AddSingleton<IEventDispatcher, LocalEventDispatcher>();
 
         return services;

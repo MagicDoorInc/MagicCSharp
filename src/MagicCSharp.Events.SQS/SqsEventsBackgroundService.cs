@@ -9,7 +9,7 @@ namespace MagicCSharp.Events.SQS;
 /// </summary>
 public class SqsEventsBackgroundService(
     SqsEventsBackgroundServiceConfig config,
-    IAsyncEventDispatcher eventDispatcher,
+    IAsyncEventDispatcher asyncEventDispatcher,
     IEventSerializer eventSerializer,
     IServiceScopeFactory serviceScopeFactory,
     ILogger<SqsEventsBackgroundService> logger) : SqsListenerBase<MagicEvent>(serviceScopeFactory, logger)
@@ -31,6 +31,6 @@ public class SqsEventsBackgroundService(
 
         // Waiting is to ensure that the event can be safely executed when the application is shutting down,
         // so that it is not lost and race conditions are less likely to occur
-        await eventDispatcher.Dispatch(message);
+        await asyncEventDispatcher.Dispatch(message);
     }
 }

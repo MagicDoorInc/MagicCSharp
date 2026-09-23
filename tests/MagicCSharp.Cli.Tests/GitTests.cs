@@ -9,9 +9,9 @@ public class GitTests
     {
         // git exits 128 there. Treating that as "ignored" would warn on every eject done outside a
         // repository, which is exactly how a shared template repository starts out.
-        using var repo = new TempRepo();
+        using var temporaryRepository = new TemporaryRepository();
 
-        Assert.False(Git.IsIgnored(Path.Combine(repo.Root, "anything.hbs")));
+        Assert.False(Git.IsIgnored(Path.Combine(temporaryRepository.Root, "anything.hbs")));
     }
 
     [Fact]

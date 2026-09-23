@@ -80,7 +80,7 @@ public class PaginationTests : RepositoryTestBase
     {
         await GivenContacts(4);
 
-        var page = await Contacts.Get(new PaginationRequest(disable: true), new ContactFilter());
+        var page = await Contacts.Get(new PaginationRequest(isDisabled: true), new ContactFilter());
 
         Assert.Equal(4, page.Items.Count);
     }

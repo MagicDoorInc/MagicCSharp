@@ -87,6 +87,7 @@ awkward to change later because it is baked into every namespace.
 | `{Prefix}.All.slnx` | Every project. Generated — see `mcs sync`. |
 | `Apps/`, `Libs/` | The two top-level directories, with `.gitkeep` so they survive a fresh clone. |
 | `.editorconfig` | Marks EF migrations as generated code, so the build rules leave them alone. Not written with `--no-build-rules`. |
+| `CLAUDE.md`, `.ai-knowledge/` | The conventions written down for AI coding agents, one guide per topic, and `.ai-knowledge/project.md` for what is specific to your repository. `mcs update ai-files` refreshes the guides and never touches `project.md`. Not written with `--no-ai-knowledge`. |
 
 Then create your first service:
 

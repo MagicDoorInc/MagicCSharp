@@ -7,6 +7,61 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ---
 
+## 1.0.2 — Unreleased
+
+### Changed — breaking
+
+The framework itself now builds under MagicCSharp.Analyzers: every project in `src/` and `tests/` references
+the rules as a project analyzer, all as errors, and the build is clean. Making it comply renamed and reshaped
+these public members. Wire names and configuration keys are unchanged: the Kafka and SQS configuration
+records still bind from the same keys, `ComparableRange` keeps its JSON names through `[JsonPropertyName]`,
+and the event envelope still serializes as `type` and `body`.
+
+| 1.0.1 | 1.0.2 |
+|---|---|
+| `ComparableRange<T>.StartInclusive` / `EndInclusive` | `IsStartInclusive` / `IsEndInclusive` (JSON still `startInclusive` / `endInclusive`) |
+| `AddImplementationsOf<T>(lifetime, registerLazy, lifetimeSelector, assemblyFilter, allowMultipleImplementations)` | `AddImplementationsOf<T>(ImplementationRegistrationOptions? options)`, a new record with `Lifetime`, `ShouldRegisterLazy`, `LifetimeSelector`, `AssemblyFilter`, `AllowMultipleImplementations` |
+| `MagicAppOptions.Events` / `OpenTelemetryMetrics` / `Scheduling` / `ErrorHandling` / `Controllers` / `JsonConventions` / `Preflight` | `ShouldRegisterEvents` / `ShouldUseOpenTelemetryMetrics` / `ShouldRegisterScheduling` / `ShouldHandleErrors` / `ShouldMapControllers` / `ShouldApplyJsonConventions` / `ShouldRunPreflight` |
+| `AddPostgresDbContextFactory<T>(configuration, options, configureDataSource, configureNpgsql, configPrefix)` | `AddPostgresDbContextFactory<T>(configuration, options)`; the last three are `PostgresConnectionOptions.ConfigureDataSource`, `ConfigureNpgsql` and `ConfigPrefix` |
+| `PostgresConnectionOptions.IncludeErrorDetail` / `VerifyConnectionOnStartup` | `ShouldIncludeErrorDetail` / `ShouldVerifyConnectionOnStartup` |
+| `PaginationRequest.Disable`, `new PaginationRequest(disable: true)` | `IsDisabled`, `new PaginationRequest(isDisabled: true)` |
+| `new KafkaMagicEventConfiguration(BootstrapServers, GroupId, Topic)` | `new KafkaMagicEventConfiguration { BootstrapServers = …, GroupId = …, Topic = … }` — all three `required` |
+| `new KafkaEventsBackgroundServiceConfig(topic)` | `new KafkaEventsBackgroundServiceConfig { Topic = … }` |
+| `new SqsMagicEventConfiguration(QueueUrl, MaxNumberOfMessages, WaitTimeSeconds, VisibilityTimeout)` | `new SqsMagicEventConfiguration { QueueUrl = …, … }` — `QueueUrl` `required`, the rest keep their defaults |
+| `new SqsEventsBackgroundServiceConfig(QueueUrl, …)` | `new SqsEventsBackgroundServiceConfig { QueueUrl = …, … }` |
+| `new MagicEventSerializer.MagicEventWrapper(type, body)` | `new MagicEventSerializer.MagicEventWrapper { Type = …, Body = … }` |
+| Parameter `useOpenTelemetryMetrics` on `AddMagicEvents`, `AddLocalMagicEvents`, `AddMagicKafkaEvents`, `AddMagicSqsEvents` | `shouldUseOpenTelemetryMetrics` |
+| `ErrorHandlingModule.Describe(exception, includeDetail)` | `Describe(exception, shouldIncludeDetail)` |
+| Constructor parameter `lockProvider` on `ScheduledBackgroundService` | `distributedLockProvider` |
+| Constructor parameter `asyncDispatcher` on `SyncEventDispatcher`; `metrics` on `AsyncEventDispatcher`; `eventDispatcher` on `KafkaEventsBackgroundService` and `SqsEventsBackgroundService` | `asyncEventDispatcher`; `eventsMetricsHandler`; `asyncEventDispatcher` |
+
+The parameter renames only break a caller that passes the argument by name. Types that shared a file were
+moved to their own, with no change to the types: `HttpExceptions.cs` is `HttpException.cs`,
+`BaseKeyedDal.cs` is `BaseIdDal.cs` and `BaseKeyDal.cs`, `IDalFields.cs` is `IDalDeleted.cs` and
+`IDalSearchField.cs`, and `OptionalConverterFactory`, `OptionalConverter<T>`, `LongToStringConverter`,
+`IEventTypeHolder`, `MagicEventTypeHolder`, `InMemoryDistributedLockProvider`,
+`InMemoryDistributedSynchronizationHandle`, `ReentrantHandle` and `TrackingDistributedLockProvider` each have
+their own file.
+
+### Fixed
+
+- **MCS0011 flagged the parameters of an override or interface implementation**, such as EF's
+  `SaveChanges(bool acceptAllChangesOnSuccess)`, whose names the base type decides. They are now skipped,
+  as the rule's own description already said.
+- **`TestRepositoryBase` ignored a `ContainerImage` override if another test class got there first.** Every
+  test class over one context type shared the first container started, so a class that asked for pgvector
+  could get plain Postgres. It now starts one container per image.
+
+### Added
+
+- **Guides for AI coding agents.** `mcs init` writes a `CLAUDE.md` and an `.ai-knowledge/` folder — the
+  conventions of a MagicCSharp repository, one guide per topic — plus `.ai-knowledge/project.md` for what is
+  specific to the repository. `--no-ai-knowledge` leaves them out. `mcs update ai-files` refreshes the shipped
+  guides in an existing repository, and never touches `project.md` or a file the repository added. Their
+  source is `AIAgents/` at the root of this repository, embedded into the tool.
+
+---
+
 ## 1.0.1 — 2026-09-23
 
 Found by building the property-management example from 1.0.0 in a freshly generated repository.

@@ -124,61 +124,64 @@ public static class ErrorHandlingModule
     /// <summary>
     ///     Maps an exception to a problem. Public so a test can assert the mapping without a web host.
     /// </summary>
-    public static ProblemDetails Describe(Exception exception, bool includeDetail)
+    public static ProblemDetails Describe(Exception exception, bool shouldIncludeDetail)
     {
         switch (exception)
         {
             // Carries its own status, so it decides.
-            case HttpException http:
+            case HttpException:
+            {
+                var httpException = (HttpException)exception;
                 return new ProblemDetails
                 {
-                    Status = http.StatusCode,
-                    Title = http.Title,
-                    Detail = http.Message,
+                    Status = httpException.StatusCode,
+                    Title = httpException.Title,
+                    Detail = httpException.Message,
                 };
+            }
 
             // The domain says "no such thing" without knowing about HTTP; here is where that becomes 404.
-            case DomainNotFound notFound:
+            case DomainNotFound:
                 return new ProblemDetails
                 {
                     Status = StatusCodes.Status404NotFound,
                     Title = "NotFound",
-                    Detail = notFound.Message,
+                    Detail = exception.Message,
                 };
 
-            case EntityConflictException conflict:
+            case EntityConflictException:
                 return new ProblemDetails
                 {
                     Status = StatusCodes.Status409Conflict,
                     Title = "Conflict",
-                    Detail = conflict.Message,
+                    Detail = exception.Message,
                 };
 
             // The request was fine; the entity's state is what refused it. 422 tells the caller that retrying
             // the same request will not help until something else changes.
-            case EntityInvalidOperationException invalidOperation:
+            case EntityInvalidOperationException:
                 return new ProblemDetails
                 {
                     Status = StatusCodes.Status422UnprocessableEntity,
                     Title = "InvalidOperation",
-                    Detail = invalidOperation.Message,
+                    Detail = exception.Message,
                 };
 
-            case ValidationException validation:
+            case ValidationException:
                 return new ProblemDetails
                 {
                     Status = StatusCodes.Status400BadRequest,
                     Title = "ValidationFailed",
-                    Detail = validation.Message,
+                    Detail = exception.Message,
                 };
 
             // A caller sent something the code refuses to work with. 400 rather than 500: the server is fine.
-            case ArgumentException argument:
+            case ArgumentException:
                 return new ProblemDetails
                 {
                     Status = StatusCodes.Status400BadRequest,
                     Title = "BadRequest",
-                    Detail = argument.Message,
+                    Detail = exception.Message,
                 };
 
             // The client gave up, or the server is shutting down. Nothing to report and nobody listening.
@@ -196,7 +199,7 @@ public static class ErrorHandlingModule
                     Title = "InternalServerError",
                     // Only in Development: an unexpected exception's message routinely names a host, a path,
                     // or data the caller has no business seeing.
-                    Detail = includeDetail ? exception.ToString() : "An unexpected error occurred.",
+                    Detail = shouldIncludeDetail ? exception.ToString() : "An unexpected error occurred.",
                 };
         }
     }

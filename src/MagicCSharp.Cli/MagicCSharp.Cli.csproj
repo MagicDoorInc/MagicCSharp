@@ -31,6 +31,19 @@
         <EmbeddedResource Include="Templates/**/*.hbs"
                           LogicalName="Templates/%(RecursiveDir)%(Filename)%(Extension)"
                           WithCulture="false" />
+
+        <!--
+            The guides for AI coding agents, from AIAgents/ at the repository root — kept there, outside this
+            project, so they are easy to find and edit, and embedded here so mcs init and mcs update ai-files
+            always write the version this tool ships. Listed file by file because the wildcard would not look
+            inside the hidden .ai-knowledge folder.
+        -->
+        <EmbeddedResource Include="../../AIAgents/CLAUDE.md"
+                          LogicalName="AIAgents/CLAUDE.md"
+                          WithCulture="false" />
+        <EmbeddedResource Include="../../AIAgents/.ai-knowledge/*.md"
+                          LogicalName="AIAgents/.ai-knowledge/%(Filename)%(Extension)"
+                          WithCulture="false" />
     </ItemGroup>
 
     <ItemGroup>

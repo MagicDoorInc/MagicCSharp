@@ -19,8 +19,8 @@ public class TemplateAssemblyNameTests
     [InlineData("Libraries/app.csproj.hbs")]
     public void Project_templates_use_the_name_the_command_computed(string template)
     {
-        var resolver = new TemplateResolver(null);
-        var content = resolver.Read(template);
+        var templateResolver = new TemplateResolver(null);
+        var content = templateResolver.Read(template);
 
         foreach (var line in content.Split('\n').Where(line => line.Contains("<AssemblyName>") || line.Contains("<RootNamespace>")))
         {
@@ -31,7 +31,7 @@ public class TemplateAssemblyNameTests
     [Fact]
     public void The_domain_template_produces_a_name_that_names_its_service()
     {
-        var renderer = new TemplateRenderer(new TemplateResolver(null));
+        var templateRenderer = new TemplateRenderer(new TemplateResolver(null));
         var model = new
         {
             prefix = "Acme",
@@ -39,7 +39,7 @@ public class TemplateAssemblyNameTests
             assembly_name = "Acme.Shop.Domains.Orders",
         };
 
-        var rendered = renderer.RenderToString("Libraries/default.csproj.hbs", model);
+        var rendered = templateRenderer.RenderToString("Libraries/default.csproj.hbs", model);
 
         Assert.Contains("<AssemblyName>Acme.Shop.Domains.Orders</AssemblyName>", rendered);
         Assert.DoesNotContain("Acme.Libraries.Domains.Orders", rendered);

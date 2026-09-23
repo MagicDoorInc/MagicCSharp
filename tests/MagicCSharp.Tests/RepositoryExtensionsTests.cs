@@ -53,20 +53,74 @@ public class RepositoryExtensionsTests
     {
         public Thing? Stored { get; init; }
 
-        public Task<Thing?> Get(TKey key) => Task.FromResult(Stored);
+        public Task<Thing?> Get(TKey key)
+        {
+            return Task.FromResult(Stored);
+        }
 
-        public Task<int> Count(object filter) => throw new NotSupportedException();
-        public Task<IReadOnlyList<TKey>> GetKeys(object filter) => throw new NotSupportedException();
-        public Task<IReadOnlyList<Thing>> Get(object filter) => throw new NotSupportedException();
-        public Task<IReadOnlyList<Thing>> Get(IReadOnlyList<TKey> keys) => throw new NotSupportedException();
-        public Task<Thing> Create(Thing edit) => throw new NotSupportedException();
-        public Task<IReadOnlyList<TKey>> Create(IReadOnlyList<Thing> edits) => throw new NotSupportedException();
-        public Task<Thing> Update(TKey key, Thing edit) => throw new NotSupportedException();
-        public Task<int> Update(IReadOnlyDictionary<TKey, Thing> edits) => throw new NotSupportedException();
-        public Task<Thing> Update(Thing entity) => throw new NotSupportedException();
-        public Task<int> Update(IReadOnlyList<Thing> entities) => throw new NotSupportedException();
-        public Task<int> Delete(TKey key) => throw new NotSupportedException();
-        public Task<int> Delete(IReadOnlyList<TKey> keys) => throw new NotSupportedException();
-        public Task<int> Delete(object filter) => throw new NotSupportedException();
+        public Task<int> Count(object filter)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyList<TKey>> GetKeys(object filter)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyList<Thing>> Get(object filter)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyList<Thing>> Get(IReadOnlyList<TKey> keys)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<Thing> Create(Thing edit)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyList<TKey>> Create(IReadOnlyList<Thing> edits)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<Thing> Update(TKey key, Thing edit)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<int> Update(IReadOnlyDictionary<TKey, Thing> edits)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<Thing> Update(Thing entity)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<int> Update(IReadOnlyList<Thing> entities)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<int> Delete(TKey key)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<int> Delete(IReadOnlyList<TKey> keys)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<int> Delete(object filter)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

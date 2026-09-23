@@ -14,7 +14,7 @@ namespace MagicCSharp.Testing;
 ///         dispatcher handles that — it lets the inline handler re-enter.
 ///     </para>
 /// </summary>
-public class SyncEventDispatcher(IAsyncEventDispatcher asyncDispatcher) : IEventDispatcher
+public class SyncEventDispatcher(IAsyncEventDispatcher asyncEventDispatcher) : IEventDispatcher
 {
     private readonly List<MagicEvent> dispatched = [];
 
@@ -34,7 +34,7 @@ public class SyncEventDispatcher(IAsyncEventDispatcher asyncDispatcher) : IEvent
 
     public void Dispatch(MagicEvent? magicEvent)
     {
-        if (magicEvent is null)
+        if (magicEvent == null)
         {
             return;
         }
@@ -49,7 +49,7 @@ public class SyncEventDispatcher(IAsyncEventDispatcher asyncDispatcher) : IEvent
         InMemoryDistributedLockProvider.ReentrancyDepth.Value++;
         try
         {
-            asyncDispatcher.Dispatch(magicEvent).GetAwaiter().GetResult();
+            asyncEventDispatcher.Dispatch(magicEvent).GetAwaiter().GetResult();
         }
         finally
         {

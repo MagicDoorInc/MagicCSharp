@@ -22,7 +22,7 @@ public class ImplementationRegistrationModuleTests
     {
         var services = new ServiceCollection();
 
-        services.AddImplementationsOf<ISingleMarker>(assemblyFilter: ThisAssemblyOnly);
+        services.AddImplementationsOf<ISingleMarker>(new ImplementationRegistrationOptions { AssemblyFilter = ThisAssemblyOnly });
 
         using var provider = services.BuildServiceProvider();
         Assert.IsType<OnlyImplementation>(provider.GetRequiredService<IOnlyUseCase>());
@@ -34,7 +34,7 @@ public class ImplementationRegistrationModuleTests
         var services = new ServiceCollection();
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            services.AddImplementationsOf<IOrphanMarker>(assemblyFilter: ThisAssemblyOnly));
+            services.AddImplementationsOf<IOrphanMarker>(new ImplementationRegistrationOptions { AssemblyFilter = ThisAssemblyOnly }));
 
         Assert.Contains(nameof(IOrphanUseCase), ex.Message);
     }
@@ -47,7 +47,7 @@ public class ImplementationRegistrationModuleTests
         var services = new ServiceCollection();
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            services.AddImplementationsOf<IAmbiguousMarker>(assemblyFilter: ThisAssemblyOnly));
+            services.AddImplementationsOf<IAmbiguousMarker>(new ImplementationRegistrationOptions { AssemblyFilter = ThisAssemblyOnly }));
 
         Assert.Contains(nameof(FirstAmbiguous), ex.Message);
         Assert.Contains(nameof(SecondAmbiguous), ex.Message);
@@ -58,7 +58,7 @@ public class ImplementationRegistrationModuleTests
     {
         var services = new ServiceCollection();
 
-        services.AddImplementationsOf<IAmbiguousMarker>(assemblyFilter: ThisAssemblyOnly, allowMultipleImplementations: true);
+        services.AddImplementationsOf<IAmbiguousMarker>(new ImplementationRegistrationOptions { AssemblyFilter = ThisAssemblyOnly, AllowMultipleImplementations = true });
 
         using var provider = services.BuildServiceProvider();
         Assert.Equal(2, provider.GetServices<IAmbiguousUseCase>().Count());
@@ -81,19 +81,19 @@ public class ImplementationRegistrationModuleTests
     [Fact]
     public void Lazy_defers_construction_until_the_value_is_read()
     {
+        var constructionCounter = new ConstructionCounter();
         var services = new ServiceCollection();
+        services.AddSingleton(constructionCounter);
         services.AddMagicUseCases(ThisAssemblyOnly);
 
         using var provider = services.BuildServiceProvider();
         using var scope = provider.CreateScope();
 
-        CountingUseCase.Constructions = 0;
-
         var lazy = scope.ServiceProvider.GetRequiredService<Lazy<ICountingUseCase>>();
-        Assert.Equal(0, CountingUseCase.Constructions);
+        Assert.Equal(0, constructionCounter.Count);
 
         _ = lazy.Value;
-        Assert.Equal(1, CountingUseCase.Constructions);
+        Assert.Equal(1, constructionCounter.Count);
     }
 
     [Fact]
@@ -131,51 +131,55 @@ public class ImplementationRegistrationModuleTests
         Assert.Contains(rules, rule => rule is FirstRule);
         Assert.Contains(rules, rule => rule is SecondRule);
     }
-}
 
-// ── Fixtures ─────────────────────────────────────────────────────────────────────────────────────────
+    // ── Fixtures ─────────────────────────────────────────────────────────────────────────────────────────
 
-public interface ISingleMarker;
+    public interface ISingleMarker;
 
-public interface IOnlyUseCase : ISingleMarker;
+    public interface IOnlyUseCase : ISingleMarker;
 
-public class OnlyImplementation : IOnlyUseCase;
+    public class OnlyImplementation : IOnlyUseCase;
 
-public interface IOrphanMarker;
+    public interface IOrphanMarker;
 
-public interface IOrphanUseCase : IOrphanMarker;
+    public interface IOrphanUseCase : IOrphanMarker;
 
-public interface IAmbiguousMarker;
+    public interface IAmbiguousMarker;
 
-public interface IAmbiguousUseCase : IAmbiguousMarker;
+    public interface IAmbiguousUseCase : IAmbiguousMarker;
 
-public class FirstAmbiguous : IAmbiguousUseCase;
+    public class FirstAmbiguous : IAmbiguousUseCase;
 
-public class SecondAmbiguous : IAmbiguousUseCase;
+    public class SecondAmbiguous : IAmbiguousUseCase;
 
-public interface IScopedByDefaultUseCase : IMagicUseCase;
+    public interface IScopedByDefaultUseCase : IMagicUseCase;
 
-public class ScopedByDefaultUseCase : IScopedByDefaultUseCase;
+    public class ScopedByDefaultUseCase : IScopedByDefaultUseCase;
 
-public interface ISingletonUseCase : IMagicUseCase;
+    public interface ISingletonUseCase : IMagicUseCase;
 
-[MagicUseCase(ServiceLifetime.Singleton)]
-public class SingletonUseCase : ISingletonUseCase;
+    [MagicUseCase(ServiceLifetime.Singleton)]
+    public class SingletonUseCase : ISingletonUseCase;
 
-public interface ICountingUseCase : IMagicUseCase;
+    public interface ICountingUseCase : IMagicUseCase;
 
-public class CountingUseCase : ICountingUseCase
-{
-    public CountingUseCase()
+    public class CountingUseCase : ICountingUseCase
     {
-        Constructions++;
+        public CountingUseCase(ConstructionCounter constructionCounter)
+        {
+            constructionCounter.Count++;
+        }
     }
 
-    public static int Constructions { get; set; }
+    /// <summary>Counts <see cref="CountingUseCase" /> constructions, registered per test rather than shared.</summary>
+    public class ConstructionCounter
+    {
+        public int Count { get; set; }
+    }
+
+    public abstract class Rule;
+
+    public class FirstRule : Rule;
+
+    public class SecondRule : Rule;
 }
-
-public abstract class Rule;
-
-public class FirstRule : Rule;
-
-public class SecondRule : Rule;

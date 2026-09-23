@@ -15,7 +15,7 @@ public class SyncCommand : Command
 {
     public override int Execute(CommandContext context)
     {
-        var config = RepoConfig.Load();
+        var config = RepositoryConfig.Load();
 
         if (config == null)
         {
@@ -26,7 +26,7 @@ public class SyncCommand : Command
     }
 
     /// <summary>Returns whether the solution changed.</summary>
-    public static bool Run(RepoConfig config)
+    public static bool Run(RepositoryConfig config)
     {
         var solutionFile = $"{config.Prefix}.All.slnx";
         var projects = SolutionFile.DiscoverProjects(Directory.GetCurrentDirectory());

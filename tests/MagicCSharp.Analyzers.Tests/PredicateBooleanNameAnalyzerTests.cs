@@ -72,4 +72,36 @@ public class PredicateBooleanNameAnalyzerTests
 
         Assert.Empty(diagnostics);
     }
+
+    [Fact]
+    public async Task Parameters_named_by_an_overridden_or_implemented_contract_are_skipped()
+    {
+        var diagnostics = await AnalyzerHarness.Analyze(new PredicateBooleanNameAnalyzer(), """
+            namespace Subject;
+
+            public abstract class ContextBase
+            {
+                public abstract int SaveChanges(bool isAcceptingAllChanges);
+            }
+
+            public interface ISaver
+            {
+                void Save(bool isForced);
+            }
+
+            public class Context : ContextBase, ISaver
+            {
+                public override int SaveChanges(bool acceptAllChangesOnSuccess)
+                {
+                    return 0;
+                }
+
+                public void Save(bool force)
+                {
+                }
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+    }
 }

@@ -35,22 +35,22 @@ not this.
 ```csharp
 builder.AddMagicApp(new MagicAppOptions
 {
-    Controllers = false,        // minimal APIs
-    Scheduling = false,         // more than one instance — register your own store and lock provider
-    KeyGeneratorId = 3,         // stable per instance, rather than random
+    ShouldMapControllers = false,        // minimal APIs
+    ShouldRegisterScheduling = false,    // more than one instance — register your own store and lock provider
+    KeyGeneratorId = 3,                  // stable per instance, rather than random
 });
 ```
 
 | Option | Default | |
 |---|---|---|
-| `Events` | on | Handler discovery, plus in-process dispatch unless something already claimed `IEventDispatcher` |
-| `OpenTelemetryMetrics` | off | Event metrics through OpenTelemetry rather than discarded |
-| `Scheduling` | on | The single-machine schedule store and file-system lock |
+| `ShouldRegisterEvents` | on | Handler discovery, plus in-process dispatch unless something already claimed `IEventDispatcher` |
+| `ShouldUseOpenTelemetryMetrics` | off | Event metrics through OpenTelemetry rather than discarded |
+| `ShouldRegisterScheduling` | on | The single-machine schedule store and file-system lock |
 | `LockDirectory` | temp | Where the file lock provider writes |
-| `ErrorHandling` | on | Exceptions to RFC 7807 responses |
-| `Controllers` | on | `AddControllers` and `MapControllers` |
-| `JsonConventions` | on | Enums as their names and `Optional<T>` round-tripping, for controllers and minimal APIs alike |
-| `Preflight` | on | Resolve every registration at startup — needs the `builder` passed to `UseMagicApp` |
+| `ShouldHandleErrors` | on | Exceptions to RFC 7807 responses |
+| `ShouldMapControllers` | on | `AddControllers` and `MapControllers` |
+| `ShouldApplyJsonConventions` | on | Enums as their names and `Optional<T>` round-tripping, for controllers and minimal APIs alike |
+| `ShouldRunPreflight` | on | Resolve every registration at startup — needs the `builder` passed to `UseMagicApp` |
 | `KeyGeneratorId` | random | Snowflake generator id, 0–1023 |
 | `AssemblyFilter` | non-framework | Which assemblies are scanned for use cases and handlers |
 

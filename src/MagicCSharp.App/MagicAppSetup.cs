@@ -55,11 +55,11 @@ public static class MagicAppSetup
         // same id in the same millisecond.
         services.AddSnowflakeKeyGen(options.KeyGeneratorId);
 
-        if (options.Events)
+        if (options.ShouldRegisterEvents)
         {
             // Handler discovery, then the transport. Local dispatch is registered only when nothing else
             // has claimed IEventDispatcher, so calling AddMagicKafkaEvents first works as expected.
-            services.AddMagicEvents(options.OpenTelemetryMetrics);
+            services.AddMagicEvents(options.ShouldUseOpenTelemetryMetrics);
 
             if (services.All(descriptor => descriptor.ServiceType != typeof(Events.Events.IEventDispatcher)))
             {
@@ -67,22 +67,22 @@ public static class MagicAppSetup
             }
         }
 
-        if (options.Scheduling)
+        if (options.ShouldRegisterScheduling)
         {
             services.AddMagicScheduling(options.LockDirectory);
         }
 
-        if (options.ErrorHandling)
+        if (options.ShouldHandleErrors)
         {
             services.AddMagicErrorHandling();
         }
 
-        if (options.Controllers)
+        if (options.ShouldMapControllers)
         {
             services.AddControllers();
         }
 
-        if (options.JsonConventions)
+        if (options.ShouldApplyJsonConventions)
         {
             services.AddMagicJsonConventions();
         }
@@ -151,7 +151,7 @@ public static class MagicAppSetup
         options ??= new MagicAppOptions();
 
         // Before the first request rather than during it: a miswired dependency should fail the deploy.
-        if (options.Preflight && builder != null)
+        if (options.ShouldRunPreflight && builder != null)
         {
             app.Services.ValidateServices(builder.Services);
         }
@@ -161,12 +161,12 @@ public static class MagicAppSetup
         // carried Kestrel's connection counter while the header carried the real id.
         app.UseRequestId();
 
-        if (options.ErrorHandling)
+        if (options.ShouldHandleErrors)
         {
             app.UseMagicErrorHandling();
         }
 
-        if (options.Controllers)
+        if (options.ShouldMapControllers)
         {
             app.MapControllers();
         }
@@ -185,18 +185,18 @@ public record MagicAppOptions
     ///     Register event handler discovery and, unless something else already claimed
     ///     <c>IEventDispatcher</c>, in-process dispatch. Turn off for a service that publishes nothing.
     /// </summary>
-    public bool Events { get; init; } = true;
+    public bool ShouldRegisterEvents { get; init; } = true;
 
     /// <summary>
     ///     Use OpenTelemetry for event metrics rather than discarding them.
     /// </summary>
-    public bool OpenTelemetryMetrics { get; init; }
+    public bool ShouldUseOpenTelemetryMetrics { get; init; }
 
     /// <summary>
     ///     Register the single-machine scheduling defaults. Turn off, or register your own store and lock
     ///     provider first, when running more than one instance.
     /// </summary>
-    public bool Scheduling { get; init; } = true;
+    public bool ShouldRegisterScheduling { get; init; } = true;
 
     /// <summary>Where the file-system lock provider keeps its lock files.</summary>
     public string? LockDirectory { get; init; }
@@ -205,22 +205,22 @@ public record MagicAppOptions
     ///     Map exceptions to RFC 7807 problem responses. Turn off only if you are handling them yourself —
     ///     without it a domain <c>NotFoundException</c> reaches the caller as a 500.
     /// </summary>
-    public bool ErrorHandling { get; init; } = true;
+    public bool ShouldHandleErrors { get; init; } = true;
 
     /// <summary>Call <c>AddControllers</c> and <c>MapControllers</c>. Turn off for minimal APIs.</summary>
-    public bool Controllers { get; init; } = true;
+    public bool ShouldMapControllers { get; init; } = true;
 
     /// <summary>
     ///     Serialize enums by name and let <c>Optional&lt;T&gt;</c> round-trip, for both controllers and
     ///     minimal APIs. Turn off only if you are configuring <c>JsonSerializerOptions</c> yourself.
     /// </summary>
-    public bool JsonConventions { get; init; } = true;
+    public bool ShouldApplyJsonConventions { get; init; } = true;
 
     /// <summary>
     ///     Resolve every registration at startup, so a miswired dependency fails the deploy rather than the
     ///     first request that needs it.
     /// </summary>
-    public bool Preflight { get; init; } = true;
+    public bool ShouldRunPreflight { get; init; } = true;
 
     /// <summary>
     ///     The Snowflake generator id, 0-1023. Leave null for a random one, which is fine on one instance

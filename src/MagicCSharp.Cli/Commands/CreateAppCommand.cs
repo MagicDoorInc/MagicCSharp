@@ -30,7 +30,7 @@ public partial class CreateAppCommand : Command<CreateAppCommand.Settings>
         [CommandOption("--no-database")]
         [Description("Create no data projects — for a service that owns no tables")]
         [DefaultValue(false)]
-        public bool NoDatabase { get; init; }
+        public bool HasNoDatabase { get; init; }
 
         [CommandOption("-p|--port <PORT>")]
         [Description("Local development port. Defaults to one no other service has claimed.")]
@@ -48,12 +48,12 @@ public partial class CreateAppCommand : Command<CreateAppCommand.Settings>
                 return ValidationResult.Error($"Database name must be lowercase with underscores: {Database}");
             }
 
-            if (Database != null && NoDatabase)
+            if (Database != null && HasNoDatabase)
             {
                 return ValidationResult.Error("Pass either --database or --no-database, not both.");
             }
 
-            if (Database == null && !NoDatabase)
+            if (Database == null && !HasNoDatabase)
             {
                 return ValidationResult.Error("Pass --database <NAME> to give the service a database, or --no-database.");
             }
@@ -64,7 +64,7 @@ public partial class CreateAppCommand : Command<CreateAppCommand.Settings>
 
     public override int Execute(CommandContext context, Settings settings)
     {
-        var config = RepoConfig.Load();
+        var config = RepositoryConfig.Load();
 
         if (config == null)
         {
@@ -73,45 +73,45 @@ public partial class CreateAppCommand : Command<CreateAppCommand.Settings>
 
         var name = settings.Name!;
         var prefix = config.Prefix;
-        var withDatabase = !settings.NoDatabase;
+        var hasDatabase = !settings.HasNoDatabase;
         var databaseName = settings.Database ?? name.ToLowerInvariant();
         var port = settings.Port ?? FindFreePort();
 
         var root = $"Apps/{name}";
         var solutionFile = $"{prefix}.{name}.slnx";
 
-        Output.Plain($"Service: {name}   Port: {port}   Database: {(withDatabase ? databaseName : "none")}");
+        Output.Plain($"Service: {name}   Port: {port}   Database: {(hasDatabase ? databaseName : "none")}");
         Output.Blank();
 
-        var renderer = new TemplateRenderer(TemplateResolver.ForRepository(config));
+        var templateRenderer = new TemplateRenderer(TemplateResolver.ForRepository(config));
         var model = new
         {
             prefix,
             name,
             port,
-            database = new { enabled = withDatabase, name = databaseName },
+            database = new { enabled = hasDatabase, name = databaseName },
         };
 
         var appProject = $"{root}/{name}.App/{prefix}.{name}.App.csproj";
         var projects = new List<string> { appProject };
 
-        renderer.Render("Apps/app.csproj.hbs", appProject, model);
-        renderer.Render("Apps/Program.cs.hbs", $"{root}/{name}.App/Program.cs", model);
-        renderer.Render("Apps/HelloController.cs.hbs", $"{root}/{name}.App/Controllers/HelloController.cs", model);
-        renderer.Render("Apps/appsettings.json.hbs", $"{root}/{name}.App/appsettings.json", model);
-        renderer.Render("Apps/appsettings.Development.json.hbs", $"{root}/{name}.App/appsettings.Development.json", model);
-        renderer.Render("Apps/launchSettings.json.hbs", $"{root}/{name}.App/Properties/launchSettings.json", model);
+        templateRenderer.Render("Apps/app.csproj.hbs", appProject, model);
+        templateRenderer.Render("Apps/Program.cs.hbs", $"{root}/{name}.App/Program.cs", model);
+        templateRenderer.Render("Apps/HelloController.cs.hbs", $"{root}/{name}.App/Controllers/HelloController.cs", model);
+        templateRenderer.Render("Apps/appsettings.json.hbs", $"{root}/{name}.App/appsettings.json", model);
+        templateRenderer.Render("Apps/appsettings.Development.json.hbs", $"{root}/{name}.App/appsettings.Development.json", model);
+        templateRenderer.Render("Apps/launchSettings.json.hbs", $"{root}/{name}.App/Properties/launchSettings.json", model);
 
-        if (withDatabase)
+        if (hasDatabase)
         {
             var dataModels = $"{root}/Data/Data.Models/{prefix}.{name}.Data.Models.csproj";
             var dataEf = $"{root}/Data/Data.EntityFramework/{prefix}.{name}.Data.EntityFramework.csproj";
 
-            renderer.Render("Apps/Data/DataModels.csproj.hbs", dataModels, model);
-            renderer.Render("Apps/Data/DataEntityFramework.csproj.hbs", dataEf, model);
-            renderer.Render("Apps/Data/MagicContext.cs.hbs", $"{root}/Data/Data.EntityFramework/Magic{name}Context.cs", model);
-            renderer.Render("Apps/Data/MagicContextFactory.cs.hbs", $"{root}/Data/Data.EntityFramework/Magic{name}ContextFactory.cs", model);
-            renderer.Render("Apps/Data/RepositoriesModule.cs.hbs", $"{root}/Data/Data.EntityFramework/{name}RepositoriesModule.cs", model);
+            templateRenderer.Render("Apps/Data/DataModels.csproj.hbs", dataModels, model);
+            templateRenderer.Render("Apps/Data/DataEntityFramework.csproj.hbs", dataEf, model);
+            templateRenderer.Render("Apps/Data/MagicContext.cs.hbs", $"{root}/Data/Data.EntityFramework/Magic{name}Context.cs", model);
+            templateRenderer.Render("Apps/Data/MagicContextFactory.cs.hbs", $"{root}/Data/Data.EntityFramework/Magic{name}ContextFactory.cs", model);
+            templateRenderer.Render("Apps/Data/RepositoriesModule.cs.hbs", $"{root}/Data/Data.EntityFramework/{name}RepositoriesModule.cs", model);
 
             projects.Add(dataModels);
             projects.Add(dataEf);

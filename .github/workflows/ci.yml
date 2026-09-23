@@ -92,6 +92,8 @@ jobs:
           mcs add-entity --solution Acme.Shop.slnx --domain Orders --name Order --paginated
           mcs add-entity --solution Shop --domain Orders.Fulfilment --name Shipment
           mcs sync
+          # The AI files init wrote are already this version, so refreshing them must change nothing.
+          mcs update ai-files
           if [ -n "$(git status --porcelain)" ]; then
             echo "Re-running the commands changed the worktree:"
             git status --porcelain

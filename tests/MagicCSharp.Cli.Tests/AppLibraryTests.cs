@@ -4,7 +4,7 @@ namespace MagicCSharp.Cli.Tests;
 
 public class AppLibraryTests
 {
-    private static readonly RepoConfig Config = new RepoConfig { Prefix = "Acme" };
+    private static readonly RepositoryConfig Config = new RepositoryConfig { Prefix = "Acme" };
 
     private static AppLibrary Plan(string name)
     {

@@ -38,10 +38,16 @@ public abstract class TestRepositoryBase<TContext> : IAsyncLifetime
     private static readonly SemaphoreSlim InitLock = new SemaphoreSlim(1, 1);
     private static readonly ConcurrentDictionary<string, DbContextOptions<TContext>> OptionsByDatabase =
         new ConcurrentDictionary<string, DbContextOptions<TContext>>();
-    private static readonly SemaphoreSlim StartLock = new SemaphoreSlim(1, 1);
 
-    private static PostgreSqlContainer? container;
-    private static volatile bool containerStarted;
+    /// <summary>
+    ///     One container per image for the run (per context type, as every static here is), started by whichever
+    ///     test class asks first. Keyed by image so a class that overrides <see cref="ContainerImage" /> gets the image it asked for rather than whatever
+    ///     an earlier class started.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, Lazy<Task<PostgreSqlContainer>>> ContainersByImage =
+        new ConcurrentDictionary<string, Lazy<Task<PostgreSqlContainer>>>();
+
+    private PostgreSqlContainer container = null!;
 
     protected TestRepositoryBase()
     {
@@ -64,7 +70,7 @@ public abstract class TestRepositoryBase<TContext> : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await EnsureContainerStarted();
+        container = await ContainersByImage.GetOrAdd(ContainerImage, StartContainer).Value;
 
         var databaseName = GetDatabaseName();
 
@@ -157,34 +163,19 @@ public abstract class TestRepositoryBase<TContext> : IAsyncLifetime
         await command.ExecuteNonQueryAsync();
     }
 
-    private async Task EnsureContainerStarted()
+    private static Lazy<Task<PostgreSqlContainer>> StartContainer(string image)
     {
-        if (containerStarted)
+        return new Lazy<Task<PostgreSqlContainer>>(async () =>
         {
-            return;
-        }
-
-        await StartLock.WaitAsync();
-        try
-        {
-            if (containerStarted)
-            {
-                return;
-            }
-
-            container = new PostgreSqlBuilder(ContainerImage).WithCommand("-c", "max_connections=500").Build();
-            await container.StartAsync();
-            containerStarted = true;
-        }
-        finally
-        {
-            StartLock.Release();
-        }
+            var postgreSqlContainer = new PostgreSqlBuilder(image).WithCommand("-c", "max_connections=500").Build();
+            await postgreSqlContainer.StartAsync();
+            return postgreSqlContainer;
+        });
     }
 
     private DbContextOptions<TContext> BuildOptions(string databaseName)
     {
-        var connectionString = new NpgsqlConnectionStringBuilder(container!.GetConnectionString())
+        var connectionString = new NpgsqlConnectionStringBuilder(container.GetConnectionString())
         {
             Database = databaseName,
             IncludeErrorDetail = true,
@@ -243,9 +234,9 @@ public abstract class TestRepositoryBase<TContext> : IAsyncLifetime
         }
     }
 
-    private static async Task CreateLogicalDatabase(string databaseName)
+    private async Task CreateLogicalDatabase(string databaseName)
     {
-        await using var connection = new NpgsqlConnection(container!.GetConnectionString());
+        await using var connection = new NpgsqlConnection(container.GetConnectionString());
         await connection.OpenAsync();
 
         await using var exists = connection.CreateCommand();

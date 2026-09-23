@@ -465,6 +465,12 @@ mcs add-entity --solution Shop --domain Orders --name Order --paginated
 names, namespaces and generic arguments, and registers it — not typing saved so much as a class of mistake
 removed. Nothing is ever overwritten, and re-running any command produces no diff.
 
+`mcs init` also writes the conventions down for AI coding agents: a `CLAUDE.md` and an `.ai-knowledge/`
+folder, one guide per topic — where a use case goes, how an entity is shaped, how events, background services
+and tests work — plus a `project.md` for what is specific to your repository. An agent working in the
+repository follows the same rules the build enforces, and `mcs update ai-files` brings in improved guides with
+each release. Their source is [AIAgents/](AIAgents/).
+
 **[The full guide →](docs/repository-layout.md)** — domains, subdomains, app libraries, entities, and what
 the tool wires versus what it leaves you. **[Template overrides →](docs/template-overrides.md)** — every
 file it generates comes from a template you can replace, one at a time, keeping the rest.

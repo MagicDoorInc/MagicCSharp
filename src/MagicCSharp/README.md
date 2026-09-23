@@ -272,7 +272,7 @@ includes it, and `MagicCSharp.App` registers it for controllers and minimal APIs
 A range with inclusive or exclusive ends, for filters:
 
 ```csharp
-new ComparableRange<DateTimeOffset> { Start = since, End = until, EndInclusive = false }
+new ComparableRange<DateTimeOffset> { Start = since, End = until, IsEndInclusive = false }
 ```
 
 `Contains(value)`, `Contains(range)` and `Overlaps(range)` in memory; `ApplyComparableRangeFilter` in
@@ -294,14 +294,14 @@ The repository contracts in `MagicCSharp.Data` are constrained on these.
 What `AddMagicUseCases` does for `IMagicUseCase` is available for any marker interface:
 
 ```csharp
-services.AddImplementationsOf<IMagicValidator>(ServiceLifetime.Scoped);       // IOrderValidator → OrderValidator
+services.AddImplementationsOf<IMagicValidator>(new ImplementationRegistrationOptions { Lifetime = ServiceLifetime.Scoped }); // IOrderValidator → OrderValidator
 services.AddImplementationsOfBase<IStartupCheck>(typeof(Program).Assembly);   // IEnumerable<IStartupCheck>
 ```
 
 `AddImplementationsOf` registers each implementation under the sub-interface that extends the marker, with
-the same startup errors as use cases; pass `allowMultipleImplementations: true` for a marker that really is
-a catalog. `AddImplementationsOfBase` registers everything under the base type itself, scoped to one
-assembly so a scan does not collect test doubles.
+the same startup errors as use cases; set `AllowMultipleImplementations = true` on the options for a marker
+that really is a catalog. `AddImplementationsOfBase` registers everything under the base type itself, scoped
+to one assembly so a scan does not collect test doubles.
 
 ## Related packages
 

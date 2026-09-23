@@ -13,10 +13,12 @@ dotnet add package MagicCSharp.Events.Kafka
 ## Registration
 
 ```csharp
-var kafkaConfig = new KafkaMagicEventConfiguration(
-    BootstrapServers: "kafka1:9092,kafka2:9092",
-    GroupId: "shop",
-    Topic: "shop-events");
+var kafkaConfig = new KafkaMagicEventConfiguration
+{
+    BootstrapServers = "kafka1:9092,kafka2:9092",
+    GroupId = "shop",
+    Topic = "shop-events",
+};
 
 builder.Services.AddMagicKafkaEvents(kafkaConfig);
 builder.AddMagicApp();      // or AddMagicCSharp and friends — the in-process dispatcher steps aside
@@ -26,7 +28,7 @@ That registers handler discovery (`AddMagicEvents`, idempotent), a producer, a c
 auto-offset-store off, `KafkaEventDispatcher` as `IEventDispatcher`, and `KafkaEventsBackgroundService` as
 the consumer. Kafka's own log lines flow through `ILogger` at the level they were emitted — emergency, alert
 and critical to Critical, error to Error, warning to Warning, notice and info to Information, debug to Debug.
-`useOpenTelemetryMetrics: true` turns on the event metrics.
+`shouldUseOpenTelemetryMetrics: true` turns on the event metrics.
 
 One call per application. Two services that should not see each other's events use different topics; two
 instances of the same service share a `GroupId` and Kafka splits the partitions between them.
@@ -127,16 +129,18 @@ same consumer group against the same brokers, with the same manual commit and er
 Development, one broker in Docker Compose:
 
 ```csharp
-new KafkaMagicEventConfiguration(BootstrapServers: "localhost:9092", GroupId: "shop-dev", Topic: "shop-events")
+new KafkaMagicEventConfiguration { BootstrapServers = "localhost:9092", GroupId = "shop-dev", Topic = "shop-events" }
 ```
 
 Production, several brokers:
 
 ```csharp
-new KafkaMagicEventConfiguration(
-    BootstrapServers: "kafka1.prod:9092,kafka2.prod:9092,kafka3.prod:9092",
-    GroupId: "shop",
-    Topic: "shop-events")
+new KafkaMagicEventConfiguration
+{
+    BootstrapServers = "kafka1.prod:9092,kafka2.prod:9092,kafka3.prod:9092",
+    GroupId = "shop",
+    Topic = "shop-events",
+}
 ```
 
 From configuration:
@@ -152,10 +156,12 @@ From configuration:
 ```
 
 ```csharp
-var kafkaConfig = new KafkaMagicEventConfiguration(
-    BootstrapServers: configuration["Kafka:BootstrapServers"]!,
-    GroupId: configuration["Kafka:GroupId"]!,
-    Topic: configuration["Kafka:Topic"]!);
+var kafkaConfig = new KafkaMagicEventConfiguration
+{
+    BootstrapServers = configuration["Kafka:BootstrapServers"]!,
+    GroupId = configuration["Kafka:GroupId"]!,
+    Topic = configuration["Kafka:Topic"]!,
+};
 
 builder.Services.AddMagicKafkaEvents(kafkaConfig);
 ```

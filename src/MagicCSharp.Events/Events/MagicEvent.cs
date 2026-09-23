@@ -13,5 +13,7 @@ public abstract record MagicEvent
     /// <summary>
     ///     Timestamp when this event occurred.
     /// </summary>
+#pragma warning disable MCS0008 // an event records when it happened, and has no clock to inject
     public DateTimeOffset OccurredOn { get; set; } = DateTimeOffset.UtcNow; // conventions: allow — an event records when it happened, and has no clock to inject
+#pragma warning restore MCS0008
 }

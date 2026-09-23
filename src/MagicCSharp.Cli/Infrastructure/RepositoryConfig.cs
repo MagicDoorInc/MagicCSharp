@@ -8,7 +8,7 @@ namespace MagicCSharp.Cli.Infrastructure;
 ///     MagicCSharp-layout repository; the commands refuse to run without it rather than guessing a prefix
 ///     and scattering files into the wrong places.
 /// </summary>
-public record RepoConfig
+public record RepositoryConfig
 {
     public const string FileName = "magiccsharp.json";
 
@@ -24,7 +24,7 @@ public record RepoConfig
     public string? Templates { get; init; }
 
     /// <summary>Reads the config, or null with a printed explanation when it is missing or unusable.</summary>
-    public static RepoConfig? Load(string? directory = null)
+    public static RepositoryConfig? Load(string? directory = null)
     {
         var path = Path.Combine(directory ?? Directory.GetCurrentDirectory(), FileName);
 
@@ -48,20 +48,20 @@ public record RepoConfig
     ///         empty directory.
     ///     </para>
     /// </summary>
-    public static RepoConfig? TryLoad(string? directory = null)
+    public static RepositoryConfig? TryLoad(string? directory = null)
     {
         var path = Path.Combine(directory ?? Directory.GetCurrentDirectory(), FileName);
 
         return File.Exists(path) ? Read(path) : null;
     }
 
-    private static RepoConfig? Read(string path)
+    private static RepositoryConfig? Read(string path)
     {
 
-        RepoConfig? config;
+        RepositoryConfig? config;
         try
         {
-            config = JsonSerializer.Deserialize<RepoConfig>(File.ReadAllText(path));
+            config = JsonSerializer.Deserialize<RepositoryConfig>(File.ReadAllText(path));
         }
         catch (JsonException ex)
         {

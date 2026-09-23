@@ -16,24 +16,24 @@ public static class MagicKafkaEventsRegistrationExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">Kafka configuration.</param>
-    /// <param name="useOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
+    /// <param name="shouldUseOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddMagicKafkaEvents(
         this IServiceCollection services,
         KafkaMagicEventConfiguration configuration,
-        bool useOpenTelemetryMetrics = false)
+        bool shouldUseOpenTelemetryMetrics = false)
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
         // Register core infrastructure
-        services.AddMagicEvents(useOpenTelemetryMetrics);
+        services.AddMagicEvents(shouldUseOpenTelemetryMetrics);
 
         var host = configuration.BootstrapServers;
         var groupId = configuration.GroupId;
         var topic = configuration.Topic;
 
         // Register Kafka configuration
-        services.AddSingleton(new KafkaEventsBackgroundServiceConfig(topic));
+        services.AddSingleton(new KafkaEventsBackgroundServiceConfig { Topic = topic });
 
         // Register Kafka producer
         services.AddSingleton<IProducer<Null, string>>(serviceProvider =>

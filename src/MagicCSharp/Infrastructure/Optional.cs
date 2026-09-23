@@ -1,6 +1,3 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
-
 namespace MagicCSharp.Infrastructure;
 
 /// <summary>
@@ -70,43 +67,5 @@ public readonly struct Optional<T>(T value) : IOptional
     public override string ToString()
     {
         return HasValue ? Value?.ToString() ?? "null" : "undefined";
-    }
-}
-
-/// <summary>
-///     Makes <see cref="Optional{T}" /> round-trip through System.Text.Json. Register it in
-///     <c>JsonSerializerOptions.Converters</c>; <see cref="JsonDefaults" /> already does.
-/// </summary>
-public class OptionalConverterFactory : JsonConverterFactory
-{
-    public override bool CanConvert(Type typeToConvert)
-    {
-        return typeToConvert.IsGenericType && typeToConvert.GetGenericTypeDefinition() == typeof(Optional<>);
-    }
-
-    public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
-    {
-        var valueType = typeToConvert.GetGenericArguments()[0];
-        return (JsonConverter)Activator.CreateInstance(typeof(OptionalConverter<>).MakeGenericType(valueType))!;
-    }
-}
-
-/// <inheritdoc cref="OptionalConverterFactory" />
-public sealed class OptionalConverter<T> : JsonConverter<Optional<T>>
-{
-    public override Optional<T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        // Read is only called when the property is present in the JSON, which is exactly what HasValue means.
-        // An omitted property leaves the field at default(Optional<T>) and never reaches this converter.
-        var value = JsonSerializer.Deserialize<T>(ref reader, options);
-        return new Optional<T>(value!);
-    }
-
-    public override void Write(Utf8JsonWriter writer, Optional<T> value, JsonSerializerOptions options)
-    {
-        if (value.HasValue)
-        {
-            JsonSerializer.Serialize(writer, value.Value, options);
-        }
     }
 }

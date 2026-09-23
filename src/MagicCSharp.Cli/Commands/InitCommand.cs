@@ -31,7 +31,12 @@ public class InitCommand : Command<InitCommand.Settings>
         [CommandOption("--no-build-rules")]
         [Description("Leave out MagicCSharp.Analyzers, the code-style rules every project otherwise builds with")]
         [DefaultValue(false)]
-        public bool NoBuildRules { get; init; }
+        public bool ShouldSkipBuildRules { get; init; }
+
+        [CommandOption("--no-ai-knowledge")]
+        [Description("Leave out CLAUDE.md and .ai-knowledge/, the conventions written for AI coding agents")]
+        [DefaultValue(false)]
+        public bool ShouldSkipAiKnowledge { get; init; }
 
         public override Spectre.Console.ValidationResult Validate()
         {
@@ -49,11 +54,11 @@ public class InitCommand : Command<InitCommand.Settings>
     public override int Execute(CommandContext context, Settings settings)
     {
         // An empty root keeps every path relative, so the output names files the way the user sees them.
-        var wrote = WriteRepository("", settings);
+        var hasWritten = WriteRepository("", settings);
 
         Output.Blank();
 
-        if (!wrote)
+        if (!hasWritten)
         {
             Output.Note("Nothing to do — this repository is already set up.");
             return 0;
@@ -61,7 +66,7 @@ public class InitCommand : Command<InitCommand.Settings>
 
         Output.Success("Ready.");
         Output.Plain("  mcs create-app --name Shop --database shop");
-        Output.Plain($"  mcs create-domain --solution {settings.Prefix}.Shop.slnx --name Domains.Orders --models --tests");
+        Output.Plain("  mcs create-domain --solution Shop --name Orders --models --tests");
 
         return 0;
     }
@@ -77,19 +82,20 @@ public class InitCommand : Command<InitCommand.Settings>
         // Defaults to the version this tool shipped with, so a new repository never pins something older
         // than its own tooling.
         var version = settings.PackageVersion ?? ToolVersion.Current;
-        var buildRules = !settings.NoBuildRules;
+        var hasBuildRules = !settings.ShouldSkipBuildRules;
+        var isWritingAiFiles = !settings.ShouldSkipAiKnowledge;
 
-        var renderer = new TemplateRenderer(new TemplateResolver(Path.Combine(root, TemplateResolver.DefaultOverrideDirectory)));
-        var model = new { prefix, version, target_framework = settings.TargetFramework, build_rules = buildRules };
+        var templateRenderer = new TemplateRenderer(new TemplateResolver(Path.Combine(root, TemplateResolver.DefaultOverrideDirectory)));
+        var model = new { prefix, version, target_framework = settings.TargetFramework, build_rules = hasBuildRules };
 
-        Output.Plain($"Prefix: {prefix}   MagicCSharp: {version}   Target: {settings.TargetFramework}   Build rules: {(buildRules ? "on" : "off")}");
+        Output.Plain($"Prefix: {prefix}   MagicCSharp: {version}   Target: {settings.TargetFramework}   Build rules: {(hasBuildRules ? "on" : "off")}   AI files: {(isWritingAiFiles ? "on" : "off")}");
         Output.Blank();
 
-        var wrote = false;
+        var hasWritten = false;
 
         // "templates" is written even though it matches the default, so the override mechanism is
         // discoverable from the config rather than only from documentation.
-        wrote |= TemplateRenderer.Write(Path.Combine(root, RepoConfig.FileName), $$"""
+        hasWritten |= TemplateRenderer.Write(Path.Combine(root, RepositoryConfig.FileName), $$"""
             {
               "prefix": "{{prefix}}",
               "templates": "{{TemplateResolver.DefaultOverrideDirectory}}"
@@ -97,33 +103,30 @@ public class InitCommand : Command<InitCommand.Settings>
 
             """);
 
-        wrote |= renderer.Render("Repo/Directory.Build.props.hbs", Path.Combine(root, "Directory.Build.props"), model);
-        wrote |= renderer.Render("Repo/Directory.Packages.props.hbs", Path.Combine(root, "Directory.Packages.props"), model);
-        wrote |= TemplateRenderer.Write(Path.Combine(root, $"{prefix}.All.slnx"), "<Solution>\n</Solution>\n");
+        hasWritten |= templateRenderer.Render("Repo/Directory.Build.props.hbs", Path.Combine(root, "Directory.Build.props"), model);
+        hasWritten |= templateRenderer.Render("Repo/Directory.Packages.props.hbs", Path.Combine(root, "Directory.Packages.props"), model);
+        hasWritten |= TemplateRenderer.Write(Path.Combine(root, $"{prefix}.All.slnx"), "<Solution>\n</Solution>\n");
 
         // git does not track empty directories, so without these the two top-level directories vanish on
         // a fresh clone.
-        wrote |= TemplateRenderer.Write(Path.Combine(root, "Apps", ".gitkeep"), "");
-        wrote |= TemplateRenderer.Write(Path.Combine(root, "Libs", ".gitkeep"), "");
+        hasWritten |= TemplateRenderer.Write(Path.Combine(root, "Apps", ".gitkeep"), "");
+        hasWritten |= TemplateRenderer.Write(Path.Combine(root, "Libs", ".gitkeep"), "");
 
         // Without one, the first build leaves hundreds of bin/ and obj/ files staged.
-        wrote |= renderer.Render("Repo/gitignore.hbs", Path.Combine(root, ".gitignore"), model);
+        hasWritten |= templateRenderer.Render("Repo/gitignore.hbs", Path.Combine(root, ".gitignore"), model);
 
         // Only the build rules need it: it tells them an EF migration is generated code.
-        if (buildRules)
+        if (hasBuildRules)
         {
-            wrote |= renderer.Render("Repo/editorconfig.hbs", Path.Combine(root, ".editorconfig"), model);
+            hasWritten |= templateRenderer.Render("Repo/editorconfig.hbs", Path.Combine(root, ".editorconfig"), model);
         }
 
-        return wrote;
-    }
-}
+        // The conventions, written down for an AI coding agent — and for a person new to the repository.
+        if (isWritingAiFiles)
+        {
+            hasWritten |= AiFiles.WriteMissing(root, prefix);
+        }
 
-/// <summary>The version of this tool, read from the assembly rather than hardcoded in two places.</summary>
-public static class ToolVersion
-{
-    public static string Current { get; } =
-        typeof(ToolVersion).Assembly.GetName().Version is { } version
-            ? $"{version.Major}.{version.Minor}.{version.Build}"
-            : "0.0.0";
+        return hasWritten;
+    }
 }

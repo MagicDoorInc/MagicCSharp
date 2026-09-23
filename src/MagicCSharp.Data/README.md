@@ -135,7 +135,7 @@ page.TotalPages;
 ```
 
 `PaginationRequest` clamps to a minimum page of 1 and page size of 1, and defaults to 50 per page.
-`new PaginationRequest(disable: true)` returns everything, for an export.
+`new PaginationRequest(isDisabled: true)` returns everything, for an export.
 
 ## A port, not Entity Framework
 
