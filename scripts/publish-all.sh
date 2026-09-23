@@ -1,20 +1,21 @@
 #!/bin/bash
 
-# MagicCSharp NuGet Packages Publish Script
-# Usage: ./publish-all.sh [--push] [--major|--minor|--patch]
+# MagicCSharp release preparation
+# Usage: ./publish-all.sh [--dry-run] [--major|--minor|--patch]
+#
+# Bumps the shared version, then builds and packs all fourteen packages so you can see the release is sound.
+# It does not publish: commit the bumped files, tag the commit v<version> and push the tag, and
+# .github/workflows/release.yml publishes to NuGet.org through trusted publishing.
 #
 # Flags:
-#   --push         Push packages to NuGet.org after building
 #   --dry-run      Build and pack everything, then undo the version bump and delete the packages
 #   --major        Increment major version (X.0.0)
 #   --minor        Increment minor version (0.X.0)
 #   --patch        Increment patch version (0.0.X) - DEFAULT
 #
 # Examples:
-#   ./publish-all.sh --dry-run          # Verify a release builds, change nothing
-#   ./publish-all.sh                    # Build locally, increment patch
-#   ./publish-all.sh --push             # Build and push, increment patch
-#   ./publish-all.sh --minor --push     # Build and push, increment minor
+#   ./publish-all.sh --minor --dry-run  # Verify a release builds, change nothing
+#   ./publish-all.sh --minor            # Bump and pack; then commit, tag and push the tag
 
 set -e  # Exit on error
 
@@ -45,20 +46,16 @@ PACKAGES=(
 )
 
 echo "================================================"
-echo "MagicCSharp NuGet Package Publisher"
+echo "MagicCSharp Release Preparation"
 echo "================================================"
 echo ""
 
 # Parse arguments
-PUSH=false
 DRY_RUN=false
 VERSION_TYPE="patch"
 
 for arg in "$@"; do
     case $arg in
-        --push)
-            PUSH=true
-            ;;
         --dry-run)
             DRY_RUN=true
             ;;
@@ -73,7 +70,7 @@ for arg in "$@"; do
             ;;
         *)
             echo "Unknown argument: $arg"
-            echo "Usage: $0 [--push] [--dry-run] [--major|--minor|--patch]"
+            echo "Usage: $0 [--dry-run] [--major|--minor|--patch]"
             exit 1
             ;;
     esac
@@ -209,7 +206,6 @@ done
 echo "================================================"
 echo ""
 
-# Push to NuGet if requested
 if [ "$DRY_RUN" = true ]; then
     echo "Dry run — restoring the version bump and removing the packages."
     # One at a time: a single git checkout aborts entirely if any path is untracked, which would silently
@@ -223,54 +219,12 @@ if [ "$DRY_RUN" = true ]; then
     exit 0
 fi
 
-if [ "$PUSH" = true ]; then
-    echo "Publishing to NuGet.org..."
-    echo ""
-
-    # Check for API key in environment variable
-    if [ -z "$NUGET_API_KEY" ]; then
-        read -p "Enter your NuGet API key (or press Enter to skip): " API_KEY
-        if [ -z "$API_KEY" ]; then
-            echo "Skipping publish. Packages are ready in $OUTPUT_DIR"
-            echo ""
-            echo "To publish later, set NUGET_API_KEY environment variable or run:"
-            echo "  ./publish-all.sh --push"
-            exit 0
-        fi
-    else
-        API_KEY="$NUGET_API_KEY"
-        echo "Using NUGET_API_KEY from environment"
-    fi
-
-    echo ""
-    echo "Publishing packages..."
-    echo ""
-
-    for PKG in "${SUCCESSFUL_PACKAGES[@]}"; do
-        echo "Publishing $(basename $PKG)..."
-        if dotnet nuget push "$PKG" --api-key "$API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate; then
-            echo "✓ Published successfully"
-        else
-            echo "✗ Failed to publish $(basename $PKG)"
-            exit 1
-        fi
-        echo ""
-    done
-
-    echo "================================================"
-    echo "All packages published successfully!"
-    echo "Version $NEW_VERSION is now live on NuGet.org"
-    echo "================================================"
-else
-    echo "Packages built successfully but not published."
-    echo ""
-    echo "To publish to NuGet.org, run:"
-    echo "  ./publish-all.sh --push"
-    echo ""
-    echo "Or set NUGET_API_KEY environment variable and run:"
-    echo "  export NUGET_API_KEY='your-api-key'"
-    echo "  ./publish-all.sh --push"
-fi
-
+echo "Packages are in $OUTPUT_DIR. To publish $NEW_VERSION:"
+echo ""
+echo "  git commit -am \"Release $NEW_VERSION\""
+echo "  git tag v$NEW_VERSION"
+echo "  git push origin master v$NEW_VERSION"
+echo ""
+echo "The tag runs .github/workflows/release.yml, which publishes to NuGet.org."
 echo ""
 echo "Done!"

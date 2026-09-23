@@ -1,38 +1,42 @@
-# Publishing
+# Releasing
 
-Every MagicCSharp package shares one version and ships together. `publish-all.sh` builds, packs and
-optionally pushes all fourteen: the twelve libraries in `src/`, `MagicCSharp.Cli`, and
-`MagicCSharp.Templates`.
+Every MagicCSharp package shares one version and ships together: the twelve libraries in `src/`,
+`MagicCSharp.Cli`, and `MagicCSharp.Templates`. They are published under the
+[MagicDoor](https://www.nuget.org/profiles/MagicDoor) organisation on NuGet.org.
 
 ```bash
-./scripts/publish-all.sh [--dry-run] [--push] [--major|--minor|--patch]
+./scripts/publish-all.sh --minor --dry-run   # everything builds and packs; nothing changes
+./scripts/publish-all.sh --minor             # bump the version and pack
+
+git commit -am "Release 0.2.0"
+git tag v0.2.0
+git push origin master v0.2.0                # the tag publishes
 ```
+
+Move the `CHANGELOG.md` entry under the new version before committing.
+
+Pushing the tag runs [`.github/workflows/release.yml`](../.github/workflows/release.yml). It checks the tag
+matches the version in the repository, builds, runs the tests, packs all fourteen packages, and pushes them.
+The job waits in the `nuget` environment for an approval before it runs.
+
+There is no API key. NuGet.org trusts that workflow file, in this repository, in that environment, through
+the `MagicDoorPush` trusted publishing policy. Renaming the workflow or the environment stops publishing
+until the policy on nuget.org is edited to match.
+
+A version on NuGet.org cannot be deleted, only unlisted, so a mistake means shipping the next patch. The
+workflow pushes with `--skip-duplicate`, so re-running it after a partial failure only sends what is missing.
+
+## publish-all.sh
 
 | Flag | |
 |---|---|
 | `--dry-run` | Build and pack everything, then undo the version bump and delete the packages |
-| `--push` | Push to NuGet.org after packing (reads `NUGET_API_KEY`, prompts if unset) |
 | `--major` / `--minor` / `--patch` | Which part of the version to bump. Patch is the default |
 
-## Where the version lives
+`scripts/version.txt` is the source of the version. The script bumps it, then writes the same number to:
 
-`scripts/version.txt` is the source. The script bumps it, then writes the same number to:
-
-- `src/Directory.Build.props` — inherited by every library and the CLI
-- `templates/content/magiccsharp-repo/.template.config/template.json` — the version a freshly generated
+- `src/Directory.Build.props`, inherited by every library and the CLI
+- `templates/content/magiccsharp-repo/.template.config/template.json`, the version a freshly generated
   repository pins
 
 `templates/MagicCSharp.Templates.csproj` reads `version.txt` directly, since it sits outside `src/`.
-
-## Releasing
-
-```bash
-./scripts/publish-all.sh --minor --dry-run   # everything builds and packs; nothing changes
-./scripts/publish-all.sh --minor --push      # the release
-```
-
-Then move the `CHANGELOG.md` entry under the new version, commit the three bumped files, and tag the commit
-`v<version>`. The script does not commit or tag.
-
-A version on NuGet.org cannot be deleted, only unlisted, so a mistake means shipping the next patch. The
-script pushes with `--skip-duplicate`, so re-running after a partial failure only sends what is missing.
