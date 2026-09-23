@@ -18,9 +18,9 @@
     <ItemGroup>
         <PackageReference Include="DistributedLock.Core" Version="1.0.8"/>
         <PackageReference Include="DistributedLock.FileSystem" Version="1.0.3"/>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0"/>
-        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0"/>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12"/>
     </ItemGroup>
 
     <ItemGroup>
