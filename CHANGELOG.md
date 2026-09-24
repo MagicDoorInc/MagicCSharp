@@ -16,6 +16,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
   writes both; in a repository from 1.0.1, `mcs update ai-files` creates `AGENTS.md` and turns `CLAUDE.md`
   into the import.
 
+### Fixed
+
+- **MCS0019 rejected a use case named for its operation.** `var signLease = new SignLeaseUseCase(...)` now
+  passes and `var signLeaseUseCase` is reported, matching MCS0007, which already drops the `UseCase` suffix
+  from dependencies.
+
 ---
 
 ## 1.0.1 — 2026-09-23
