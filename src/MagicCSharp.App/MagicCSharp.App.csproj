@@ -20,7 +20,7 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.App</PackageId>
-        <Description>Everything a MagicCSharp web service needs, wired in two calls. Brings in the core, ASP.NET, events and scheduling packages and registers use cases, IClock, Snowflake IDs, request-ID tracking, in-process events, scheduling defaults, problem-details error handling and a startup preflight. Use the individual packages instead when you want to choose each piece.</Description>
+        <Description>Everything a MagicCSharp web service needs, wired in two calls. Brings in the core, ASP.NET, events and scheduling packages and registers use cases, TimeProvider, Snowflake IDs, request-ID tracking, in-process events, scheduling defaults, problem-details error handling and a startup preflight. Use the individual packages instead when you want to choose each piece.</Description>
         <PackageTags>aspnetcore;bootstrap;clean-architecture;startup;meta-package</PackageTags>
     </PropertyGroup>
 

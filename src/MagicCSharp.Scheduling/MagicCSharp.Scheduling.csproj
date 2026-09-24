@@ -11,7 +11,7 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.Scheduling</PackageId>
-        <Description>Drift-free scheduled background services for MagicCSharp. Runs a job on a time-of-day or interval schedule, coordinated across instances by a distributed lock so exactly one node runs each occurrence.</Description>
+        <Description>Drift-free scheduled background services for MagicCSharp. Runs a job on a time-of-day or interval schedule, with a lock so one instance runs each occurrence. The default lock and schedule store suit one machine; register shared ones (Postgres, Redis) to run several.</Description>
         <PackageTags>background-service;scheduling;cron;distributed-lock;clean-architecture</PackageTags>
     </PropertyGroup>
 

@@ -27,6 +27,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Fixed
 
+- **Package descriptions on NuGet.** MagicCSharp and MagicCSharp.App named `IClock`, which 1.0 replaced with
+  .NET's `TimeProvider`; MagicCSharp.Scheduling promised one run per occurrence across machines, which needs a
+  shared lock and schedule store rather than the single-machine defaults.
 - **MCS0019 rejected a use case named for its operation.** `var signLease = new SignLeaseUseCase(...)` now
   passes and `var signLeaseUseCase` is reported, matching MCS0007, which already drops the `UseCase` suffix
   from dependencies.
