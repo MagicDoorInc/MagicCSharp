@@ -15,15 +15,15 @@
 
 # MagicCSharp
 
-**Business logic as small use cases: a C# framework built for AI coding agents.**
+**Business logic as small use cases: a C# framework for developers and their coding agents.**
 
-One operation is one class with one `Execute`. When Claude Code, Codex, Cursor or Copilot changes an
-operation, the diff is usually that class and its test. `mcs init` writes the conventions into `AGENTS.md`
+One operation is one class with one `Execute`. Whether you change an operation or Claude Code, Codex, Cursor
+or Copilot does, the diff is usually that class and its test, small enough to review. `mcs init` writes the conventions into `AGENTS.md`
 for the agent, and about twenty Roslyn rules make them build errors. Every C# service at
 [MagicDoor](https://magicdoor.com), [Revoco](https://revoco.ai) and [AgentParley](https://agentparley.ai)
 runs on MagicCSharp, an MIT-licensed framework designed by engineers from Amazon and Google.
 
-[Quick start](#quick-start) · [Built for AI agents](#built-for-ai-agents) · [Example service](examples/PropertyManagement/) · [Packages](#the-packages) · [Layout guide](docs/repository-layout.md) · [Changelog](CHANGELOG.md)
+[Quick start](#quick-start) · [Working with coding agents](#working-with-coding-agents) · [Example service](examples/PropertyManagement/) · [Packages](#the-packages) · [Layout guide](docs/repository-layout.md) · [Changelog](CHANGELOG.md)
 
 <table>
 <tr><td><b>Guides for the agent</b></td><td><code>mcs init</code> writes <code>AGENTS.md</code> for Codex, Cursor, Copilot and most agents, <code>CLAUDE.md</code> for Claude Code (it imports <code>AGENTS.md</code>), and one guide per topic in <code>.ai-knowledge/</code>.</td></tr>
@@ -231,7 +231,7 @@ A chain is not a transaction. If `createCharges` throws, the lease that `createL
 there, and the caller gets the exception and decides. Two steps that must succeed together go inside one
 use case.
 
-## Built for AI agents
+## Working with coding agents
 
 Ask an agent to change late fees in a service built around a `LeaseService`, and it edits a class that many
 other things call. The reviewer reads all of it. Ask the same thing here and the unit of work is
@@ -275,6 +275,7 @@ The same things make a person's pull request reviewable.
 | Test with fakes, time and a real database | [MagicCSharp.Testing](src/MagicCSharp.Testing/) · [.Testing.Database](src/MagicCSharp.Testing.Database/) |
 | Enforce the house style | [MagicCSharp.Analyzers](src/MagicCSharp.Analyzers/) |
 | Scaffold and lay out a repository | [mcs](src/MagicCSharp.Cli/) · [The layout guide](docs/repository-layout.md) · [Template overrides](docs/template-overrides.md) |
+| Deploy only the apps a change touched | [The CI/CD guide](docs/ci-cd.md) · `mcs affected` |
 | Upgrade | [CHANGELOG](CHANGELOG.md), with an old → new table for every breaking release |
 
 The rest of this page goes deeper, one part at a time.
