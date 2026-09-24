@@ -24,8 +24,8 @@ dotnet tool install MagicCSharp.Cli
 | Command | |
 |---|---|
 | `mcs init --prefix Acme` | set the current directory up as a repository |
-| `mcs create-app --name Shop --database shop` | a service |
-| `mcs create-domain -s Shop -n Orders --models --tests` | a domain |
+| `mcs create-app --name Shop --database shop` | an app: a deployable service |
+| `mcs create-domain -s Shop -n Orders --models --tests` | a domain inside that app |
 | `mcs create-domain -s Shop -n Orders.App --tests` | that domain's endpoints |
 | `mcs create-app-lib -s Shop -n Processors --tests` | a library inside one service |
 | `mcs create-lib --name Events --tests` | a shared library |

@@ -1,7 +1,8 @@
 # Acme — guide for AI coding agents
 
 A repository built on [MagicCSharp](https://github.com/MagicDoorInc/MagicCSharp): business logic as small use
-cases chained together, services laid out as a tree of domains, and the house style enforced by the build.
+cases chained together, apps (each a deployable service) split into domains, and the house style enforced by
+the build.
 
 ## Read before working
 

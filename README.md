@@ -35,7 +35,7 @@ runs on MagicCSharp, an MIT-licensed framework designed by engineers from Amazon
 <tr><td><b>Repositories with filters</b></td><td>Entity, edit and filter records; one <code>Get(filter)</code> per entity; pagination, soft delete and search as opt-ins, on EF Core and PostgreSQL. Snowflake ids are assigned before the insert.</td></tr>
 <tr><td><b>Errors that mean something</b></td><td>The domain throws not-found, conflict, invalid-operation or validation; the web layer answers 404, 409, 422 or 400 as problem+json with the request id. A 500's detail is logged and hidden outside Development.</td></tr>
 <tr><td><b>Structure from a tool</b></td><td><code>mcs</code> creates services, domains and entities the same way every time, and re-running any command changes nothing. <code>mcs validate</code> checks the handful of conventions the compiler cannot.</td></tr>
-<tr><td><b>Domain services, one repository</b></td><td>Each service under <code>Apps/</code> deploys on its own and owns a whole business domain; services share <code>Libs/</code> and talk through events. Make them smaller and you have microservices.</td></tr>
+<tr><td><b>Domain services, one repository</b></td><td>Each app under <code>Apps/</code> is its own deployable service for one business area, split inside into domains. Apps share <code>Libs/</code> and talk through events. Make them smaller and you have microservices.</td></tr>
 </table>
 
 ## Quick start
@@ -547,22 +547,27 @@ all — which is the point of the split. Wanting `FakeTimeProvider` does not mea
 ## An optional layout
 
 Everything above works in any project, arranged however you like. The arrangement it was designed for is
-**domain services in one repository**: several services, each deployed on its own and each owning a whole
-business domain — its use cases, its data, its endpoints and its background work — sharing libraries, tooling
-and conventions.
+**domain services in one repository**, built from two kinds of thing:
+
+| | What it is | At MagicDoor |
+|---|---|---|
+| **App** | A deployable service, with its own executable. It owns one business area: its data, endpoints and background work. | Maintenance, Auth, Accounting |
+| **Domain** | A part of an app. An app's domains deploy together, in the app's one executable, but are kept apart inside it: each has its own use cases, entities, endpoints and tests. Domains of the same app may call each other through their use cases. | Vendors, MaintenanceRequests and VendorScheduling, inside Maintenance |
+
+The apps share libraries, tooling and conventions, but not their data.
 
 Domain services sit between a monolith and microservices. There are far fewer moving parts than a fleet of
 microservices, and one repository to change them in, yet each service still deploys, scales and fails on its
-own. Services talk to each other through events, never through each other's databases. If you do want
-microservices, make the services smaller; nothing about the layout changes.
+own. Apps talk to each other through events, never through each other's databases. If you do want
+microservices, make the apps smaller; nothing about the layout changes.
 
-Inside a service, the domain grows as a tree, each part owning its use cases, entities, endpoints and tests:
+Inside an app, the domains grow as a tree, each owning its use cases, entities, endpoints and tests:
 
 ```
 Apps/
-  Shop/                          a service, deployed on its own
+  Shop/                          an app: one deployable service
     Shop.App/                    Program.cs — a list of references and little else
-    Shop.Domains/Orders/
+    Shop.Domains/Orders/         a domain inside it
       Default/                   use cases, event handlers
       Models/                    entities, edits, filters
       App/                       this domain's controllers
@@ -571,7 +576,7 @@ Apps/
     Data/
       Data.Models/               repository interfaces — no EF dependency
       Data.EntityFramework/      DALs, repositories, context, migrations
-  Notifications/                 another service, with its own domains and database
+  Notifications/                 another app, with its own domains and database
 Libs/
   Events/                        the event contracts the services share
 ```
