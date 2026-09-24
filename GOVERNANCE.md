@@ -11,11 +11,10 @@ That history is offered as an explanation of *why* the decisions look like this,
 them. The reasons are in the documentation, and where a decision has a cost, the cost is written next to it.
 Judge the design on those.
 
-**What is true today, precisely:** MagicDoor's backend runs this structure, with one fully-formed reference
-service in production and older services still on the flat layout they predate. It does not yet consume
-these NuGet packages — it runs a copy that was split out and has since diverged. Converging it onto the
-published packages is the plan, and until that has happened this document will keep saying so. "Battle
-tested" is a claim about the structure, not about the packages.
+**What is true today, precisely:** all of MagicDoor's backend is built on this structure, in production. It
+is being moved onto these NuGet packages now, from a copy of the code that was split out earlier and has
+since diverged; until that move is finished, this document will keep saying so. Revoco and AgentParley use
+the published packages directly.
 
 ## Who maintains it
 
