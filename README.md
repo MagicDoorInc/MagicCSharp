@@ -11,6 +11,10 @@ is why this is published: it is how every C# service at [MagicDoor](https://magi
 [Revoco](https://revoco.ai) and [AgentParley](https://agentparley.ai) is written, designed by engineers from
 Amazon and Google. MIT.
 
+It is also the shape an AI coding agent works best in: when every operation is a small class behind an
+interface, the change an agent makes — and the damage it can do — is the size of that class.
+[Why that matters →](#small-operations-are-what-an-ai-agent-needs)
+
 ```csharp
 public record PlaceOrderRequest
 {
@@ -107,6 +111,36 @@ status exists. A step that must not stand without the next one belongs inside th
 it.
 
 The packages exist so this style does not collapse the first time you need a clock, a job, a filter or a 404.
+
+## Small operations are what an AI agent needs
+
+Ask an agent to change how late fees work in a codebase built around a `LeaseService`, and it has to read two
+thousand lines to find the part that matters, then edit a class that forty other things call. Whatever it gets
+wrong, it gets wrong somewhere shared.
+
+Ask the same thing here and the unit of work is `ApplyLateFeesUseCase`: one file, one `Execute`, one test class.
+
+- **The scope is a class.** What an operation can touch is its constructor. The agent reads the use case, the
+  interfaces it takes and its tests — a few hundred lines, not the service — so it spends its context on the
+  problem instead of on finding it.
+- **The blast radius is visible.** A use case reaches only what its constructor names, and the only code a
+  change to it can affect is what takes its interface — one search finds every caller. The diff is one class and
+  its test: a review a person can actually do, which matters more the more code an agent writes.
+- **The check is fast.** A use case is constructed in a test with fakes and a `FakeTimeProvider`, so "a month
+  later the fee applies once" is a test that runs in milliseconds. The agent verifies its own change instead of
+  asking you to.
+- **The conventions are compile errors.** `MagicCSharp.Analyzers` turns the house style into build errors —
+  `DateTime.Now`, a positional record, a variable called `useCase`, a missing brace — so an agent that drifts
+  is corrected by the compiler, on the spot, not by a reviewer three days later.
+- **The structure comes from a tool.** `mcs` creates services, domains and entities, so an agent adds an entity
+  the way everyone else does instead of inventing a folder layout.
+- **The rules are written down for it.** `mcs init` writes a `CLAUDE.md` and an `.ai-knowledge/` folder — where
+  a use case goes, how an entity is shaped, how events, background services and tests work — so the agent
+  follows the same conventions the build enforces. `mcs update ai-files` brings in improved guides with each
+  release.
+
+None of this makes an agent right. It makes it wrong in small, visible, testable places — which is the
+difference between an agent you supervise line by line and one you can hand a task to.
 
 ## What we stopped reinventing
 
