@@ -7,6 +7,35 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ---
 
+## 1.0.2 — 2026-09-23
+
+### Added
+
+- **`mcs affected`** prints the apps a range of commits changed — through their own folder, a project they
+  reference, or a file every build reads — so CI builds, tests and deploys only those. `--json` gives a GitHub
+  Actions matrix, `--solution` counts test projects too, `--all` lists every app.
+- **`mcs references`** prints every project a project depends on, directly or through others.
+- **[The CI/CD guide](docs/ci-cd.md)**: pull request checks per affected app, one image and one migration
+  bundle per app, promoted from staging to an approved production deploy.
+
+### Changed
+
+- **The agent guide is `AGENTS.md`**, the name Codex, Cursor, Copilot, Gemini and most other coding agents
+  look for. `CLAUDE.md` now only imports it (`@AGENTS.md`), so Claude Code reads the same text. `mcs init`
+  writes both; in a repository from 1.0.1, `mcs update ai-files` creates `AGENTS.md` and turns `CLAUDE.md`
+  into the import.
+
+### Fixed
+
+- **Package descriptions on NuGet.** MagicCSharp and MagicCSharp.App named `IClock`, which 1.0 replaced with
+  .NET's `TimeProvider`; MagicCSharp.Scheduling promised one run per occurrence across machines, which needs a
+  shared lock and schedule store rather than the single-machine defaults.
+- **MCS0019 rejected a use case named for its operation.** `var signLease = new SignLeaseUseCase(...)` now
+  passes and `var signLeaseUseCase` is reported, matching MCS0007, which already drops the `UseCase` suffix
+  from dependencies.
+
+---
+
 ## 1.0.1 — 2026-09-23
 
 Found by building the property-management example from 1.0.0 in a freshly generated repository.

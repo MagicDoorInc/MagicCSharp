@@ -31,6 +31,39 @@ public class EntityVariableNameAnalyzerTests
     }
 
     [Fact]
+    public async Task A_use_case_is_named_for_its_operation()
+    {
+        var diagnostics = await AnalyzerHarness.Analyze(new EntityVariableNameAnalyzer(), """
+                                                                                          using MagicCSharp.UseCases;
+
+                                                                                          namespace Subject;
+
+                                                                                          public interface ISignLeaseUseCase : IMagicUseCase
+                                                                                          {
+                                                                                          }
+
+                                                                                          public class SignLeaseUseCase : ISignLeaseUseCase
+                                                                                          {
+                                                                                          }
+
+                                                                                          public class SignLeaseTests
+                                                                                          {
+                                                                                              public void Run()
+                                                                                              {
+                                                                                                  var signLease = new SignLeaseUseCase();
+                                                                                                  var signLeaseUseCase = new SignLeaseUseCase();
+                                                                                                  var useCase = new SignLeaseUseCase();
+                                                                                              }
+                                                                                          }
+                                                                                          """);
+
+        Assert.Equal([
+            "MCS0019 Subject.cs:18 Variable 'signLeaseUseCase' holds a 'SignLeaseUseCase'; name it 'signLease'",
+            "MCS0019 Subject.cs:19 Variable 'useCase' holds a 'SignLeaseUseCase'; name it 'signLease'",
+        ], diagnostics);
+    }
+
+    [Fact]
     public async Task A_leading_acronym_is_lowercased_as_one_word()
     {
         var diagnostics = await AnalyzerHarness.Analyze(new EntityVariableNameAnalyzer(), """

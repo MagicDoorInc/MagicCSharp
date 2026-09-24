@@ -12,11 +12,14 @@ public sealed class EntityVariableNameAnalyzer : DiagnosticAnalyzer
 {
     public const string DiagnosticId = "MCS0019";
 
+    private const string UseCaseSuffix = "UseCase";
+
     private static readonly DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, "Entity variable must carry the full type-derived name",
         "Variable '{0}' holds a '{1}'; name it '{2}'", "Naming", DiagnosticSeverity.Error, true,
         "A variable created with 'new' or declared by 'foreach' over a class or struct from this codebase or " +
         "from MagicCSharp is named after its type ('var leaseEdit = new LeaseEdit()'). A qualifier in front of the full type name is allowed " +
-        "when two of them share a scope ('previousLeaseEdit').");
+        "when two of them share a scope ('previousLeaseEdit'). A use case is named for its operation, dropping the 'UseCase' suffix as " +
+        "MCS0007 does for dependencies ('var signLease = new SignLeaseUseCase(...)').");
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -89,13 +92,32 @@ public sealed class EntityVariableNameAnalyzer : DiagnosticAnalyzer
         }
 
         var name = identifier.ValueText;
-        if (IsTypeDerivedName(name, namedType.Name))
+        var expectedTypeName = ExpectedTypeName(namedType, context.Compilation);
+        if (IsTypeDerivedName(name, expectedTypeName))
         {
             return;
         }
 
         context.ReportDiagnostic(Diagnostic.Create(Rule, identifier.GetLocation(), name, namedType.Name,
-            IdentifierWords.ToCamelCase(namedType.Name)));
+            IdentifierWords.ToCamelCase(expectedTypeName)));
+    }
+
+    /// <summary>
+    ///     The name a variable holding <paramref name="namedType" /> is built from: the type's own name, or — for a use
+    ///     case — the operation it performs, so a local reads the same as the dependency MCS0007 names.
+    /// </summary>
+    private static string ExpectedTypeName(INamedTypeSymbol namedType, Compilation compilation)
+    {
+        var magicUseCase = compilation.GetTypeByMetadataName(KnownTypeNames.MagicUseCase);
+        var isUseCase = SymbolFacts.Implements(namedType, magicUseCase);
+        var hasSuffix = namedType.Name.Length > UseCaseSuffix.Length && namedType.Name.EndsWith(UseCaseSuffix, StringComparison.Ordinal);
+
+        if (isUseCase && hasSuffix)
+        {
+            return namedType.Name.Substring(0, namedType.Name.Length - UseCaseSuffix.Length);
+        }
+
+        return namedType.Name;
     }
 
     private static bool IsTypeDerivedName(string name, string typeName)

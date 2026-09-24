@@ -34,7 +34,7 @@ public class InitCommand : Command<InitCommand.Settings>
         public bool ShouldSkipBuildRules { get; init; }
 
         [CommandOption("--no-ai-knowledge")]
-        [Description("Leave out CLAUDE.md and .ai-knowledge/, the conventions written for AI coding agents")]
+        [Description("Leave out AGENTS.md, CLAUDE.md and .ai-knowledge/, the conventions written for AI coding agents")]
         [DefaultValue(false)]
         public bool ShouldSkipAiKnowledge { get; init; }
 

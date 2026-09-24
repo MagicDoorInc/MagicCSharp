@@ -4,11 +4,32 @@ This guide owns where code goes and what may depend on what. How to create the p
 `project-tooling.md`; what goes inside a use case is in `use-case-patterns.md`. This repository's own services
 and domains are listed in `project.md`.
 
+## Apps and domains
+
+A repository holds several **domain services**, built from two kinds of thing:
+
+| | What it is | For example |
+|---|---|---|
+| **App** | A deployable service, with its own executable. It owns one business area: its data, endpoints and background work. | Maintenance, Auth, Accounting |
+| **Domain** | A part of an app. An app's domains deploy together, in the app's one executable, but are kept apart inside it: each has its own use cases, entities, endpoints and tests. Domains of the same app may call each other through their use cases. | Vendors, MaintenanceRequests and VendorScheduling, inside Maintenance |
+
+Apps share the libraries under `Libs/`, the tooling and these conventions, but not their data:
+
+- An app never reads or writes another app's database, and never references another app's projects.
+- Apps talk through events, whose contracts live in a shared library under `Libs/`.
+- Code more than one app needs goes in `Libs/`; code one app needs stays in that app.
+- Inside an app, a domain may call another domain's use cases — never its repository — following the dependency
+  rules below.
+
+New work belongs in the app and domain whose data it changes. A new domain is a normal step as an app grows. A
+new app is a deliberate decision — a business area with its own data and its own reason to deploy — not a way to
+keep a change small.
+
 ## Layout
 
 ```text
 Apps/
-  {Service}/                            one deployable service
+  {Service}/                            an app: one deployable service, its own executable
     {Service}.App/                      the host: Program.cs and little else
     {Service}.Domains/
       {Domain}/                         a domain

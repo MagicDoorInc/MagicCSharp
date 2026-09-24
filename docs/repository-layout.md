@@ -4,10 +4,21 @@
 vertical-slice API, whatever you already have. Nothing in the libraries reads `magiccsharp.json` or cares
 where a file sits.
 
-What this document describes is the structure MagicDoor runs its backend on: a handful of services in one
-repository, each with its own solution, sharing a set of libraries — and inside each service, a tree of
-domains that grows by gaining siblings rather than getting wider, each domain owning its use cases, entities,
-endpoints and tests. It is the arrangement that keeps "business logic as small use cases" readable once
+What this document describes is the structure MagicDoor runs its backend on: **domain services in one
+repository**, built from two kinds of thing:
+
+| | What it is | At MagicDoor |
+|---|---|---|
+| **App** | A deployable service, with its own executable. It owns one business area: its data, endpoints and background work. | Maintenance, Auth, Accounting |
+| **Domain** | A part of an app. An app's domains deploy together, in the app's one executable, but are kept apart inside it: each has its own use cases, entities, endpoints and tests. Domains of the same app may call each other through their use cases. | Vendors, MaintenanceRequests and VendorScheduling, inside Maintenance |
+
+Every app shares the libraries under `Libs/`, the tooling and the conventions, but not its data. That sits between a monolith and microservices: far fewer moving parts than a
+fleet of microservices and one repository to change them in, yet each service deploys, scales and fails on its
+own. Services talk through events, never through each other's databases. Want microservices? Make the services
+smaller; the layout is the same.
+
+Inside each app is a tree of domains that grows by gaining siblings rather than getting wider, each domain
+owning its use cases, entities, endpoints and tests. It is the arrangement that keeps "business logic as small use cases" readable once
 there are a hundred of them and five people adding more. If that shape matches where you are heading, the
 `mcs` command line tool creates and maintains it for you. If it does not, ignore all of it and use the
 packages directly.
@@ -35,8 +46,8 @@ dotnet run --project Apps/Shop/Shop.App
 | | |
 |---|---|
 | `mcs init --prefix Acme` | set this directory up as a repository |
-| `mcs create-app --name Shop --database shop` | a service |
-| `mcs create-domain -s Shop -n Orders --models --tests` | a domain |
+| `mcs create-app --name Shop --database shop` | an app: a deployable service |
+| `mcs create-domain -s Shop -n Orders --models --tests` | a domain inside that app |
 | `mcs create-domain -s Shop -n Orders.App --tests` | that domain's endpoints |
 | `mcs add-entity -s Shop -d Orders -n Order --paginated` | an entity and its repository |
 | `mcs create-app-lib -s Shop -n Processors --tests` | a library inside one service |
@@ -87,7 +98,7 @@ awkward to change later because it is baked into every namespace.
 | `{Prefix}.All.slnx` | Every project. Generated — see `mcs sync`. |
 | `Apps/`, `Libs/` | The two top-level directories, with `.gitkeep` so they survive a fresh clone. |
 | `.editorconfig` | Marks EF migrations as generated code, so the build rules leave them alone. Not written with `--no-build-rules`. |
-| `CLAUDE.md`, `.ai-knowledge/` | The conventions written down for AI coding agents, one guide per topic, and `.ai-knowledge/project.md` for what is specific to your repository. `mcs update ai-files` refreshes the guides and never touches `project.md`. Not written with `--no-ai-knowledge`. |
+| `AGENTS.md`, `CLAUDE.md`, `.ai-knowledge/` | The conventions written down for AI coding agents — `AGENTS.md` for every agent, `CLAUDE.md` importing it for Claude Code — one guide per topic, and `.ai-knowledge/project.md` for what is specific to your repository. `mcs update ai-files` refreshes the guides and never touches `project.md`. Not written with `--no-ai-knowledge`. |
 
 Then create your first service:
 
@@ -111,14 +122,14 @@ magiccsharp.json
 Directory.Build.props            settings every project inherits, the build rules
 Directory.Packages.props         one version per package
 Acme.All.slnx                    every project — generated
-Acme.Shop.slnx                   one service
+Acme.Shop.slnx                   one app
 Acme.Notifications.slnx
 
 Apps/
-  Shop/
+  Shop/                          an app: one deployable service, its own executable
     Shop.App/                    host: Program.cs, configuration, references
     Shop.Domains/
-      Orders/
+      Orders/                    a domain of Shop
         Default/                 use cases, event handlers
         Models/                  entities, edits, filters
         Tests/
