@@ -1,0 +1,81 @@
+using Confluent.Kafka;
+using MagicCSharp.Events.Events;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+namespace MagicCSharp.Events.Kafka;
+
+/// <summary>
+///     Extension methods for registering Kafka event dispatching services.
+/// </summary>
+public static class MagicKafkaEventsRegistrationExtensions
+{
+    /// <summary>
+    ///     Register Kafka event dispatcher and background service.
+    ///     This also calls AddMagicEvents() to register core infrastructure.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configuration">Kafka configuration.</param>
+    /// <param name="shouldUseOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddMagicKafkaEvents(
+        this IServiceCollection services,
+        KafkaMagicEventConfiguration configuration,
+        bool shouldUseOpenTelemetryMetrics = false)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        // Register core infrastructure
+        services.AddMagicEvents(shouldUseOpenTelemetryMetrics);
+
+        var host = configuration.BootstrapServers;
+        var groupId = configuration.GroupId;
+        var topic = configuration.Topic;
+
+        // Register Kafka configuration
+        services.AddSingleton(new KafkaEventsBackgroundServiceConfig { Topic = topic });
+
+        // Register Kafka producer
+        services.AddSingleton<IProducer<Null, string>>(serviceProvider =>
+        {
+            var logger = serviceProvider.GetRequiredService<ILogger<KafkaEventDispatcher>>();
+            var producerConfig = new ProducerConfig
+            {
+                BootstrapServers = host,
+                BrokerAddressFamily = BrokerAddressFamily.V4,
+            };
+
+            var producerLogger = KafkaLoggerAdapter.GetProducerLogHandler<Null, string>(logger);
+            return new ProducerBuilder<Null, string>(producerConfig).SetLogHandler(producerLogger).Build();
+        });
+
+        // Register Kafka consumer
+        services.AddTransient<IConsumer<Null, string>>(serviceProvider =>
+        {
+            var logger = serviceProvider.GetRequiredService<ILogger<KafkaEventsBackgroundService>>();
+            var consumerConfig = new ConsumerConfig
+            {
+                BootstrapServers = host,
+                BrokerAddressFamily = BrokerAddressFamily.V4,
+                GroupId = groupId,
+
+                // Set explicitly because the listener commits by hand, only after a message is processed.
+                // Confluent defaults both of these to true, which committed offsets on a timer regardless
+                // and made that manual commit decorative — a message that failed to parse was marked done.
+                EnableAutoCommit = false,
+                EnableAutoOffsetStore = false,
+            };
+
+            var consumerLogger = KafkaLoggerAdapter.GetConsumerLogHandler<Null, string>(logger);
+            return new ConsumerBuilder<Null, string>(consumerConfig).SetLogHandler(consumerLogger).Build();
+        });
+
+        // Register Kafka event dispatcher
+        services.AddSingleton<IEventDispatcher, KafkaEventDispatcher>();
+
+        // Register background service
+        services.AddHostedService<KafkaEventsBackgroundService>();
+
+        return services;
+    }
+}

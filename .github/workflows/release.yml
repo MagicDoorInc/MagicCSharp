@@ -1,0 +1,68 @@
+name: Release
+
+# Publishes every package to NuGet.org when a v* tag is pushed. The tag has to match scripts/version.txt;
+# ./scripts/publish-all.sh bumps that and the two files that follow it, and you commit and tag the result.
+#
+# There is no API key. NuGet trusts this file, in this repository, running in the `nuget` environment,
+# through the MagicDoorPush trusted publishing policy on nuget.org — renaming the file or the environment
+# breaks publishing until the policy is edited to match.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to NuGet.org
+    runs-on: ubuntu-latest
+    environment: nuget
+    permissions:
+      contents: read
+      # Lets NuGet/login exchange a GitHub OIDC token for a short-lived NuGet API key.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # A tag pushed before the bump was committed would otherwise publish the previous version's number
+      # under a new tag.
+      - name: Check the tag matches the version in the repository
+        run: |
+          VERSION=$(tr -d '[:space:]' < scripts/version.txt)
+          fail() { echo "::error::$1"; exit 1; }
+          [ "v$VERSION" = "$GITHUB_REF_NAME" ] \
+            || fail "Tag $GITHUB_REF_NAME does not match scripts/version.txt ($VERSION)"
+          grep -q "<Version>$VERSION</Version>" src/Directory.Build.props \
+            || fail "src/Directory.Build.props is not at $VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - run: dotnet build MagicCSharp.slnx -c Release
+      - run: dotnet test MagicCSharp.slnx -c Release --no-build
+
+      - name: Pack
+        run: |
+          for proj in src/*/*.csproj; do
+            dotnet pack "$proj" -c Release --no-build -o out --nologo
+          done
+          ls out
+          # Every package ships together. Fewer than fourteen means a project stopped packing, and a
+          # partial release leaves consumers with packages whose dependencies do not exist.
+          COUNT=$(ls out/*."$VERSION".nupkg | wc -l)
+          [ "$COUNT" -eq 14 ] || { echo "::error::Expected 14 packages at $VERSION, got $COUNT"; exit 1; }
+
+      - uses: NuGet/login@v1
+        id: nuget
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      # --skip-duplicate makes a re-run after a partial failure send only what is missing.
+      - run: >
+          dotnet nuget push "out/*.nupkg"
+          --api-key "${{ steps.nuget.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate

@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!-- The compiler loads analyzers into whatever runtime it runs on — .NET Framework inside Visual
+             Studio — so netstandard2.0 is the only target that loads everywhere. -->
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+
+        <!-- NuGet Package Metadata -->
+        <PackageId>MagicCSharp.Analyzers</PackageId>
+        <Description>Build rules for a MagicCSharp codebase: Roslyn analyzers that make the code-style conventions compile errors — no ambient DateTime.Now, dependencies named after their type, braces on every body, records for requests and results, one primary type per file, and more. Every rule can be downgraded or turned off in .editorconfig.</Description>
+        <PackageTags>analyzers;roslyn;code-style;conventions;clean-architecture</PackageTags>
+
+        <!-- An analyzer package: the dll goes under analyzers/, not lib/, and nothing is added to the
+             consumer's compile references. DevelopmentDependency makes the consumer's reference
+             PrivateAssets=all, so the rules do not flow on to whatever references their project. -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <DevelopmentDependency>true</DevelopmentDependency>
+        <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+        <!-- With no lib/ folder there is nothing for the symbol package to hold, and an empty .snupkg fails
+             the pack. -->
+        <IncludeSymbols>false</IncludeSymbols>
+        <!-- A NuGet package with no lib/ folder is exactly what NU5128 warns about. -->
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- The oldest compiler an analyzer is built against is the oldest one that can load it. 4.8 is the
+             .NET 8 SDK; a newer reference would be silently skipped (CS9057) by a .NET 9 SDK build. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <AdditionalFiles Include="AnalyzerReleases.Shipped.md"/>
+        <AdditionalFiles Include="AnalyzerReleases.Unshipped.md"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="MagicCSharp.Analyzers.Tests"/>
+    </ItemGroup>
+
+</Project>

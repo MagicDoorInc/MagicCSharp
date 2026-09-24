@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <ProjectReference Include="..\MagicCSharp\MagicCSharp.csproj"/>
+        <ProjectReference Include="..\MagicCSharp.Events\MagicCSharp.Events.csproj"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!-- NuGet Package Metadata -->
+        <PackageId>MagicCSharp.Testing</PackageId>
+        <Description>Test doubles for MagicCSharp: a deterministic key generator driven by the test's TimeProvider, a synchronous event dispatcher, and an in-memory distributed lock. No test framework or database dependencies — see MagicCSharp.Testing.Database for those.</Description>
+        <PackageTags>testing;test-doubles;fake;timeprovider;events;clean-architecture</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DistributedLock.Core" Version="1.0.8"/>
+        <!-- FakeTimeProvider: .NET's own test clock, which also fakes timers and Task.Delay. Re-exported so a
+             test project referencing MagicCSharp.Testing has it without a second package. -->
+        <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="9.10.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+</Project>

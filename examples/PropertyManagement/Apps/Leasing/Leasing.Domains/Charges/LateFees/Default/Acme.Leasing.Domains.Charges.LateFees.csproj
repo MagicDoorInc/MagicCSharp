@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Acme.Leasing.Domains.Charges.LateFees</AssemblyName>
+    <RootNamespace>Acme.Leasing.Domains.Charges.LateFees</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MagicCSharp" />
+    <PackageReference Include="DistributedLock.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Models\Acme.Leasing.Domains.Charges.LateFees.Models.csproj" />
+    <ProjectReference Include="..\..\..\..\Data\Data.Models\Acme.Leasing.Data.Models.csproj" />
+    <ProjectReference Include="..\..\..\..\..\..\Libs\Events\Default\Acme.Libraries.Events.csproj" />
+    <ProjectReference Include="..\..\Default\Acme.Leasing.Domains.Charges.csproj" />
+    <ProjectReference Include="..\..\..\Leases\Default\Acme.Leasing.Domains.Leases.csproj" />
+  </ItemGroup>
+
+</Project>

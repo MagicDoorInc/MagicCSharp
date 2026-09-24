@@ -1,0 +1,14 @@
+<Project>
+
+  <!--
+    The test projects build under MagicCSharp's own rules too, as tests do in a consumer's repository, where
+    every MCS rule is an error. Referenced as a project, so a rule change is enforced on the next build.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../src/MagicCSharp.Analyzers/MagicCSharp.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"/>
+  </ItemGroup>
+
+</Project>

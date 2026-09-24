@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <!-- A generated repository treats every warning as an error. This one is what a derived scheduled
+             service hits if the base class does not hand it the scope factory, so it fails the build here too. -->
+        <WarningsAsErrors>$(WarningsAsErrors);CS9107</WarningsAsErrors>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\MagicCSharp\MagicCSharp.csproj"/>
+        <ProjectReference Include="..\..\src\MagicCSharp.Data\MagicCSharp.Data.csproj"/>
+        <ProjectReference Include="..\..\src\MagicCSharp.Testing\MagicCSharp.Testing.csproj"/>
+        <ProjectReference Include="..\..\src\MagicCSharp.Scheduling\MagicCSharp.Scheduling.csproj"/>
+        <ProjectReference Include="..\..\src\MagicCSharp.Events\MagicCSharp.Events.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.1"/>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.1"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0"/>
+        <PackageReference Include="xunit" Version="2.9.2"/>
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2"/>
+    </ItemGroup>
+
+</Project>

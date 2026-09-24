@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <ProjectReference Include="..\MagicCSharp\MagicCSharp.csproj"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!-- NuGet Package Metadata -->
+        <PackageId>MagicCSharp.Scheduling</PackageId>
+        <Description>Drift-free scheduled background services for MagicCSharp. Runs a job on a time-of-day or interval schedule, with a lock so one instance runs each occurrence. The default lock and schedule store suit one machine; register shared ones (Postgres, Redis) to run several.</Description>
+        <PackageTags>background-service;scheduling;cron;distributed-lock;clean-architecture</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DistributedLock.Core" Version="1.0.8"/>
+        <PackageReference Include="DistributedLock.FileSystem" Version="1.0.3"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+</Project>

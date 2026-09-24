@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>{{ prefix }}.{{ name }}.Data.EntityFramework</AssemblyName>
+    <RootNamespace>{{ prefix }}.{{ name }}.Data.EntityFramework</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MagicCSharp.Data.EntityFramework" />
+    <PackageReference Include="MagicCSharp.Data.Postgres" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Data.Models\{{ prefix }}.{{ name }}.Data.Models.csproj" />
+  </ItemGroup>
+
+</Project>
