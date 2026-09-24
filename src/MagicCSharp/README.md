@@ -247,25 +247,10 @@ input: 400 means "fix the request", 422 means "the request was fine; the thing i
 
 ## Optional\<T\>
 
-A partial update cannot tell "leave the name alone" from "clear the name" when both arrive as `null`.
-`Optional<T>` can:
-
-```csharp
-public record UpdateCustomerRequest
-{
-    public Optional<string?> NickName { get; init; }
-}
-
-if (request.NickName.HasValue)
-{
-    customer.NickName = request.NickName.Value;   // may be null — the caller said so
-}
-```
-
-`default(Optional<T>)` is the absent case, so a property the deserializer never touched is absent with no
-further work. A bare value converts implicitly, so callers write `NickName = "Barbara"`.
-`OptionalConverterFactory` makes it round-trip through System.Text.Json; `JsonDefaults.Options` already
-includes it, and `MagicCSharp.App` registers it for controllers and minimal APIs.
+Requests use plain nullable types: `string?`, `DateTimeOffset?`. `Optional<T>` is for the one case they cannot
+express — a partial update where the caller leaving a field out and the caller setting it to `null` must mean
+different things ("leave it" versus "clear it"). `HasValue` says which. It round-trips through System.Text.Json
+with `JsonDefaults.Options`, and `MagicCSharp.App` registers it for controllers and minimal APIs.
 
 ## ComparableRange\<T\>
 
