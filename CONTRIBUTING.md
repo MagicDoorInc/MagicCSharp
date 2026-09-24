@@ -1,7 +1,13 @@
 # Contributing
 
-MagicCSharp is early and small — about 7,000 lines of library code. That is deliberate: it should stay
-small enough that you could read all of it in an afternoon and own it if you had to.
+Pull requests are welcome, from anyone. MagicDoor's engineers maintain MagicCSharp and review every pull
+request the same way, whether it comes from inside MagicDoor or not.
+
+MagicCSharp is small — about 7,000 lines of library code. That is deliberate: it should stay small enough
+that you could read all of it in an afternoon and own it if you had to.
+
+Every change to `master` goes through a pull request, and two checks must pass before it can merge: the build
+and tests, and a run of `mcs` that scaffolds a repository from nothing and builds it.
 
 ## Building it
 

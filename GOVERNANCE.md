@@ -19,8 +19,9 @@ tested" is a claim about the structure, not about the packages.
 
 ## Who maintains it
 
-One maintainer, Kasper Sogaard, with MagicDoor paying for the time. That is the honest bus factor, and it is
-the main risk in adopting this. Two things reduce it:
+MagicDoor's engineering team. MagicCSharp is what MagicDoor's own services are built on, so the people who
+maintain it are the people who depend on it every day, and MagicDoor pays for that time. Two things keep the
+risk of adopting it low even so:
 
 - **The framework is small on purpose** — around 7,000 lines of library code. If it were abandoned tomorrow,
   vendoring it is a realistic afternoon rather than a rewrite.
@@ -28,17 +29,18 @@ the main risk in adopting this. Two things reduce it:
   call `AddMagicApp` makes is public on the package that owns it. Outgrowing the framework means replacing
   two lines with five, not unpicking it.
 
-A second maintainer with publish rights is wanted. The route is the ordinary one: contribute, and if the
-work is good and continues, you will be asked.
+Pull requests from outside MagicDoor are welcome, and are reviewed the same way as the team's own. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for how to build, test and what to raise in an issue first. Publishing a
+release stays with MagicDoor.
 
 ## How decisions get made
 
-- **A bug fix or a documentation correction** needs one maintainer.
+- **A bug fix or a documentation correction** needs one maintainer's review.
 - **A new public type, a new package, or a change to the shape of a generated file** needs an issue first
   and agreement before code. These are the changes that are expensive to reverse once people have
   repositories built on them.
-- **Disagreement** is settled by whoever maintains it. That is not a permanent arrangement; it is what one
-  maintainer means.
+- **Disagreement** is settled by the maintainers, on the issue or pull request where it came up, with the
+  reasoning written there so the next person can find it.
 
 ## What happens when MagicDoor and MagicCSharp want different things
 
@@ -63,15 +65,16 @@ quiet repository.
 
 ## Versions and stability
 
-While the project is on `0.x`:
+MagicCSharp follows [Semantic Versioning](https://semver.org) from `1.0`:
 
-- **Breaking changes happen on minor versions**, and the [CHANGELOG](CHANGELOG.md) documents how to migrate.
-  Pin an exact version if that is not acceptable yet.
+- **A breaking change needs a major version**, and the [CHANGELOG](CHANGELOG.md) says how to migrate. New
+  features come in minor versions; fixes in patches. Upgrading within `1.x` should not break your build.
 - **All packages share one version and ship together.** A mixed set is not tested.
 - **Public API** is anything a package exposes as `public`, plus the shape of the files `mcs` generates.
   Generated code is API: people edit it, and changing its shape breaks their next merge.
-- **`1.0` means** the generated file shapes and the core registration methods are stable enough that a
-  breaking change would need a major version. It is not a statement about how finished the framework feels.
+- **The build rules are the exception to watch.** A new analyzer rule in a minor version can turn code that
+  built into a compile error — that is its job. Each one is listed in the CHANGELOG, and every rule can be
+  downgraded or turned off in `.editorconfig`.
 
 ## Scope
 
