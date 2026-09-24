@@ -32,6 +32,8 @@ dotnet tool install MagicCSharp.Cli
 | `mcs add-entity -s Shop -d Orders -n Order --paginated` | an entity and its repository |
 | `mcs sync` | rebuild the all-projects solution |
 | `mcs validate` | lint the conventions the compiler cannot |
+| `mcs references --project <csproj>` | every project a project depends on, directly or not |
+| `mcs affected --base <commit> --json` | the apps a range of commits changed, for CI to build and deploy |
 | `mcs update ai-files` | refresh `AGENTS.md`, `CLAUDE.md` and the `.ai-knowledge/` guides to this version |
 | `mcs templates list \| where \| eject` | see and override the generators' templates |
 
@@ -45,6 +47,12 @@ about names, namespaces and generic arguments. Not typing saved so much as a cla
 `validate` catches the things that compile and then fail later: `DateTime.Now` where `TimeProvider` belongs, an
 entity on an event, `IOptions` in a use case, a non-nullable column without `[Required]`. It exits non-zero,
 so put it in CI.
+
+`affected` is what lets CI build, test and deploy only the apps a change touched. It follows each app's project
+references, so a change to a shared library under `Libs/` picks every app that uses it and no other; a change
+to `Directory.Packages.props` or another file every build reads picks them all. `--json` prints a GitHub
+Actions matrix. The [CI/CD guide](https://github.com/MagicDoorInc/MagicCSharp/blob/master/docs/ci-cd.md) sets
+up the whole pipeline around it.
 
 `init` also makes the code-style conventions compile errors: the `Directory.Build.props` it writes references
 [MagicCSharp.Analyzers](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Analyzers/README.md)

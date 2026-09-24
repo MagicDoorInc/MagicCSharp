@@ -68,7 +68,13 @@ mcs create-app-lib --solution {Service} --name {Library}      # inside one servi
 mcs validate --path .     # the conventions the compiler cannot check
 mcs sync                  # rebuild {{ prefix }}.All.slnx after moving things around
 mcs update ai-files       # refresh AGENTS.md and these guides to the version your mcs ships
+mcs references --project Apps/{Service}/{Service}.App/{{ prefix }}.{Service}.App.csproj   # what a project depends on
+mcs affected --base origin/master   # which services the committed changes on this branch reach, as CI sees it
 ```
+
+A change to a shared library under `Libs/` reaches every service whose host project depends on it, and CI
+rebuilds, retests and redeploys each of them. Before changing one — an event contract especially — check which
+services those are with `mcs references` on each host project, and tell the user.
 
 Code style is checked by the compiler through `MagicCSharp.Analyzers` (see `coding-style.md`); `mcs validate`
 covers the rest, such as DAL columns that need `[Required]`.

@@ -9,6 +9,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## 1.0.2 — Unreleased
 
+### Added
+
+- **`mcs affected`** prints the apps a range of commits changed — through their own folder, a project they
+  reference, or a file every build reads — so CI builds, tests and deploys only those. `--json` gives a GitHub
+  Actions matrix, `--solution` counts test projects too, `--all` lists every app.
+- **`mcs references`** prints every project a project depends on, directly or through others.
+- **[The CI/CD guide](docs/ci-cd.md)**: pull request checks per affected app, one image and one migration
+  bundle per app, promoted from staging to an approved production deploy.
+
 ### Changed
 
 - **The agent guide is `AGENTS.md`**, the name Codex, Cursor, Copilot, Gemini and most other coding agents

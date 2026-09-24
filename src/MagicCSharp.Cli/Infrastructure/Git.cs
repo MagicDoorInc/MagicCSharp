@@ -45,4 +45,37 @@ public static class Git
             return false;
         }
     }
+
+    /// <summary>
+    ///     The files that differ between two commits, relative to the working directory, forward slashes. Deleted files are
+    ///     included — removing a file changes what depends on it too.
+    /// </summary>
+    public static IReadOnlyList<string> ChangedPaths(string baseReference, string headReference)
+    {
+        var info = new ProcessStartInfo("git")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+        info.ArgumentList.Add("diff");
+        info.ArgumentList.Add("--name-only");
+        info.ArgumentList.Add("--no-renames");
+        // Relative to the working directory rather than the git root, so a repository kept in a subfolder of a
+        // bigger one compares like any other.
+        info.ArgumentList.Add("--relative");
+        info.ArgumentList.Add($"{baseReference}..{headReference}");
+
+        using var process = Process.Start(info) ?? throw new InvalidOperationException("Could not start git.");
+        var output = process.StandardOutput.ReadToEnd();
+        var error = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"git diff {baseReference}..{headReference} failed: {error.Trim()}");
+        }
+
+        return output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
 }

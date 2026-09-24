@@ -40,6 +40,14 @@ app.Configure(config =>
     config.AddCommand<ValidateCommand>("validate")
         .WithDescription("Lint the conventions the compiler cannot");
 
+    config.AddCommand<ReferencesCommand>("references")
+        .WithDescription("Print every project a project depends on, directly or not")
+        .WithExample("references", "--project", "Apps/Shop/Shop.App/Acme.Shop.App.csproj");
+
+    config.AddCommand<AffectedCommand>("affected")
+        .WithDescription("Print the apps a range of commits changed, for CI to build and deploy")
+        .WithExample("affected", "--base", "origin/master", "--json");
+
     config.AddBranch("update", update =>
     {
         update.SetDescription("Bring files mcs ships up to this version");
