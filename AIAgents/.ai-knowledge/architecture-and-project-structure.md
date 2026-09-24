@@ -4,6 +4,19 @@ This guide owns where code goes and what may depend on what. How to create the p
 `project-tooling.md`; what goes inside a use case is in `use-case-patterns.md`. This repository's own services
 and domains are listed in `project.md`.
 
+## Services
+
+A repository holds several **domain services**: each app under `Apps/` is deployed on its own and owns a whole
+business domain — its use cases, its data, its endpoints and its background work. Services share the libraries
+under `Libs/`, the tooling and these conventions, but not their data:
+
+- A service never reads or writes another service's database, and never references another service's projects.
+- Services talk through events, whose contracts live in a shared library under `Libs/`.
+- Code more than one service needs goes in `Libs/`; code one service needs stays in that service.
+
+New work belongs in the service whose domain it changes. A new service is a deliberate decision — a business
+domain with its own data and its own reason to deploy — not a way to keep a change small.
+
 ## Layout
 
 ```text

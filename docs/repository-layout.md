@@ -4,10 +4,16 @@
 vertical-slice API, whatever you already have. Nothing in the libraries reads `magiccsharp.json` or cares
 where a file sits.
 
-What this document describes is the structure MagicDoor runs its backend on: a handful of services in one
-repository, each with its own solution, sharing a set of libraries — and inside each service, a tree of
-domains that grows by gaining siblings rather than getting wider, each domain owning its use cases, entities,
-endpoints and tests. It is the arrangement that keeps "business logic as small use cases" readable once
+What this document describes is the structure MagicDoor runs its backend on: **domain services in one
+repository**. Each service under `Apps/` is deployed on its own and owns a whole business domain — its use
+cases, its data, its endpoints and its background work — and every service shares the libraries under `Libs/`,
+the tooling and the conventions. That sits between a monolith and microservices: far fewer moving parts than a
+fleet of microservices and one repository to change them in, yet each service deploys, scales and fails on its
+own. Services talk through events, never through each other's databases. Want microservices? Make the services
+smaller; the layout is the same.
+
+Inside each service is a tree of domains that grows by gaining siblings rather than getting wider, each domain
+owning its use cases, entities, endpoints and tests. It is the arrangement that keeps "business logic as small use cases" readable once
 there are a hundred of them and five people adding more. If that shape matches where you are heading, the
 `mcs` command line tool creates and maintains it for you. If it does not, ignore all of it and use the
 packages directly.

@@ -488,23 +488,34 @@ all — which is the point of the split. Wanting `FakeTimeProvider` does not mea
 
 ## An optional layout
 
-Everything above works in any project, arranged however you like. This is the arrangement it was designed
-for — one deployable service whose domain grows as a tree, each part owning its use cases, entities,
-endpoints and tests:
+Everything above works in any project, arranged however you like. The arrangement it was designed for is
+**domain services in one repository**: several services, each deployed on its own and each owning a whole
+business domain — its use cases, its data, its endpoints and its background work — sharing libraries, tooling
+and conventions.
+
+Domain services sit between a monolith and microservices. There are far fewer moving parts than a fleet of
+microservices, and one repository to change them in, yet each service still deploys, scales and fails on its
+own. Services talk to each other through events, never through each other's databases. If you do want
+microservices, make the services smaller; nothing about the layout changes.
+
+Inside a service, the domain grows as a tree, each part owning its use cases, entities, endpoints and tests:
 
 ```
-Apps/Shop/
-  Shop.App/                      Program.cs — a list of references and little else
-  Shop.Domains/Orders/
-    Default/                     use cases, event handlers
-    Models/                      entities, edits, filters
-    App/                         this domain's controllers
-    Tests/
-    Fulfilment/                  a subdomain: the same shape, one level down
-  Data/
-    Data.Models/                 repository interfaces — no EF dependency
-    Data.EntityFramework/        DALs, repositories, context, migrations
-Libs/                            what more than one service uses
+Apps/
+  Shop/                          a service, deployed on its own
+    Shop.App/                    Program.cs — a list of references and little else
+    Shop.Domains/Orders/
+      Default/                   use cases, event handlers
+      Models/                    entities, edits, filters
+      App/                       this domain's controllers
+      Tests/
+      Fulfilment/                a subdomain: the same shape, one level down
+    Data/
+      Data.Models/               repository interfaces — no EF dependency
+      Data.EntityFramework/      DALs, repositories, context, migrations
+  Notifications/                 another service, with its own domains and database
+Libs/
+  Events/                        the event contracts the services share
 ```
 
 A domain grows by gaining siblings rather than getting wider, and each brings its own endpoints, so
