@@ -10,7 +10,7 @@
   <PropertyGroup>
     <!-- One version for every package. publish-all.sh rewrites this line alone, rather than sed-ing
          fourteen .csproj files and leaving them to drift. -->
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
 
     <Authors>MagicCSharp Contributors</Authors>
     <Company>MagicCSharp</Company>
