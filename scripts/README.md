@@ -17,7 +17,8 @@ Move the `CHANGELOG.md` entry under the new version before committing.
 
 Pushing the tag runs [`.github/workflows/release.yml`](../.github/workflows/release.yml). It checks the tag
 matches the version in the repository, builds, runs the tests, packs all fourteen packages, and pushes them.
-The job waits in the `nuget` environment for an approval before it runs.
+It runs as soon as the tag is pushed; there is no approval step. The `nuget` environment only accepts `v*`
+tags, so nothing but a version tag can publish.
 
 There is no API key. NuGet.org trusts that workflow file, in this repository, in that environment, through
 the `MagicDoorPush` trusted publishing policy. Renaming the workflow or the environment stops publishing
