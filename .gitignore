@@ -402,3 +402,9 @@ FodyWeavers.xsd
 .idea/
 
 .claude/
+
+# macOS
+.DS_Store
+
+# Packages packed locally by scripts/publish-all.sh
+nupkgs/
