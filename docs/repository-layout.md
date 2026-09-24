@@ -139,9 +139,17 @@ Apps/
     Data/
       Data.Models/               repository interfaces — for every domain
       Data.EntityFramework/      DALs, EF repositories, context, migrations
+  Notifications/                 a second app: deployed on its own, with its own database
+    Notifications.App/
+    Notifications.Domains/
+      Recipients/                who to write to, kept from the events Shop publishes
+      Emails/                    a second domain; may call Recipients' use cases
+    Data/
+      Data.Models/
+      Data.EntityFramework/
 
 Libs/
-  Events/Default/                shared across services
+  Events/Default/                the event contracts: Shop publishes, Notifications handles
   Clients/Billing/Default/
 ```
 

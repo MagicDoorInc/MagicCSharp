@@ -577,9 +577,16 @@ Apps/
     Data/
       Data.Models/               repository interfaces — no EF dependency
       Data.EntityFramework/      DALs, repositories, context, migrations
-  Notifications/                 another app, with its own domains and database
+  Notifications/                 a second app: its own executable, domains and database
+    Notifications.App/
+    Notifications.Domains/
+      Recipients/                who to write to, kept from the events Shop publishes
+      Emails/                    a second domain; may call Recipients' use cases
+    Data/
+      Data.Models/
+      Data.EntityFramework/
 Libs/
-  Events/                        the event contracts the services share
+  Events/                        the event contracts the apps share: Shop publishes, Notifications handles
 ```
 
 A domain grows by gaining siblings rather than getting wider, and each brings its own endpoints, so
