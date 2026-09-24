@@ -15,44 +15,72 @@
 
 # MagicCSharp
 
-**Business logic as small use cases you chain together — not a giant service class.** `PlaceOrder` is a class.
-`AttachPayment` is another. Big work is those classes called in order, and everything a service needs around
-them — repositories, events, background services, errors, test doubles, scaffolding and the house style as
-build errors — comes in packages you take one at a time.
+**Business logic as small use cases: a C# framework built for AI coding agents.**
 
-It is how every C# service at [MagicDoor](https://magicdoor.com), [Revoco](https://revoco.ai) and
-[AgentParley](https://agentparley.ai) is written, designed by engineers from Amazon and Google. MIT.
+One operation is one class with one `Execute`. When Claude Code, Codex, Cursor or Copilot changes an
+operation, the diff is usually that class and its test. `mcs init` writes the conventions into `AGENTS.md`
+for the agent, and about twenty Roslyn rules make them build errors. Every C# service at
+[MagicDoor](https://magicdoor.com), [Revoco](https://revoco.ai) and [AgentParley](https://agentparley.ai)
+runs on MagicCSharp, an MIT-licensed framework designed by engineers from Amazon and Google.
 
-[Quick start](#quick-start) · [Example](examples/PropertyManagement/) · [Built for AI agents](#small-operations-are-what-an-ai-agent-needs) · [Packages](#the-packages) · [Layout guide](docs/repository-layout.md) · [Changelog](CHANGELOG.md)
+[Quick start](#quick-start) · [Built for AI agents](#built-for-ai-agents) · [Example service](examples/PropertyManagement/) · [Packages](#the-packages) · [Layout guide](docs/repository-layout.md) · [Changelog](CHANGELOG.md)
 
 <table>
-<tr><td><b>Small use cases</b></td><td>One business operation per class, found and registered by one call. The next feature is another class, not another method on a 2,000-line service.</td></tr>
-<tr><td><b>Built for AI agents</b></td><td>An operation's scope is its class and its blast radius is its interface. <code>mcs init</code> writes <code>AGENTS.md</code> and the conventions for Claude Code, Codex, Cursor and the rest.</td></tr>
-<tr><td><b>The house style is a build error</b></td><td><code>MagicCSharp.Analyzers</code> makes <code>DateTime.Now</code>, positional records, missing braces and names like <code>useCase</code> fail the build — for people and agents alike.</td></tr>
-<tr><td><b>Events on any transport</b></td><td>Publish with one interface; run the handlers in-process, on Kafka or on SQS by changing one registration. Publishers and handlers never know which.</td></tr>
-<tr><td><b>Background services that do not drift</b></td><td>Scheduled from the clock, not from when the last run finished, with a distributed lock so one instance runs each occurrence.</td></tr>
-<tr><td><b>Tests that move time</b></td><td>.NET's <code>TimeProvider</code> throughout: "a month later the fee applies once" is a test that runs in milliseconds, background services included.</td></tr>
-<tr><td><b>Repositories with filters</b></td><td>Entity, edit and filter records; one <code>Get(filter)</code> instead of a method per question; pagination, soft delete and search as opt-ins, on EF Core and PostgreSQL.</td></tr>
-<tr><td><b>Errors that mean something</b></td><td>The domain throws not-found, conflict or invalid-operation; the web layer answers 404, 409 or 422 as problem+json with the request id — never a stack trace.</td></tr>
-<tr><td><b>Scaffolding that keeps its shape</b></td><td><code>mcs</code> creates services, domains and entities, and <code>mcs validate</code> keeps a service reading the same at a hundred use cases as at ten.</td></tr>
+<tr><td><b>Guides for the agent</b></td><td><code>mcs init</code> writes <code>AGENTS.md</code> for Codex, Cursor, Copilot and most agents, <code>CLAUDE.md</code> for Claude Code (it imports <code>AGENTS.md</code>), and one guide per topic in <code>.ai-knowledge/</code>.</td></tr>
+<tr><td><b>One operation, one class</b></td><td>A business operation is a class with one <code>Execute</code>, and <code>AddMagicCSharp()</code> finds and registers every one. Bigger work is those classes called in order.</td></tr>
+<tr><td><b>House style as build errors</b></td><td><code>MagicCSharp.Analyzers</code> ships about twenty Roslyn rules. <code>DateTime.Now</code>, a positional record, a missing brace or a dependency called <code>useCase</code> fails the build.</td></tr>
+<tr><td><b>Tests that move time</b></td><td>.NET's <code>TimeProvider</code> throughout, background services included. Tests run the real use cases against a real PostgreSQL, with a <code>FakeTimeProvider</code> the test moves.</td></tr>
+<tr><td><b>Events on any transport</b></td><td>Publish through one <code>IEventDispatcher</code>; handlers are discovered. In-process, Kafka or SQS is one registration, and publishers and handlers are the same on all three.</td></tr>
+<tr><td><b>Drift-free background services</b></td><td>Interval or time-of-day schedules from the clock, so an hourly job stays on the hour. One instance runs each occurrence under a lock named for the service, file-based unless you register a shared provider.</td></tr>
+<tr><td><b>Repositories with filters</b></td><td>Entity, edit and filter records; one <code>Get(filter)</code> per entity; pagination, soft delete and search as opt-ins, on EF Core and PostgreSQL. Snowflake ids are assigned before the insert.</td></tr>
+<tr><td><b>Errors that mean something</b></td><td>The domain throws not-found, conflict, invalid-operation or validation; the web layer answers 404, 409, 422 or 400 as problem+json with the request id. A 500's detail is logged and hidden outside Development.</td></tr>
+<tr><td><b>Structure from a tool</b></td><td><code>mcs</code> creates services, domains and entities the same way every time, and re-running any command changes nothing. <code>mcs validate</code> checks the handful of conventions the compiler cannot.</td></tr>
+<tr><td><b>Domain services, one repository</b></td><td>Each service under <code>Apps/</code> deploys on its own and owns a whole business domain; services share <code>Libs/</code> and talk through events. Make them smaller and you have microservices.</td></tr>
 </table>
 
 ## Quick start
 
-Needs the .NET 10 SDK, and PostgreSQL for a service with a database.
+Needs the .NET 10 SDK, PostgreSQL for a service with a database, and Docker for the repository tests. The
+generated settings expect PostgreSQL on localhost as `postgres`/`postgres`.
 
 ```bash
 dotnet tool install -g MagicCSharp.Cli
 
-mcs init --prefix Acme                                    # a repository, with build rules and AGENTS.md
-mcs create-app --name Shop --database shop                # a service
-mcs create-domain --solution Shop --name Orders --models --tests
-mcs add-entity --solution Shop --domain Orders --name Order --paginated
-dotnet run --project Apps/Shop/Shop.App
+mcs init --prefix Acme                                        # build rules, AGENTS.md, CLAUDE.md, .ai-knowledge/
+mcs create-app --name Leasing --database leasing              # a service
+mcs create-domain --solution Leasing --name Leases --models --tests
+mcs add-entity --solution Leasing --domain Leases --name Lease --paginated
+dotnet run --project Apps/Leasing/Leasing.App
 ```
 
-Or add the packages to an app you already have — the layout and `mcs` are optional, and every package stands
-alone:
+`add-entity` wrote the entity, edit and filter records, the DAL, the repository interface and its EF
+implementation, the `DbSet` and the registration. `mcs init` wrote the build rules and the conventions for
+the agent:
+
+```
+AGENTS.md                                  the guide Codex, Cursor, Copilot and most agents read
+CLAUDE.md                                  @AGENTS.md, so Claude Code reads the same text
+.ai-knowledge/
+  INDEX.md                                 which guide to read for which task
+  architecture-and-project-structure.md    where code goes
+  use-case-patterns.md
+  entities-and-database.md
+  events-and-messaging.md
+  background-services.md
+  api-and-controller-conventions.md
+  time-and-dates.md
+  testing-conventions.md
+  coding-style.md
+  project-tooling.md
+  project.md                               what is specific to this repository; yours, and mcs leaves it alone
+```
+
+Now open the repository in Claude Code, Codex, Cursor or Copilot. The agent reads `AGENTS.md` at the root.
+It says that business logic goes in use cases, that domain code depends on ports, and that `mcs` creates
+projects and entities. A change is done when `dotnet build`, `dotnet test` and `mcs validate` pass.
+
+Or add the packages to an app you already have. There are fourteen, under one version number, and each
+stands alone; the layout and `mcs` are optional.
 
 ```bash
 dotnet add package MagicCSharp.App
@@ -67,148 +95,179 @@ app.UseMagicApp(builder);
 app.Run();
 ```
 
-That registers use cases, `TimeProvider`, Snowflake ids, request IDs, in-process events, scheduling defaults and
-problem-details error handling, then resolves every registration once at startup so a miswired dependency
-fails the deploy rather than the first request. Every call it makes is public on the package that owns it, so
-outgrowing the defaults means replacing two lines with five. [What each option does →](src/MagicCSharp.App/)
+Those two calls register use cases, `TimeProvider`, Snowflake ids, request ids, in-process events,
+scheduling defaults and problem-details errors. At startup they resolve every registration once, so a
+miswired dependency fails the deploy. [What each option does →](src/MagicCSharp.App/)
 
-The [example](examples/PropertyManagement/) is a whole service built this way: signing a lease as a chain of use
-cases, late fees from a background service, notifications over Kafka, and tests that move the clock.
+The [example](examples/PropertyManagement/) is a whole leasing service built from the published packages.
+It signs a lease as a chain of use cases, applies late fees from an hourly background service and sends
+notifications over Kafka. Its tests move the clock, and its CI builds it from nuget.org every week.
 
 ## What a use case looks like
 
+A request record, an interface and a class. The interface extends `IMagicUseCase`, and that is the only
+framework type in it. This is `CreateLeaseUseCase` from the example, without its logging and argument checks:
+
 ```csharp
-public record PlaceOrderRequest
+public record CreateLeaseRequest
 {
-    public required long CustomerId { get; init; }
-    public required decimal Total { get; init; }
+    public required long PropertyId { get; init; }
+    public required string TenantName { get; init; }
+    public required string TenantEmail { get; init; }
+    public required decimal MonthlyRent { get; init; }
+    public required decimal SecurityDeposit { get; init; }
+    public required DateOnly StartDate { get; init; }
+    public required DateOnly EndDate { get; init; }
 }
 
-public interface IPlaceOrderUseCase : IMagicUseCase
+public interface ICreateLeaseUseCase : IMagicUseCase
 {
-    Task<Order> Execute(PlaceOrderRequest request);
+    Task<Lease> Execute(CreateLeaseRequest request);
 }
 
-public class PlaceOrderUseCase(
-    IOrdersRepository ordersRepository,
-    IEventDispatcher eventDispatcher) : IPlaceOrderUseCase
+public class CreateLeaseUseCase(ILeasesRepository leasesRepository) : ICreateLeaseUseCase
 {
-    public async Task<Order> Execute(PlaceOrderRequest request)
+    public async Task<Lease> Execute(CreateLeaseRequest request)
     {
-        var order = await ordersRepository.Create(new OrderEdit
+        if (request.EndDate <= request.StartDate)
         {
-            CustomerId = request.CustomerId,
-            Total = request.Total,
-            Status = OrderStatus.Pending,
-        });
+            throw new ValidationException("A lease must end after it starts.");
+        }
 
-        eventDispatcher.Dispatch(new OrderPlacedEvent
+        return await leasesRepository.Create(new LeaseEdit
         {
-            OrderId = order.Id,
-            CustomerId = order.CustomerId,
+            PropertyId = request.PropertyId,
+            TenantName = request.TenantName,
+            TenantEmail = request.TenantEmail,
+            MonthlyRent = request.MonthlyRent,
+            SecurityDeposit = request.SecurityDeposit,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
         });
-
-        return order;
     }
 }
 ```
 
-The test constructs it. No host, no database, no mocking framework — `FakeOrdersRepository` and
-`RecordingEventDispatcher` are a few lines you write against the two interfaces the use case asked for:
+`builder.Services.AddMagicCSharp()` finds every `IMagicUseCase` and registers it under its interface, so a
+controller takes `ICreateLeaseUseCase` and nothing is wired by hand. A test constructs the class directly;
+`FakeLeasesRepository` is a class in the test project that implements `ILeasesRepository`:
 
 ```csharp
-var placeOrder = new PlaceOrderUseCase(new FakeOrdersRepository(), new RecordingEventDispatcher());
+var createLease = new CreateLeaseUseCase(new FakeLeasesRepository());
 
-var order = await placeOrder.Execute(new PlaceOrderRequest { CustomerId = 7, Total = 42.50m });
-
-Assert.Equal(OrderStatus.Pending, order.Status);
-```
-
-```csharp
-builder.Services.AddMagicCSharp();
-```
-
-That one call finds every `IMagicUseCase` and registers it under its own interface. A controller takes
-`IPlaceOrderUseCase`; there is no wiring to write or to forget. The next operation is another class, not
-another method on a god object.
-
-## Big work is a handful of small operations
-
-A checkout is not `CheckoutService.DoEverything`:
-
-```csharp
-public class CheckoutUseCase(
-    IPlaceOrderUseCase placeOrder,
-    IAttachPaymentUseCase attachPayment,
-    IEventDispatcher eventDispatcher) : ICheckoutUseCase
+var creating = createLease.Execute(new CreateLeaseRequest
 {
-    public async Task<CheckoutResult> Execute(CheckoutRequest request)
+    PropertyId = 1,
+    TenantName = "Dana Whitfield",
+    TenantEmail = "dana@example.com",
+    MonthlyRent = 1850m,
+    SecurityDeposit = 1850m,
+    StartDate = new DateOnly(2027, 3, 1),
+    EndDate = new DateOnly(2026, 3, 1),
+});
+
+await Assert.ThrowsAsync<ValidationException>(() => creating);
+```
+
+## Bigger work is a handful of small operations
+
+Signing a lease is three operations called in order, then an event. Each operation exists on its own. This
+is `SignLeaseUseCase` from the example, without its logging and the deposit charge:
+
+```csharp
+public class SignLeaseUseCase(
+    IGetPropertiesUseCase getProperties,
+    ICreateLeaseUseCase createLease,
+    ICreateChargesUseCase createCharges,
+    IEventDispatcher eventDispatcher) : ISignLeaseUseCase
+{
+    public async Task<SignLeaseResult> Execute(SignLeaseRequest request)
     {
-        var order = await placeOrder.Execute(new PlaceOrderRequest
+        var property = await getProperties.Execute(request.PropertyId);
+        NotFoundException.ThrowIfNull(property, request.PropertyId);
+
+        var lease = await createLease.Execute(new CreateLeaseRequest
         {
-            CustomerId = request.CustomerId,
-            Total = request.Total,
+            PropertyId = property.Id,
+            TenantName = request.TenantName,
+            TenantEmail = request.TenantEmail,
+            MonthlyRent = request.MonthlyRent,
+            SecurityDeposit = request.SecurityDeposit,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
         });
 
-        await attachPayment.Execute(new AttachPaymentRequest
+        var charges = await createCharges.Execute(
+        [
+            new ChargeEdit
+            {
+                LeaseId = lease.Id,
+                Type = ChargeType.Rent,
+                Amount = lease.MonthlyRent,
+                DueDate = lease.StartDate,
+            },
+        ]);
+
+        eventDispatcher.Dispatch(new LeaseSignedEvent
         {
-            OrderId = order.Id,
-            PaymentMethodId = request.PaymentMethodId,
+            LeaseId = lease.Id,
+            PropertyId = property.Id,
         });
 
-        eventDispatcher.Dispatch(new CheckoutCompletedEvent { OrderId = order.Id });
-
-        return new CheckoutResult { OrderId = order.Id };
+        return new SignLeaseResult
+        {
+            Lease = lease,
+            Charges = charges,
+        };
     }
 }
 ```
 
-Must-happen stays in the chain (`placeOrder`, `attachPayment`). Should-happen-later — the confirmation email,
-the search index, the metadata — is a handler on the event. You can read a checkout in one screen. You can
-test each step without the others.
+The steps that must happen are in the chain: `getProperties`, `createLease`, `createCharges`. The welcome
+email is a handler on `LeaseSignedEvent`, because a lease is signed whether or not the email goes. A second
+reaction to signing is another handler class, and this class stays as it is.
 
-The chain is two writes, not one transaction. If `attachPayment` throws, the order from `placeOrder` is
-already persisted — as `Pending`, which is the state an order without a payment should be in, and why that
-status exists. A step that must not stand without the next one belongs inside the same use case, not after
-it.
+A chain is not a transaction. If `createCharges` throws, the lease that `createLease` wrote is already
+there, and the caller gets the exception and decides. Two steps that must succeed together go inside one
+use case.
 
-The packages exist so this style does not collapse the first time you need a clock, a job, a filter or a 404.
+## Built for AI agents
 
-## Small operations are what an AI agent needs
+Ask an agent to change late fees in a service built around a `LeaseService`, and it edits a class that many
+other things call. The reviewer reads all of it. Ask the same thing here and the unit of work is
+`ApplyLateFeesUseCase`: one file, one `Execute`, one test class. The agent can still be wrong. What changes
+is where a mistake can land and how it is found:
 
-Ask an agent to change how late fees work in a codebase built around a `LeaseService`, and it has to read two
-thousand lines to find the part that matters, then edit a class that forty other things call. Whatever it gets
-wrong, it gets wrong somewhere shared.
+- **The scope is a class.** What an operation can touch is listed in its constructor. The agent reads the
+  use case, the interfaces it takes and its test class.
+- **Its callers are one search away.** They are the classes that take `IApplyLateFeesUseCase`. The diff is
+  the class and its test, small enough for a person to read all of it.
+- **The check is real.** One `dotnet test` runs the real use cases, repositories and handlers against
+  PostgreSQL in a throwaway container, with a `FakeTimeProvider` the test moves. "Three days later the fee
+  is still charged once" advances the clock three days and runs the use case again.
+- **The conventions are compile errors.** `MagicCSharp.Analyzers` turns the house style into build errors,
+  and the message says what to do. This repository builds under the same rules.
 
-Ask the same thing here and the unit of work is `ApplyLateFeesUseCase`: one file, one `Execute`, one test class.
+  ```
+  error MCS0008: Replace 'DateTime.UtcNow' with an injected TimeProvider and call 'timeProvider.GetUtcNow()'
+  ```
 
-- **The scope is a class.** What an operation can touch is its constructor. The agent reads the use case, the
-  interfaces it takes and its tests — a few hundred lines, not the service — so it spends its context on the
-  problem instead of on finding it.
-- **The blast radius is visible.** A use case reaches only what its constructor names, and the only code a
-  change to it can affect is what takes its interface — one search finds every caller. The diff is one class and
-  its test: a review a person can actually do, which matters more the more code an agent writes.
-- **The check is fast.** A use case is constructed in a test with fakes and a `FakeTimeProvider`, so "a month
-  later the fee applies once" is a test that runs in milliseconds. The agent verifies its own change instead of
-  asking you to.
-- **The conventions are compile errors.** `MagicCSharp.Analyzers` turns the house style into build errors —
-  `DateTime.Now`, a positional record, a variable called `useCase`, a missing brace — so an agent that drifts
-  is corrected by the compiler, on the spot, not by a reviewer three days later.
-- **The structure comes from a tool.** `mcs` creates services, domains and entities, so an agent adds an entity
-  the way everyone else does instead of inventing a folder layout.
-- **The rules are written down for it.** `mcs init` writes an `AGENTS.md` and an `.ai-knowledge/` folder — where
-  a use case goes, how an entity is shaped, how events, background services and tests work — so the agent
-  follows the same conventions the build enforces. `mcs update ai-files` brings in improved guides with each
-  release.
+- **The structure comes from `mcs`.** `AGENTS.md` tells the agent to use `mcs` for every project, entity
+  and repository, so it adds an entity the way everyone else does.
+- **The rules are written down for it.** `AGENTS.md` is about fifty lines and sends the agent to
+  `.ai-knowledge/INDEX.md`, which names the guide each task needs. It also tells the agent to ask before
+  widening the scope, to commit only when asked, and to say which checks it ran.
+  `mcs update ai-files` refreshes the shipped guides to the installed `mcs` version and leaves `project.md`
+  alone. Their source is [AIAgents/](AIAgents/).
 
-None of this makes an agent right. It makes it wrong in small, visible, testable places — which is the
-difference between an agent you supervise line by line and one you can hand a task to.
+The same things make a person's pull request reviewable.
 
 ## Where to go next
 
 | You want to | Start here |
 |---|---|
 | See a whole service | [The property-management example](examples/PropertyManagement/) |
+| Give an AI agent the conventions | [AIAgents/](AIAgents/), the source of `AGENTS.md`, `CLAUDE.md` and `.ai-knowledge/` |
 | Write use cases and wire a host | [MagicCSharp](src/MagicCSharp/) · [MagicCSharp.App](src/MagicCSharp.App/) |
 | Store entities | [MagicCSharp.Data](src/MagicCSharp.Data/) · [.Data.EntityFramework](src/MagicCSharp.Data.EntityFramework/) · [.Data.Postgres](src/MagicCSharp.Data.Postgres/) |
 | Publish and handle events | [MagicCSharp.Events](src/MagicCSharp.Events/) · [.Events.Kafka](src/MagicCSharp.Events.Kafka/) · [.Events.SQS](src/MagicCSharp.Events.SQS/) |
@@ -216,7 +275,6 @@ difference between an agent you supervise line by line and one you can hand a ta
 | Test with fakes, time and a real database | [MagicCSharp.Testing](src/MagicCSharp.Testing/) · [.Testing.Database](src/MagicCSharp.Testing.Database/) |
 | Enforce the house style | [MagicCSharp.Analyzers](src/MagicCSharp.Analyzers/) |
 | Scaffold and lay out a repository | [mcs](src/MagicCSharp.Cli/) · [The layout guide](docs/repository-layout.md) · [Template overrides](docs/template-overrides.md) |
-| Give an AI agent the conventions | [AIAgents/](AIAgents/) — what `mcs init` writes as `AGENTS.md` and `.ai-knowledge/` |
 | Upgrade | [CHANGELOG](CHANGELOG.md), with an old → new table for every breaking release |
 
 The rest of this page goes deeper, one part at a time.
@@ -232,12 +290,12 @@ returned first. An interface extending the marker with no implementation is also
 than a resolution failure on the first request that needs it. `[MagicUseCase(ServiceLifetime.Singleton)]`
 changes the lifetime when the default scoped is wrong.
 
-A use case that needs another takes its interface, exactly as `CheckoutUseCase` does above. `Lazy<IXxxUseCase>`
+A use case that needs another takes its interface, exactly as `SignLeaseUseCase` does above. `Lazy<IXxxUseCase>`
 is registered alongside every interface, for the rare pair that call each other conditionally.
 
 ### Which makes them testable without a host
 
-The dependencies are interfaces, so a test constructs the thing directly — the `new PlaceOrderUseCase(...)`
+The dependencies are interfaces, so a test constructs the thing directly — the `new CreateLeaseUseCase(...)`
 above is the whole setup. The fakes are yours, in the test project, and there is no framework double to
 learn.
 
@@ -563,7 +621,7 @@ defaults rather than a folder copied from the last one.
 
 The engineers who designed it came from Amazon and Google. The rule they kept: an operation is a class you
 can hold in your head, and infrastructure stays behind an interface. If you cannot test it with
-`new PlaceOrderUseCase(...)`, the operation is too big.
+`new CreateLeaseUseCase(...)`, the operation is too big.
 
 The opinions are not theoretical. They are what was left after finding out which pieces survive a codebase
 getting large and a team changing. Where a decision has a cost, the cost is written next to it. Judge them
