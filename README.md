@@ -1,19 +1,81 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">
+    <img src="docs/assets/banner-light.svg" alt="MagicCSharp — business logic as small use cases you chain together" width="100%">
+  </picture>
+</p>
+
+<p align="center">
+  <a href="https://github.com/MagicDoorInc/MagicCSharp/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/MagicDoorInc/MagicCSharp/ci.yml?branch=master&style=flat-square&label=ci" alt="CI"></a>
+  <a href="https://www.nuget.org/packages/MagicCSharp"><img src="https://img.shields.io/nuget/v/MagicCSharp?style=flat-square&label=nuget" alt="NuGet version"></a>
+  <a href="https://www.nuget.org/profiles/MagicDoor"><img src="https://img.shields.io/nuget/dt/MagicCSharp?style=flat-square&label=downloads" alt="NuGet downloads"></a>
+  <img src="https://img.shields.io/badge/.NET-9%20%7C%2010-512BD4?style=flat-square" alt=".NET 9 | 10">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License: MIT"></a>
+</p>
+
 # MagicCSharp
 
-Business logic as small use cases you chain together. Not a giant service class.
+**Business logic as small use cases you chain together — not a giant service class.** `PlaceOrder` is a class.
+`AttachPayment` is another. Big work is those classes called in order, and everything a service needs around
+them — repositories, events, background services, errors, test doubles, scaffolding and the house style as
+build errors — comes in packages you take one at a time.
 
-`PlaceOrder` creates the order. `AttachPayment` is another use case. `ApplyLateFees` is another. Each one is a
-plain class with a name, an input, an output and a few interfaces. Big work is those classes called in order —
-or started with `Dispatch` when it should not block.
+It is how every C# service at [MagicDoor](https://magicdoor.com), [Revoco](https://revoco.ai) and
+[AgentParley](https://agentparley.ai) is written, designed by engineers from Amazon and Google. MIT.
 
-Once you write it this way, a 2,000-line `OrderService` stops being something you are willing to open. That
-is why this is published: it is how every C# service at [MagicDoor](https://magicdoor.com),
-[Revoco](https://revoco.ai) and [AgentParley](https://agentparley.ai) is written, designed by engineers from
-Amazon and Google. MIT.
+[Quick start](#quick-start) · [Example](examples/PropertyManagement/) · [Built for AI agents](#small-operations-are-what-an-ai-agent-needs) · [Packages](#the-packages) · [Layout guide](docs/repository-layout.md) · [Changelog](CHANGELOG.md)
 
-It is also the shape an AI coding agent works best in: when every operation is a small class behind an
-interface, the change an agent makes — and the damage it can do — is the size of that class.
-[Why that matters →](#small-operations-are-what-an-ai-agent-needs)
+<table>
+<tr><td><b>Small use cases</b></td><td>One business operation per class, found and registered by one call. The next feature is another class, not another method on a 2,000-line service.</td></tr>
+<tr><td><b>Built for AI agents</b></td><td>An operation's scope is its class and its blast radius is its interface. <code>mcs init</code> writes <code>AGENTS.md</code> and the conventions for Claude Code, Codex, Cursor and the rest.</td></tr>
+<tr><td><b>The house style is a build error</b></td><td><code>MagicCSharp.Analyzers</code> makes <code>DateTime.Now</code>, positional records, missing braces and names like <code>useCase</code> fail the build — for people and agents alike.</td></tr>
+<tr><td><b>Events on any transport</b></td><td>Publish with one interface; run the handlers in-process, on Kafka or on SQS by changing one registration. Publishers and handlers never know which.</td></tr>
+<tr><td><b>Background services that do not drift</b></td><td>Scheduled from the clock, not from when the last run finished, with a distributed lock so one instance runs each occurrence.</td></tr>
+<tr><td><b>Tests that move time</b></td><td>.NET's <code>TimeProvider</code> throughout: "a month later the fee applies once" is a test that runs in milliseconds, background services included.</td></tr>
+<tr><td><b>Repositories with filters</b></td><td>Entity, edit and filter records; one <code>Get(filter)</code> instead of a method per question; pagination, soft delete and search as opt-ins, on EF Core and PostgreSQL.</td></tr>
+<tr><td><b>Errors that mean something</b></td><td>The domain throws not-found, conflict or invalid-operation; the web layer answers 404, 409 or 422 as problem+json with the request id — never a stack trace.</td></tr>
+<tr><td><b>Scaffolding that keeps its shape</b></td><td><code>mcs</code> creates services, domains and entities, and <code>mcs validate</code> keeps a service reading the same at a hundred use cases as at ten.</td></tr>
+</table>
+
+## Quick start
+
+Needs the .NET 10 SDK, and PostgreSQL for a service with a database.
+
+```bash
+dotnet tool install -g MagicCSharp.Cli
+
+mcs init --prefix Acme                                    # a repository, with build rules and AGENTS.md
+mcs create-app --name Shop --database shop                # a service
+mcs create-domain --solution Shop --name Orders --models --tests
+mcs add-entity --solution Shop --domain Orders --name Order --paginated
+dotnet run --project Apps/Shop/Shop.App
+```
+
+Or add the packages to an app you already have — the layout and `mcs` are optional, and every package stands
+alone:
+
+```bash
+dotnet add package MagicCSharp.App
+```
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+builder.AddMagicApp();
+
+var app = builder.Build();
+app.UseMagicApp(builder);
+app.Run();
+```
+
+That registers use cases, `TimeProvider`, Snowflake ids, request IDs, in-process events, scheduling defaults and
+problem-details error handling, then resolves every registration once at startup so a miswired dependency
+fails the deploy rather than the first request. Every call it makes is public on the package that owns it, so
+outgrowing the defaults means replacing two lines with five. [What each option does →](src/MagicCSharp.App/)
+
+The [example](examples/PropertyManagement/) is a whole service built this way: signing a lease as a chain of use
+cases, late fees from a background service, notifications over Kafka, and tests that move the clock.
+
+## What a use case looks like
 
 ```csharp
 public record PlaceOrderRequest
@@ -142,55 +204,22 @@ Ask the same thing here and the unit of work is `ApplyLateFeesUseCase`: one file
 None of this makes an agent right. It makes it wrong in small, visible, testable places — which is the
 difference between an agent you supervise line by line and one you can hand a task to.
 
-## What we stopped reinventing
+## Where to go next
 
-| When you need | What you reach for |
+| You want to | Start here |
 |---|---|
-| The next operation | Another use case, registered by `AddMagicCSharp()` |
-| Time passing in a test | .NET's `TimeProvider`, and `timeProvider.Advance(TimeSpan.FromDays(31))` on the fake |
-| An id before the insert | Snowflake ids, or unguessable string keys for anything in a URL |
-| "Find orders like this" | `OrderFilter` + `IOrdersRepository` — one `Get(filter)`, not a method per question |
-| Email, index, the next process | `Dispatch` — in-process, Kafka or SQS, same handlers |
-| Something every hour, on the hour | A job scheduled from the clock, not from last-run plus duration |
-| "That id does not exist" | `NotFoundException` → problem+json with the request id |
-| A second domain that does not rot the tree | `mcs create-domain` / `mcs validate` |
+| See a whole service | [The property-management example](examples/PropertyManagement/) |
+| Write use cases and wire a host | [MagicCSharp](src/MagicCSharp/) · [MagicCSharp.App](src/MagicCSharp.App/) |
+| Store entities | [MagicCSharp.Data](src/MagicCSharp.Data/) · [.Data.EntityFramework](src/MagicCSharp.Data.EntityFramework/) · [.Data.Postgres](src/MagicCSharp.Data.Postgres/) |
+| Publish and handle events | [MagicCSharp.Events](src/MagicCSharp.Events/) · [.Events.Kafka](src/MagicCSharp.Events.Kafka/) · [.Events.SQS](src/MagicCSharp.Events.SQS/) |
+| Run work on a schedule | [MagicCSharp.Scheduling](src/MagicCSharp.Scheduling/) |
+| Test with fakes, time and a real database | [MagicCSharp.Testing](src/MagicCSharp.Testing/) · [.Testing.Database](src/MagicCSharp.Testing.Database/) |
+| Enforce the house style | [MagicCSharp.Analyzers](src/MagicCSharp.Analyzers/) |
+| Scaffold and lay out a repository | [mcs](src/MagicCSharp.Cli/) · [The layout guide](docs/repository-layout.md) · [Template overrides](docs/template-overrides.md) |
+| Give an AI agent the conventions | [AIAgents/](AIAgents/) — what `mcs init` writes as `AGENTS.md` and `.ai-knowledge/` |
+| Upgrade | [CHANGELOG](CHANGELOG.md), with an old → new table for every breaking release |
 
-Every package stands alone. Add one to a project you already have and nothing else about it changes. The
-core has three dependencies and knows nothing about ASP.NET, Entity Framework or Kafka.
-
-The repository layout and `mcs` are optional. They are the last section, and you can ignore them entirely.
-
-## 60 seconds
-
-A whole web service:
-
-```csharp
-var builder = WebApplication.CreateBuilder(args);
-builder.AddMagicApp();
-
-var app = builder.Build();
-app.UseMagicApp(builder);
-app.Run();
-```
-
-That registers use cases, `TimeProvider`, Snowflake ids, request IDs, in-process events, scheduling defaults and
-problem-details error handling, then builds the pipeline in the order those need and resolves every
-registration once at startup so a miswired dependency fails the deploy rather than the first request. Every
-call it makes is public on the package that owns it, so outgrowing the defaults means replacing two lines
-with five rather than working around a framework. [How, and what each option does →](src/MagicCSharp.App/)
-
-Or scaffold the layout:
-
-```bash
-dotnet tool install -g MagicCSharp.Cli
-mcs init --prefix Acme
-mcs create-app --name Shop --database shop
-dotnet run --project Apps/Shop/Shop.App
-```
-
-[Example project →](examples/PropertyManagement/) — a property-management
-service scaffolded with `mcs`: signing a lease as a chain of use cases, late fees from an hourly job,
-notifications from event handlers, and tests that move the clock.
+The rest of this page goes deeper, one part at a time.
 
 ## Use cases
 
@@ -514,17 +543,6 @@ file it generates comes from a template you can replace, one at a time, keeping 
 
 The .NET 10 SDK. The libraries target net9.0; the CLI, the tests and generated repositories target net10.0.
 PostgreSQL for the data packages. Docker only for `MagicCSharp.Testing.Database`.
-
-## Going further
-
-Each package's README covers its own surface — start from the table above. Beyond those:
-
-- **[The example project](examples/PropertyManagement/)** — a
-  property-management service built entirely with `mcs` from the published packages: properties, leases,
-  charges, a late-fees subdomain with an hourly job, and notifications queued by event handlers. Its tests
-  run the real use cases against PostgreSQL and drive time with `FakeTimeProvider`.
-- **[The `mcs` reference](src/MagicCSharp.Cli/)** — every command and what it does.
-- **[CHANGELOG](CHANGELOG.md)** — including how to migrate across a breaking version.
 
 ## Where it comes from
 
