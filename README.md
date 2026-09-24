@@ -528,7 +528,7 @@ when you would rather not choose.
 | Package | Add it when you want | Brings with it |
 |---|---|---|
 | **[MagicCSharp.App](src/MagicCSharp.App/)** | A web service wired in two calls | the four below it |
-| **[MagicCSharp](src/MagicCSharp/)** | Use cases, Snowflake ids, request IDs, `Optional<T>`, `TimeProvider` registration | DI + logging abstractions, IdGen |
+| **[MagicCSharp](src/MagicCSharp/)** | Use cases, Snowflake ids, request IDs, `TimeProvider` registration | DI + logging abstractions, IdGen |
 | **[MagicCSharp.AspNetCore](src/MagicCSharp.AspNetCore/)** | Request-ID middleware, RFC 7807 error handling, startup preflight | the ASP.NET shared framework |
 | **[MagicCSharp.Scheduling](src/MagicCSharp.Scheduling/)** | Drift-free background jobs | DistributedLock, hosting |
 | **[MagicCSharp.Data](src/MagicCSharp.Data/)** | Repository contracts, pagination, LINQ filter helpers | nothing — no persistence library |
