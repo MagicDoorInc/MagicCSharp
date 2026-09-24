@@ -44,12 +44,11 @@ public static class RepositoryExtensions
     {
         var name = typeof(TEntity).Name;
 
-        return key switch
+        if (key is long || key is int)
         {
-            long id => new NotFoundIdException(id, name),
-            int id => new NotFoundIdException(id, name),
-            string text => new NotFoundKeyException(text, name),
-            _ => new NotFoundKeyException(key?.ToString() ?? "", name),
-        };
+            return new NotFoundIdException(Convert.ToInt64(key), name);
+        }
+
+        return new NotFoundKeyException(key?.ToString() ?? "", name);
     }
 }

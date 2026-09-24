@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace MagicCSharp.Infrastructure;
 
 public record ComparableRange<T>
@@ -5,8 +7,13 @@ public record ComparableRange<T>
 {
     public T? Start { get; init; }
     public T? End { get; init; }
-    public bool StartInclusive { get; init; } = true;
-    public bool EndInclusive { get; init; } = true;
+
+    // A range travels in request filters and stored JSON; the wire names predate the Is prefix.
+    [JsonPropertyName("startInclusive")]
+    public bool IsStartInclusive { get; init; } = true;
+
+    [JsonPropertyName("endInclusive")]
+    public bool IsEndInclusive { get; init; } = true;
 
     public bool Contains(T value)
     {
@@ -18,7 +25,7 @@ public record ComparableRange<T>
         if (Start != null)
         {
             var startComparison = value.CompareTo(Start.Value);
-            if (StartInclusive ? startComparison < 0 : startComparison <= 0)
+            if (IsStartInclusive ? startComparison < 0 : startComparison <= 0)
             {
                 return false;
             }
@@ -27,7 +34,7 @@ public record ComparableRange<T>
         if (End != null)
         {
             var endComparison = value.CompareTo(End.Value);
-            if (EndInclusive ? endComparison > 0 : endComparison >= 0)
+            if (IsEndInclusive ? endComparison > 0 : endComparison >= 0)
             {
                 return false;
             }
@@ -46,7 +53,7 @@ public record ComparableRange<T>
         if (Start != null && other.End != null)
         {
             var startToOtherEnd = Start.Value.CompareTo(other.End.Value);
-            if (StartInclusive && other.EndInclusive ? startToOtherEnd > 0 : startToOtherEnd >= 0)
+            if (IsStartInclusive && other.IsEndInclusive ? startToOtherEnd > 0 : startToOtherEnd >= 0)
             {
                 return false;
             }
@@ -55,7 +62,7 @@ public record ComparableRange<T>
         if (End != null && other.Start != null)
         {
             var endToOtherStart = End.Value.CompareTo(other.Start.Value);
-            if (EndInclusive && other.StartInclusive ? endToOtherStart < 0 : endToOtherStart <= 0)
+            if (IsEndInclusive && other.IsStartInclusive ? endToOtherStart < 0 : endToOtherStart <= 0)
             {
                 return false;
             }
@@ -74,7 +81,7 @@ public record ComparableRange<T>
         if (Start != null && other.Start != null)
         {
             var startComparison = Start.Value.CompareTo(other.Start.Value);
-            if (StartInclusive && other.StartInclusive ? startComparison < 0 : startComparison <= 0)
+            if (IsStartInclusive && other.IsStartInclusive ? startComparison < 0 : startComparison <= 0)
             {
                 return false;
             }
@@ -83,7 +90,7 @@ public record ComparableRange<T>
         if (End != null && other.End != null)
         {
             var endComparison = End.Value.CompareTo(other.End.Value);
-            if (EndInclusive && other.EndInclusive ? endComparison > 0 : endComparison >= 0)
+            if (IsEndInclusive && other.IsEndInclusive ? endComparison > 0 : endComparison >= 0)
             {
                 return false;
             }
@@ -99,19 +106,19 @@ public record ComparableRange<T>
             return "any value";
         }
 
-        var startBracket = StartInclusive ? "[" : "(";
-        var endBracket = EndInclusive ? "]" : ")";
+        var startBracket = IsStartInclusive ? "[" : "(";
+        var endBracket = IsEndInclusive ? "]" : ")";
         var startValue = Start?.ToString() ?? "-∞";
         var endValue = End?.ToString() ?? "∞";
 
         if (Start != null && End == null)
         {
-            return $"{(StartInclusive ? "greater than or equal to" : "greater than")} {Start}";
+            return $"{(IsStartInclusive ? "greater than or equal to" : "greater than")} {Start}";
         }
 
         if (Start == null && End != null)
         {
-            return $"{(EndInclusive ? "less than or equal to" : "less than")} {End}";
+            return $"{(IsEndInclusive ? "less than or equal to" : "less than")} {End}";
         }
 
         return $"{startBracket}{startValue}, {endValue}{endBracket}";
@@ -124,8 +131,8 @@ public record ComparableRange<T>
             return "(-∞, ∞)";
         }
 
-        var startBracket = StartInclusive ? "[" : "(";
-        var endBracket = EndInclusive ? "]" : ")";
+        var startBracket = IsStartInclusive ? "[" : "(";
+        var endBracket = IsEndInclusive ? "]" : ")";
         var startValue = Start?.ToString() ?? "-∞";
         var endValue = End?.ToString() ?? "∞";
 

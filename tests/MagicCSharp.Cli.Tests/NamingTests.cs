@@ -14,9 +14,9 @@ public class NamingTests
     [InlineData("Day", "Days")]        // vowel before y — not "Daies"
     [InlineData("Key", "Keys")]
     [InlineData("ApiKey", "ApiKeys")]
-    public void Pluralize(string input, string expected)
+    public void Pluralize(string input, string isExpected)
     {
-        Assert.Equal(expected, Naming.Pluralize(input));
+        Assert.Equal(isExpected, Naming.Pluralize(input));
     }
 
     [Theory]
@@ -25,9 +25,9 @@ public class NamingTests
     [InlineData("ApiKey", "api_keys")]
     [InlineData("Category", "categories")]
     [InlineData("Address", "addresses")]
-    public void ToTableName(string input, string expected)
+    public void ToTableName(string input, string isExpected)
     {
-        Assert.Equal(expected, Naming.ToTableName(input));
+        Assert.Equal(isExpected, Naming.ToTableName(input));
     }
 
     // The generated code has to name its variables the way MagicCSharp.Analyzers (MCS0019) expects, or a
@@ -38,9 +38,9 @@ public class NamingTests
     [InlineData("APIKeyDal", "apiKeyDal")]
     [InlineData("Order", "order")]
     [InlineData("SKU", "sku")]
-    public void ToVariableName(string input, string expected)
+    public void ToVariableName(string input, string isExpected)
     {
-        Assert.Equal(expected, Naming.ToVariableName(input));
+        Assert.Equal(isExpected, Naming.ToVariableName(input));
     }
 
     [Theory]
@@ -49,9 +49,9 @@ public class NamingTests
     [InlineData("order", false)]
     [InlineData("Domains.Orders", false)]
     [InlineData("", false)]
-    public void IsPascalWord(string input, bool expected)
+    public void IsPascalWord(string input, bool isExpected)
     {
-        Assert.Equal(expected, Naming.IsPascalWord(input));
+        Assert.Equal(isExpected, Naming.IsPascalWord(input));
     }
 
     [Theory]
@@ -60,9 +60,9 @@ public class NamingTests
     [InlineData("Clients.Billing.Api", true)]
     [InlineData("domains.orders", false)]
     [InlineData("Domains..Orders", false)]
-    public void IsDottedPascal(string input, bool expected)
+    public void IsDottedPascal(string input, bool isExpected)
     {
-        Assert.Equal(expected, Naming.IsDottedPascal(input));
+        Assert.Equal(isExpected, Naming.IsDottedPascal(input));
     }
 
     [Theory]
@@ -71,8 +71,8 @@ public class NamingTests
     [InlineData("Shop", false)]
     [InlineData("order-management", false)]
     [InlineData("1shop", false)]
-    public void IsDatabaseName(string input, bool expected)
+    public void IsDatabaseName(string input, bool isExpected)
     {
-        Assert.Equal(expected, Naming.IsDatabaseName(input));
+        Assert.Equal(isExpected, Naming.IsDatabaseName(input));
     }
 }

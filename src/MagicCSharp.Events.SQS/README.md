@@ -18,11 +18,13 @@ or EKS; keys on a laptop; a named profile; LocalStack:
 ```csharp
 builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient(RegionEndpoint.USEast1));   // IAM role
 
-var sqsConfig = new SqsMagicEventConfiguration(
-    QueueUrl: "https://sqs.us-east-1.amazonaws.com/123456789012/shop-events",
-    MaxNumberOfMessages: 10,     // per receive, 1–10
-    WaitTimeSeconds: 20,         // long polling, 0–20
-    VisibilityTimeout: 30);      // seconds a received message stays hidden from other consumers
+var sqsConfig = new SqsMagicEventConfiguration
+{
+    QueueUrl = "https://sqs.us-east-1.amazonaws.com/123456789012/shop-events",
+    MaxNumberOfMessages = 10,    // per receive, 1–10
+    WaitTimeSeconds = 20,        // long polling, 0–20
+    VisibilityTimeout = 30,      // seconds a received message stays hidden from other consumers
+};
 
 builder.Services.AddMagicSqsEvents(sqsConfig);
 builder.AddMagicApp();      // or AddMagicCSharp and friends — the in-process dispatcher steps aside
@@ -31,7 +33,7 @@ builder.AddMagicApp();      // or AddMagicCSharp and friends — the in-process 
 The three numbers default to exactly those values, and are validated at registration rather than at the
 first receive. `AddMagicSqsEvents` also runs `AddMagicEvents` (handler discovery, idempotent), registers
 `SqsEventDispatcher` as `IEventDispatcher` and `SqsEventsBackgroundService` as the consumer.
-`useOpenTelemetryMetrics: true` turns on the event metrics.
+`shouldUseOpenTelemetryMetrics: true` turns on the event metrics.
 
 For a laptop, `new AmazonSQSClient(new BasicAWSCredentials(accessKey, secretKey), RegionEndpoint.USEast1)`
 or `new AmazonSQSClient(new StoredProfileAWSCredentials("shop-dev"), RegionEndpoint.USEast1)`. For
@@ -44,7 +46,7 @@ builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient(new AmazonSQSConfi
     AuthenticationRegion = "us-east-1",
 }));
 
-var sqsConfig = new SqsMagicEventConfiguration(QueueUrl: "http://localhost:4566/000000000000/shop-events");
+var sqsConfig = new SqsMagicEventConfiguration { QueueUrl = "http://localhost:4566/000000000000/shop-events" };
 ```
 
 ## What is and is not guaranteed
@@ -191,11 +193,13 @@ message exactly as the event consumer does.
 builder.Services.AddSingleton<IAmazonSQS>(_ =>
     new AmazonSQSClient(RegionEndpoint.GetBySystemName(configuration["AWS:Region"]!)));
 
-var sqsConfig = new SqsMagicEventConfiguration(
-    QueueUrl: configuration["AWS:SQS:QueueUrl"]!,
-    MaxNumberOfMessages: int.Parse(configuration["AWS:SQS:MaxMessages"]!),
-    WaitTimeSeconds: int.Parse(configuration["AWS:SQS:WaitTime"]!),
-    VisibilityTimeout: int.Parse(configuration["AWS:SQS:VisibilityTimeout"]!));
+var sqsConfig = new SqsMagicEventConfiguration
+{
+    QueueUrl = configuration["AWS:SQS:QueueUrl"]!,
+    MaxNumberOfMessages = int.Parse(configuration["AWS:SQS:MaxMessages"]!),
+    WaitTimeSeconds = int.Parse(configuration["AWS:SQS:WaitTime"]!),
+    VisibilityTimeout = int.Parse(configuration["AWS:SQS:VisibilityTimeout"]!),
+};
 
 builder.Services.AddMagicSqsEvents(sqsConfig);
 ```

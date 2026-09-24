@@ -15,17 +15,17 @@ public static class MagicSQSEventsRegistrationExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">SQS configuration.</param>
-    /// <param name="useOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
+    /// <param name="shouldUseOpenTelemetryMetrics">Use OpenTelemetry metrics instead of null metrics.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddMagicSqsEvents(
         this IServiceCollection services,
         SqsMagicEventConfiguration configuration,
-        bool useOpenTelemetryMetrics = false)
+        bool shouldUseOpenTelemetryMetrics = false)
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
         // Register core infrastructure
-        services.AddMagicEvents(useOpenTelemetryMetrics);
+        services.AddMagicEvents(shouldUseOpenTelemetryMetrics);
 
         // Validate parameters
         if (configuration.MaxNumberOfMessages < 1 || configuration.MaxNumberOfMessages > 10)
@@ -45,8 +45,13 @@ public static class MagicSQSEventsRegistrationExtensions
         }
 
         // Register SQS configuration
-        services.AddSingleton(new SqsEventsBackgroundServiceConfig(configuration.QueueUrl,
-            configuration.MaxNumberOfMessages, configuration.WaitTimeSeconds, configuration.VisibilityTimeout));
+        services.AddSingleton(new SqsEventsBackgroundServiceConfig
+        {
+            QueueUrl = configuration.QueueUrl,
+            MaxNumberOfMessages = configuration.MaxNumberOfMessages,
+            WaitTimeSeconds = configuration.WaitTimeSeconds,
+            VisibilityTimeout = configuration.VisibilityTimeout,
+        });
 
         // Register SQS event dispatcher
         services.AddSingleton<IEventDispatcher, SqsEventDispatcher>();

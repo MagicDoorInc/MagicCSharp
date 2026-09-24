@@ -16,7 +16,7 @@ namespace MagicCSharp.Events.Events;
 public class AsyncEventDispatcher(
     IServiceScopeFactory serviceScopeFactory,
     IEventTypeHolder eventTypeHolder,
-    IEventsMetricsHandler metrics,
+    IEventsMetricsHandler eventsMetricsHandler,
     ILogger<AsyncEventDispatcher> logger) : IAsyncEventDispatcher
 {
     private static readonly ConcurrentDictionary<(Type handler, Type eventType), HandleDelegate?> _handleDelegateCache =
@@ -25,7 +25,7 @@ public class AsyncEventDispatcher(
     public async Task Dispatch(MagicEvent magicEvent)
     {
         var eventType = magicEvent.GetType();
-        metrics.GotEvent(eventType);
+        eventsMetricsHandler.GotEvent(eventType);
 
         // Create a scope for the event
         using var scope = serviceScopeFactory.CreateScope();
@@ -58,7 +58,7 @@ public class AsyncEventDispatcher(
         if (handler == null)
         {
             logger.LogError("Handler {handler} not found in ServiceProvider", handlerType.Name);
-            metrics.EventFailed(eventType, handlerType.Name,
+            eventsMetricsHandler.EventFailed(eventType, handlerType.Name,
                 new InvalidOperationException($"Handler {handlerType.Name} not found in ServiceProvider"));
             return;
         }
@@ -68,7 +68,7 @@ public class AsyncEventDispatcher(
         if (handleDelegate == null)
         {
             logger.LogError("Handler {handler} does not have a Handle method, skipping", handlerType.Name);
-            metrics.EventFailed(eventType, handlerType.Name,
+            eventsMetricsHandler.EventFailed(eventType, handlerType.Name,
                 new InvalidOperationException($"Handler {handlerType.Name} does not have a Handle method"));
             return;
         }
@@ -83,7 +83,7 @@ public class AsyncEventDispatcher(
                 await handleDelegate(handler, magicEvent);
             } catch (Exception handlerEx)
             {
-                metrics.EventFailed(eventType, handlerType.Name, handlerEx);
+                eventsMetricsHandler.EventFailed(eventType, handlerType.Name, handlerEx);
                 logger.LogError(handlerEx, "An error occurred while executing event handler {handler}",
                     handlerType.Name);
             }
@@ -92,7 +92,7 @@ public class AsyncEventDispatcher(
                 stopwatch.Stop();
                 logger.LogTrace("Event {event} handled by {handler} in {duration}ms", eventType.Name, handlerType.Name,
                     stopwatch.ElapsedMilliseconds);
-                metrics.EventFinished(eventType, handlerType.Name, stopwatch.Elapsed);
+                eventsMetricsHandler.EventFinished(eventType, handlerType.Name, stopwatch.Elapsed);
             }
         }
     }

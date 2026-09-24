@@ -57,9 +57,9 @@ public class OptionalTests
     [Fact]
     public void Round_trips_through_serialization()
     {
-        var original = new PatchRequest { NickName = "Babs" };
+        var patchRequest = new PatchRequest { NickName = "Babs" };
 
-        var json = JsonSerializer.Serialize(original, JsonDefaults.Options);
+        var json = JsonSerializer.Serialize(patchRequest, JsonDefaults.Options);
         var restored = JsonSerializer.Deserialize<PatchRequest>(json, JsonDefaults.Options)!;
 
         Assert.True(restored.NickName.HasValue);

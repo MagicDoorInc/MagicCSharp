@@ -30,8 +30,12 @@ public class FakeKeyGen(TimeProvider timeProvider, int? generatorId = null) : IK
     private static readonly DateTimeOffset Epoch = new DateTimeOffset(2015, 1, 1, 0,
         0, 0, TimeSpan.Zero);
 
+    // Process-wide on purpose: these are what keep ids unique across every FakeKeyGen in the test run, and they
+    // are only ever touched through Interlocked.
+#pragma warning disable MCS0017 // a process-wide uniqueness counter is the point; Interlocked makes it safe
     private static int globalGeneratorCounter;
     private static int globalSequenceCounter;
+#pragma warning restore MCS0017
 
     private readonly long instanceGeneratorId = (generatorId ?? Interlocked.Increment(ref globalGeneratorCounter)) & 0x3FF;
 

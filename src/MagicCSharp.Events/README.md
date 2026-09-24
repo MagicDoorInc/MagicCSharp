@@ -164,7 +164,7 @@ redeployed.
 ## Metrics
 
 ```csharp
-services.AddLocalMagicEvents(useOpenTelemetryMetrics: true);
+services.AddLocalMagicEvents(shouldUseOpenTelemetryMetrics: true);
 ```
 
 A `MagicCSharp.Events` meter with `Events` (received, by type), `Events.Failed` (by type and handler),

@@ -1,11 +1,5 @@
 namespace MagicCSharp.Events.Events;
 
-public interface IEventTypeHolder
-{
-    IReadOnlyList<Type> GetEventTypes();
-    IReadOnlyList<Type> GetHandlerTypes(Type eventType);
-}
-
 public class MagicEventTypeHolder(
     IReadOnlyList<Type> eventTypes,
     Dictionary<Type, IReadOnlyList<Type>> sortedHandlersByEventType) : IEventTypeHolder

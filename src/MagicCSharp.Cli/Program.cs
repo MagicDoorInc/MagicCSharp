@@ -40,6 +40,13 @@ app.Configure(config =>
     config.AddCommand<ValidateCommand>("validate")
         .WithDescription("Lint the conventions the compiler cannot");
 
+    config.AddBranch("update", update =>
+    {
+        update.SetDescription("Bring files mcs ships up to this version");
+        update.AddCommand<UpdateAiFilesCommand>("ai-files")
+            .WithDescription("Refresh CLAUDE.md and the .ai-knowledge/ guides; never touches .ai-knowledge/project.md");
+    });
+
     config.AddBranch("templates", templates =>
     {
         templates.SetDescription("See and override the templates the generators use");
@@ -54,12 +61,12 @@ app.Configure(config =>
     {
         switch (exception)
         {
-            case CommandParseException parse:
-                Output.Error(parse.Message);
+            case CommandParseException:
+                Output.Error(exception.Message);
                 Output.Hint("Run 'mcs --help', or '<command> --help', for the options.");
                 return 1;
-            case CommandRuntimeException runtime:
-                Output.Error(runtime.Message);
+            case CommandRuntimeException:
+                Output.Error(exception.Message);
                 return 1;
             case TemplateNotFoundException:
             case InvalidOperationException:

@@ -15,7 +15,7 @@ namespace MagicCSharp.Scheduling;
 public abstract class ScheduledBackgroundService(
     IServiceScopeFactory serviceScopeFactory,
     ScheduleConfiguration scheduleConfiguration,
-    IDistributedLockProvider? lockProvider,
+    IDistributedLockProvider? distributedLockProvider,
     TimeProvider? timeProvider,
     ILogger logger) : BackgroundService
 {
@@ -29,10 +29,8 @@ public abstract class ScheduledBackgroundService(
 
     private readonly TimeProvider timeProvider = timeProvider ?? TimeProvider.System;
 
-    private readonly IDistributedLockProvider lockProvider = lockProvider ??
-                                                             new FileDistributedSynchronizationProvider(
-                                                                 new DirectoryInfo(Path.Combine(Path.GetTempPath(),
-                                                                     "magiccsharp-locks")));
+    private readonly IDistributedLockProvider distributedLockProvider = distributedLockProvider ??
+        new FileDistributedSynchronizationProvider(new DirectoryInfo(Path.Combine(Path.GetTempPath(), "magiccsharp-locks")));
 
     /// <summary>
     ///     Unique key for this scheduled task (e.g., "subscription-expiration-check").
@@ -166,7 +164,7 @@ public abstract class ScheduledBackgroundService(
         var lockKey = $"scheduled-task:{ScheduleKey}";
         logger.LogDebug("{ServiceName} attempting to acquire lock for execution", ServiceName);
 
-        await using var distributedLock = await lockProvider.TryAcquireLockAsync(lockKey, LockOutTime, stoppingToken);
+        await using var distributedLock = await distributedLockProvider.TryAcquireLockAsync(lockKey, LockOutTime, stoppingToken);
         if (distributedLock == null)
         {
             logger.LogDebug("{ServiceName} could not acquire lock - another instance is likely running the task",

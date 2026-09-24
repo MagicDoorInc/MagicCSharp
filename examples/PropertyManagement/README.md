@@ -115,8 +115,9 @@ Apps/Leasing/
 Libs/
   Events/                          event contracts
   Web/                             pagination and id parsing for the endpoints
-.ai-knowledge/                     the conventions, one guide per topic — start at INDEX.md
-CLAUDE.md                          where an AI coding agent starts
+.ai-knowledge/                     the conventions, one guide per topic, from mcs — start at INDEX.md
+  project.md                       what is specific to this service
+CLAUDE.md                          where an AI coding agent starts, from mcs
 compose.yaml                       PostgreSQL and Kafka
 ```
 
@@ -129,7 +130,9 @@ never the other way round.
 [`CLAUDE.md`](CLAUDE.md) and [`.ai-knowledge/`](.ai-knowledge/INDEX.md) are the conventions this service is
 written to — where a use case goes, how an entity is shaped, how events and background services work, how
 tests move time — written for an agent to read before it changes anything, and useful to a person for the same
-reason. Copy them into your own repository as a starting point.
+reason. `mcs init` wrote them, as it does into every new repository, and `mcs update ai-files` brings them up
+to date. What is specific to this service is in [`.ai-knowledge/project.md`](.ai-knowledge/project.md), which
+the update never touches.
 
 ## How it was made
 

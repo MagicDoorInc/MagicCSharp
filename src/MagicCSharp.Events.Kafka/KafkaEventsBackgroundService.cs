@@ -9,7 +9,7 @@ namespace MagicCSharp.Events.Kafka;
 /// </summary>
 public class KafkaEventsBackgroundService(
     KafkaEventsBackgroundServiceConfig config,
-    IAsyncEventDispatcher eventDispatcher,
+    IAsyncEventDispatcher asyncEventDispatcher,
     IEventSerializer eventSerializer,
     IServiceScopeFactory serviceScopeFactory,
     ILogger<KafkaEventsBackgroundService> logger) : KafkaListenerBase<MagicEvent>(serviceScopeFactory, logger)
@@ -28,6 +28,6 @@ public class KafkaEventsBackgroundService(
 
         // Waiting is to ensure that the event can be safely executed when the application is shutting down,
         // so that it is not lost and race conditions are less likely to occur
-        await eventDispatcher.Dispatch(message);
+        await asyncEventDispatcher.Dispatch(message);
     }
 }

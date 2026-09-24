@@ -43,4 +43,17 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
+  <!--
+    The framework builds under its own rules, as a consumer's repository does: every MCS rule is an error here
+    too. Referenced as a project, not the package, so a rule change is enforced on the next build.
+    PrivateAssets keeps it out of the packed .nuspec — the rules are the consumer's choice, not a transitive
+    dependency of every MagicCSharp package.
+  -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'MagicCSharp.Analyzers'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)MagicCSharp.Analyzers/MagicCSharp.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"/>
+  </ItemGroup>
+
 </Project>

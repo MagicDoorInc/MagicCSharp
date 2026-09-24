@@ -65,10 +65,11 @@ public static class ApplicationAssemblies
         return name != null && !IsSystem(name);
     }
 
-    /// <summary>Set once the deployment directory has been read, so repeat calls cost nothing.</summary>
-    private static bool loaded;
-
-    private static readonly Lock Gate = new Lock();
+    /// <summary>
+    ///     Reads the deployment directory once per process; the lazy's own lock makes concurrent first calls wait
+    ///     for the one load rather than race it.
+    /// </summary>
+    private static readonly Lazy<bool> DeploymentLoad = new Lazy<bool>(LoadDeployedAssemblies, LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>
     ///     Loads every application assembly deployed with the executable, so a later scan sees all of it.
@@ -79,27 +80,19 @@ public static class ApplicationAssemblies
     /// </summary>
     public static void EnsureLoaded()
     {
-        if (loaded)
+        _ = DeploymentLoad.Value;
+    }
+
+    private static bool LoadDeployedAssemblies()
+    {
+        foreach (var path in DeployedAssemblies())
         {
-            return;
+            // One assembly that will not load is not this scan's problem — it will surface properly
+            // the moment something actually needs a type from it. Carry on with the rest.
+            TryLoadFrom(path);
         }
 
-        lock (Gate)
-        {
-            if (loaded)
-            {
-                return;
-            }
-
-            foreach (var path in DeployedAssemblies())
-            {
-                // One assembly that will not load is not this scan's problem — it will surface properly
-                // the moment something actually needs a type from it. Carry on with the rest.
-                TryLoadFrom(path);
-            }
-
-            loaded = true;
-        }
+        return true;
     }
 
     /// <summary>

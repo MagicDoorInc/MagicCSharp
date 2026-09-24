@@ -11,14 +11,3 @@ public interface IDalDeleted
     /// </summary>
     public DateTimeOffset? Deleted { get; set; }
 }
-
-/// <summary>
-///     A DAL carrying the denormalized search column the search repository bases maintain.
-/// </summary>
-public interface IDalSearchField
-{
-    /// <summary>
-    ///     Normalized, space-separated search keywords for this row. Written by the repository, never by hand.
-    /// </summary>
-    public string? MetaDataSearch { get; set; }
-}

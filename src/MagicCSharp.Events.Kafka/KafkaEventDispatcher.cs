@@ -15,7 +15,7 @@ public class KafkaEventDispatcher(
 {
     public void Dispatch(MagicEvent? magicEvent)
     {
-        if (magicEvent is null)
+        if (magicEvent == null)
         {
             return;
         }

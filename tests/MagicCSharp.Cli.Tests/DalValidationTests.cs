@@ -65,8 +65,8 @@ public class DalValidationTests
 
     private static List<Violation> Validate(string source)
     {
-        var file = new SourceFile("ChargeDal.cs", source.Split('\n'));
-        return ValidateCommand.DalPropertiesAreRequired([file]).ToList();
+        var sourceFile = new SourceFile { Path = "ChargeDal.cs", Lines = source.Split('\n') };
+        return ValidateCommand.DalPropertiesAreRequired([sourceFile]).ToList();
     }
 
     private static string Dal(string property, string fromInitializer, string applyBody, string attribute = "[Required]")

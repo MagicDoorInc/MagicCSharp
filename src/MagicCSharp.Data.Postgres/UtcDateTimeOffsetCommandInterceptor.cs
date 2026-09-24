@@ -81,9 +81,10 @@ public class UtcDateTimeOffsetCommandInterceptor : DbCommandInterceptor
     {
         foreach (DbParameter parameter in command.Parameters)
         {
-            if (parameter.Value is DateTimeOffset value && value.Offset != TimeSpan.Zero)
+            var value = parameter.Value as DateTimeOffset?;
+            if (value != null && value.Value.Offset != TimeSpan.Zero)
             {
-                parameter.Value = value.ToUniversalTime();
+                parameter.Value = value.Value.ToUniversalTime();
             }
         }
     }

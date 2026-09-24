@@ -40,14 +40,14 @@ public class RequestIdHandler : IRequestIdHandler
 
     private class RequestIdScope(string? previousRequestId) : IDisposable
     {
-        private bool disposed;
+        private bool isDisposed;
 
         public void Dispose()
         {
-            if (!disposed)
+            if (!isDisposed)
             {
                 CurrentRequestId.Value = previousRequestId;
-                disposed = true;
+                isDisposed = true;
             }
         }
     }

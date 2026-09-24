@@ -42,7 +42,7 @@ public class InMemoryScheduleStore : IScheduleStore
         TimeSpan executionDuration,
         DateTimeOffset nextRun)
     {
-        executions[scheduleKey] = new Execution(executionStart, executionDuration);
+        executions[scheduleKey] = new Execution { StartedAt = executionStart, Duration = executionDuration };
         nextRuns[scheduleKey] = nextRun;
         return Task.CompletedTask;
     }
@@ -57,5 +57,9 @@ public class InMemoryScheduleStore : IScheduleStore
         return Task.FromResult<(DateTimeOffset?, TimeSpan?)?>((execution.StartedAt, execution.Duration));
     }
 
-    private record Execution(DateTimeOffset StartedAt, TimeSpan Duration);
+    private record Execution
+    {
+        public required DateTimeOffset StartedAt { get; init; }
+        public required TimeSpan Duration { get; init; }
+    }
 }

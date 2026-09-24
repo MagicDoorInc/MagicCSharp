@@ -59,7 +59,7 @@ useless. Put `UseMagicErrorHandling` first so it covers everything after it.
 | `TooManyRequestsException` | 429 |
 | `HttpNotImplementedException` | 501 |
 
-Derive your own for a status not listed. `ErrorHandlingModule.Describe(exception, includeDetail)` is public,
+Derive your own for a status not listed. `ErrorHandlingModule.Describe(exception, shouldIncludeDetail)` is public,
 so a test can assert the mapping without a web host.
 
 ## Request ids

@@ -35,7 +35,7 @@ public class LocalEventDispatcher : IEventDispatcher
 
     public void Dispatch(MagicEvent? magicEvent)
     {
-        if (magicEvent is null)
+        if (magicEvent == null)
         {
             return;
         }

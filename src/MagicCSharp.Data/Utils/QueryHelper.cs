@@ -17,7 +17,7 @@ public static class QueryHelper
     public static IQueryable<TDal> ApplyPagination<TDal>(IQueryable<TDal> query, PaginationRequest paginationRequest)
         where TDal : class
     {
-        if (paginationRequest.Disable || paginationRequest.PageSize == 0)
+        if (paginationRequest.IsDisabled || paginationRequest.PageSize == 0)
         {
             return query;
         }

@@ -32,7 +32,7 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
         [CommandOption("-k|--use-key")]
         [Description("Key by an unguessable string instead of a Snowflake id. Use when the key is public.")]
         [DefaultValue(false)]
-        public bool UseKey { get; init; }
+        public bool ShouldUseKey { get; init; }
 
         [CommandOption("-p|--paginated")]
         [Description("Also give the repository page-at-a-time reads")]
@@ -63,7 +63,7 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
 
     public override int Execute(CommandContext context, Settings settings)
     {
-        var config = RepoConfig.Load();
+        var config = RepositoryConfig.Load();
 
         if (config == null)
         {
@@ -81,12 +81,12 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
         var domain = settings.Domain!;
         var appName = config.AppNameFromSolution(solution);
 
-        var paths = new EntityPaths(config.Prefix, appName, domain, entity);
+        var entityPaths = new EntityPaths(config.Prefix, appName, domain, entity);
 
         Output.Plain($"App: {appName}   Domain: {domain}   Entity: {entity}");
-        Output.Note($"Key: {(settings.UseKey ? "string" : "long (Snowflake)")}   Paginated: {settings.IsPaginated}");
+        Output.Note($"Key: {(settings.ShouldUseKey ? "string" : "long (Snowflake)")}   Paginated: {settings.IsPaginated}");
 
-        var missing = new[] { paths.DomainModelsProject, paths.DataProject, paths.EntityFrameworkProject }
+        var missing = new[] { entityPaths.DomainModelsProject, entityPaths.DataProject, entityPaths.EntityFrameworkProject }
             .Where(path => !File.Exists(path))
             .ToList();
 
@@ -109,7 +109,7 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
             entity_variable = Naming.ToVariableName(entity),
             plural = Naming.Pluralize(entity),
             table_name = Naming.ToTableName(entity),
-            use_key = settings.UseKey,
+            use_key = settings.ShouldUseKey,
             is_paginated = settings.IsPaginated,
             entity_namespace = $"{config.Prefix}.{appName}.Domains.{domain}.Models.Entities",
         };
@@ -119,9 +119,9 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
         var added = new List<string>();
         try
         {
-            foreach (var project in new[] { paths.DataProject, paths.EntityFrameworkProject })
+            foreach (var project in new[] { entityPaths.DataProject, entityPaths.EntityFrameworkProject })
             {
-                if (DotnetCli.EnsureReference(project, paths.DomainModelsProject))
+                if (DotnetCli.EnsureReference(project, entityPaths.DomainModelsProject))
                 {
                     added.Add(project);
                 }
@@ -131,27 +131,27 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
         {
             foreach (var project in added)
             {
-                DotnetCli.RemoveReference(project, paths.DomainModelsProject);
+                DotnetCli.RemoveReference(project, entityPaths.DomainModelsProject);
             }
 
             throw;
         }
 
-        var renderer = new TemplateRenderer(TemplateResolver.ForRepository(config));
+        var templateRenderer = new TemplateRenderer(TemplateResolver.ForRepository(config));
 
-        renderer.Render("Entities/entity.cs.hbs", paths.EntityFile, model);
-        renderer.Render("Entities/repository-interface.cs.hbs", paths.RepositoryInterfaceFile, model);
-        renderer.Render("Entities/dal.cs.hbs", paths.DalFile, model);
-        renderer.Render("Entities/ef-repository.cs.hbs", paths.EfRepositoryFile, model);
+        templateRenderer.Render("Entities/entity.cs.hbs", entityPaths.EntityFile, model);
+        templateRenderer.Render("Entities/repository-interface.cs.hbs", entityPaths.RepositoryInterfaceFile, model);
+        templateRenderer.Render("Entities/dal.cs.hbs", entityPaths.DalFile, model);
+        templateRenderer.Render("Entities/ef-repository.cs.hbs", entityPaths.EfRepositoryFile, model);
 
-        RegisterDbSet(paths, config.Prefix, appName, entity, Naming.Pluralize(entity));
-        RegisterRepository(paths, config.Prefix, appName, Naming.Pluralize(entity));
+        RegisterDbSet(entityPaths);
+        RegisterRepository(entityPaths);
 
         Output.Blank();
         Output.Success("Done. Next:");
-        Output.Plain($"  1. Add the columns to {paths.DalFile} and the fields to {paths.EntityFile}");
-        Output.Plain($"  2. Narrow on them in ApplyFilter in {paths.EfRepositoryFile}");
-        Output.Plain($"  3. dotnet ef migrations add Create{Naming.Pluralize(entity)}Table --project {paths.EntityFrameworkDirectory}");
+        Output.Plain($"  1. Add the columns to {entityPaths.DalFile} and the fields to {entityPaths.EntityFile}");
+        Output.Plain($"  2. Narrow on them in ApplyFilter in {entityPaths.EfRepositoryFile}");
+        Output.Plain($"  3. dotnet ef migrations add Create{Naming.Pluralize(entity)}Table --project {entityPaths.EntityFrameworkDirectory}");
 
         return 0;
     }
@@ -160,56 +160,56 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
     ///     Adds the DbSet. Without it the DAL is not part of the model and no migration is generated for its
     ///     table.
     /// </summary>
-    private static void RegisterDbSet(EntityPaths paths, string prefix, string appName, string entity, string plural)
+    private static void RegisterDbSet(EntityPaths entityPaths)
     {
-        if (!File.Exists(paths.ContextFile))
+        if (!File.Exists(entityPaths.ContextFile))
         {
-            Output.Hint($"No context at {paths.ContextFile} — add the DbSet by hand.");
+            Output.Hint($"No context at {entityPaths.ContextFile} — add the DbSet by hand.");
             return;
         }
 
-        var content = File.ReadAllText(paths.ContextFile);
+        var content = File.ReadAllText(entityPaths.ContextFile);
 
-        if (content.Contains($"DbSet<{entity}Dal>", StringComparison.Ordinal))
+        if (content.Contains($"DbSet<{entityPaths.Entity}Dal>", StringComparison.Ordinal))
         {
-            Output.Note($"DbSet already present in {paths.ContextFile}");
+            Output.Note($"DbSet already present in {entityPaths.ContextFile}");
             return;
         }
 
-        content = SourceEdits.InsertBeforeLastBrace(content, $"    public DbSet<{entity}Dal> {plural} {{ get; set; }} = null!;");
-        content = SourceEdits.EnsureUsing(content, $"{prefix}.{appName}.Data.EntityFramework.Dals");
+        content = SourceEdits.InsertBeforeLastBrace(content, $"    public DbSet<{entityPaths.Entity}Dal> {entityPaths.Plural} {{ get; set; }} = null!;");
+        content = SourceEdits.EnsureUsing(content, $"{entityPaths.Prefix}.{entityPaths.AppName}.Data.EntityFramework.Dals");
 
-        File.WriteAllText(paths.ContextFile, content);
-        Output.Updated(paths.ContextFile, "DbSet");
+        File.WriteAllText(entityPaths.ContextFile, content);
+        Output.Updated(entityPaths.ContextFile, "DbSet");
     }
 
     /// <summary>
     ///     Registers the repository. Registration stays explicit rather than discovered, so the set of things
     ///     that talk to the database is readable in one file.
     /// </summary>
-    private static void RegisterRepository(EntityPaths paths, string prefix, string appName, string plural)
+    private static void RegisterRepository(EntityPaths entityPaths)
     {
-        if (!File.Exists(paths.RepositoriesModuleFile))
+        if (!File.Exists(entityPaths.RepositoriesModuleFile))
         {
-            Output.Hint($"No repositories module at {paths.RepositoriesModuleFile} — register the repository by hand.");
+            Output.Hint($"No repositories module at {entityPaths.RepositoriesModuleFile} — register the repository by hand.");
             return;
         }
 
-        var content = File.ReadAllText(paths.RepositoriesModuleFile);
+        var content = File.ReadAllText(entityPaths.RepositoriesModuleFile);
 
-        if (content.Contains($"I{plural}Repository", StringComparison.Ordinal))
+        if (content.Contains($"I{entityPaths.Plural}Repository", StringComparison.Ordinal))
         {
-            Output.Note($"Repository already registered in {paths.RepositoriesModuleFile}");
+            Output.Note($"Repository already registered in {entityPaths.RepositoriesModuleFile}");
             return;
         }
 
         content = SourceEdits.InsertBefore(content, "return services;",
-            $"services.AddScoped<I{plural}Repository, {plural}EfRepository>();");
-        content = SourceEdits.EnsureUsing(content, $"{prefix}.{appName}.Data.Repositories");
-        content = SourceEdits.EnsureUsing(content, $"{prefix}.{appName}.Data.EntityFramework.Repositories");
+            $"services.AddScoped<I{entityPaths.Plural}Repository, {entityPaths.Plural}EfRepository>();");
+        content = SourceEdits.EnsureUsing(content, $"{entityPaths.Prefix}.{entityPaths.AppName}.Data.Repositories");
+        content = SourceEdits.EnsureUsing(content, $"{entityPaths.Prefix}.{entityPaths.AppName}.Data.EntityFramework.Repositories");
 
-        File.WriteAllText(paths.RepositoriesModuleFile, content);
-        Output.Updated(paths.RepositoriesModuleFile, "registration");
+        File.WriteAllText(entityPaths.RepositoriesModuleFile, content);
+        Output.Updated(entityPaths.RepositoriesModuleFile, "registration");
     }
 }
 
@@ -217,19 +217,23 @@ public class AddEntityCommand : Command<AddEntityCommand.Settings>
 public class EntityPaths(string prefix, string appName, string domain, string entity)
 {
     private readonly string basePath = $"Apps/{appName}";
-    private readonly string plural = Naming.Pluralize(entity);
+
+    public string Prefix { get; } = prefix;
+    public string AppName { get; } = appName;
+    public string Entity { get; } = entity;
+    public string Plural { get; } = Naming.Pluralize(entity);
 
     /// <summary>Dots nest, as they do everywhere else: Orders.Fulfilment is Orders/Fulfilment.</summary>
-    public string DomainModelsDirectory => $"{basePath}/{appName}.Domains/{domain.Replace('.', '/')}/Models";
-    public string DomainModelsProject => $"{DomainModelsDirectory}/{prefix}.{appName}.Domains.{domain}.Models.csproj";
-    public string DataProject => $"{basePath}/Data/Data.Models/{prefix}.{appName}.Data.Models.csproj";
+    public string DomainModelsDirectory => $"{basePath}/{AppName}.Domains/{domain.Replace('.', '/')}/Models";
+    public string DomainModelsProject => $"{DomainModelsDirectory}/{Prefix}.{AppName}.Domains.{domain}.Models.csproj";
+    public string DataProject => $"{basePath}/Data/Data.Models/{Prefix}.{AppName}.Data.Models.csproj";
     public string EntityFrameworkDirectory => $"{basePath}/Data/Data.EntityFramework";
-    public string EntityFrameworkProject => $"{EntityFrameworkDirectory}/{prefix}.{appName}.Data.EntityFramework.csproj";
+    public string EntityFrameworkProject => $"{EntityFrameworkDirectory}/{Prefix}.{AppName}.Data.EntityFramework.csproj";
 
-    public string EntityFile => $"{DomainModelsDirectory}/Entities/{entity}.cs";
-    public string RepositoryInterfaceFile => $"{basePath}/Data/Data.Models/Repositories/I{plural}Repository.cs";
-    public string DalFile => $"{EntityFrameworkDirectory}/Dals/{entity}Dal.cs";
-    public string EfRepositoryFile => $"{EntityFrameworkDirectory}/Repositories/{plural}EfRepository.cs";
-    public string ContextFile => $"{EntityFrameworkDirectory}/Magic{appName}Context.cs";
-    public string RepositoriesModuleFile => $"{EntityFrameworkDirectory}/{appName}RepositoriesModule.cs";
+    public string EntityFile => $"{DomainModelsDirectory}/Entities/{Entity}.cs";
+    public string RepositoryInterfaceFile => $"{basePath}/Data/Data.Models/Repositories/I{Plural}Repository.cs";
+    public string DalFile => $"{EntityFrameworkDirectory}/Dals/{Entity}Dal.cs";
+    public string EfRepositoryFile => $"{EntityFrameworkDirectory}/Repositories/{Plural}EfRepository.cs";
+    public string ContextFile => $"{EntityFrameworkDirectory}/Magic{AppName}Context.cs";
+    public string RepositoriesModuleFile => $"{EntityFrameworkDirectory}/{AppName}RepositoriesModule.cs";
 }

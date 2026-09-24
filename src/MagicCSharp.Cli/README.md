@@ -32,6 +32,7 @@ dotnet tool install MagicCSharp.Cli
 | `mcs add-entity -s Shop -d Orders -n Order --paginated` | an entity and its repository |
 | `mcs sync` | rebuild the all-projects solution |
 | `mcs validate` | lint the conventions the compiler cannot |
+| `mcs update ai-files` | refresh `CLAUDE.md` and the `.ai-knowledge/` guides to this version |
 | `mcs templates list \| where \| eject` | see and override the generators' templates |
 
 **Nothing is overwritten** — an existing file is reported and skipped. **Re-running changes nothing**, so
@@ -50,12 +51,20 @@ so put it in CI.
 for every project, and its `.editorconfig` tells those rules that EF migrations are generated code. Pass
 `--no-build-rules` to leave both out.
 
+It also writes the conventions down for AI coding agents — and for a person new to the code: a `CLAUDE.md`
+and an `.ai-knowledge/` folder of guides, one per topic (use cases, entities, events, background services,
+testing, style), plus `.ai-knowledge/project.md` for what is specific to your repository. When a newer `mcs`
+ships better guides, `mcs update ai-files` brings them in; it overwrites the guides it ships and never touches
+`project.md` or any file of your own. Pass `--no-ai-knowledge` to leave them out. Their source is
+[AIAgents/](https://github.com/MagicDoorInc/MagicCSharp/tree/master/AIAgents) in the MagicCSharp repository.
+
 | `mcs init` option | |
 |---|---|
 | `-p, --prefix` | namespace and solution-name root, e.g. `Acme` gives `Acme.Shop.slnx` |
 | `--package-version` | MagicCSharp version to pin; defaults to this tool's |
 | `--target-framework` | `net10.0` unless you say otherwise |
 | `--no-build-rules` | no MagicCSharp.Analyzers reference and no `.editorconfig` |
+| `--no-ai-knowledge` | no `CLAUDE.md` and no `.ai-knowledge/` |
 
 ## Your own templates
 

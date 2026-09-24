@@ -19,7 +19,7 @@ public static class SolutionArgument
     ///     What the user passed to <c>--solution</c>: a path, a bare service name, or nothing.
     /// </param>
     /// <param name="directory">Where to look. Defaults to the working directory, as the commands run.</param>
-    public static string? Resolve(RepoConfig config, string? requested, string? directory = null)
+    public static string? Resolve(RepositoryConfig config, string? requested, string? directory = null)
     {
         directory ??= Directory.GetCurrentDirectory();
 
@@ -55,7 +55,7 @@ public static class SolutionArgument
     ///     The service solutions in the current directory, excluding the all-services one — that exists to
     ///     open everything at once and is not what a per-service command means.
     /// </summary>
-    private static IReadOnlyList<string> Available(RepoConfig config, string directory)
+    private static IReadOnlyList<string> Available(RepositoryConfig config, string directory)
     {
         return Directory.GetFiles(directory, $"{config.Prefix}.*.slnx")
             .Select(Path.GetFileName)
@@ -91,7 +91,7 @@ public static class SolutionArgument
         return null;
     }
 
-    private static void List(RepoConfig config, IReadOnlyList<string> available)
+    private static void List(RepositoryConfig config, IReadOnlyList<string> available)
     {
         if (available.Count == 0)
         {

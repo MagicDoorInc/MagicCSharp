@@ -31,12 +31,12 @@ public class CreateAppLibCommand : Command<CreateAppLibCommand.Settings>
         [CommandOption("-m|--models")]
         [Description("Also create a Models project")]
         [DefaultValue(false)]
-        public bool IncludeModels { get; init; }
+        public bool ShouldIncludeModels { get; init; }
 
         [CommandOption("-t|--tests")]
         [Description("Also create a Tests project")]
         [DefaultValue(false)]
-        public bool IncludeTests { get; init; }
+        public bool ShouldIncludeTests { get; init; }
 
         public override ValidationResult Validate()
         {
@@ -49,16 +49,16 @@ public class CreateAppLibCommand : Command<CreateAppLibCommand.Settings>
 
     public override int Execute(CommandContext context, Settings settings)
     {
-        return Run(settings.Solution, settings.Name!, settings.IncludeModels, settings.IncludeTests);
+        return Run(settings.Solution, settings.Name!, settings.ShouldIncludeModels, settings.ShouldIncludeTests);
     }
 
     /// <summary>
     ///     Scaffolds the library. Shared with <see cref="CreateDomainCommand" />, which differs only in
     ///     prepending <c>Domains.</c> to the name.
     /// </summary>
-    public static int Run(string? solutionArgument, string name, bool includeModels, bool includeTests)
+    public static int Run(string? solutionArgument, string name, bool shouldIncludeModels, bool shouldIncludeTests)
     {
-        var config = RepoConfig.Load();
+        var config = RepositoryConfig.Load();
 
         if (config == null)
         {
@@ -88,7 +88,7 @@ public class CreateAppLibCommand : Command<CreateAppLibCommand.Settings>
             return 1;
         }
 
-        var renderer = new TemplateRenderer(TemplateResolver.ForRepository(config));
+        var templateRenderer = new TemplateRenderer(TemplateResolver.ForRepository(config));
         var model = new
         {
             prefix = config.Prefix,
@@ -101,11 +101,11 @@ public class CreateAppLibCommand : Command<CreateAppLibCommand.Settings>
         Output.Blank();
 
         var projects = new List<string> { library.DefaultProject };
-        renderer.Render(library.DefaultTemplate, library.DefaultProject, model);
+        templateRenderer.Render(library.DefaultTemplate, library.DefaultProject, model);
 
-        if (includeModels)
+        if (shouldIncludeModels)
         {
-            renderer.Render("Libraries/models.csproj.hbs", library.ModelsProject, model);
+            templateRenderer.Render("Libraries/models.csproj.hbs", library.ModelsProject, model);
             projects.Add(library.ModelsProject);
 
             // The code works with the types, so Default depends on Models. Never the reverse: Models is
@@ -113,9 +113,9 @@ public class CreateAppLibCommand : Command<CreateAppLibCommand.Settings>
             DotnetCli.EnsureReference(library.DefaultProject, library.ModelsProject);
         }
 
-        if (includeTests)
+        if (shouldIncludeTests)
         {
-            renderer.Render("Libraries/tests.csproj.hbs", library.TestsProject, model);
+            templateRenderer.Render("Libraries/tests.csproj.hbs", library.TestsProject, model);
             projects.Add(library.TestsProject);
         }
 
@@ -131,7 +131,7 @@ public class CreateAppLibCommand : Command<CreateAppLibCommand.Settings>
 
         Output.Blank();
         Output.Success("Done.");
-        NextSteps(library, includeModels);
+        NextSteps(library, shouldIncludeModels);
 
         return 0;
     }
@@ -177,7 +177,7 @@ public class CreateAppLibCommand : Command<CreateAppLibCommand.Settings>
         }
     }
 
-    private static void NextSteps(AppLibrary library, bool includeModels)
+    private static void NextSteps(AppLibrary library, bool shouldIncludeModels)
     {
         if (library.IsHttpSurface)
         {
@@ -200,7 +200,7 @@ public class CreateAppLibCommand : Command<CreateAppLibCommand.Settings>
             Output.Plain($"  dotnet add {library.DefaultProject} reference {library.ParentDefaultProject}");
         }
 
-        if (includeModels)
+        if (shouldIncludeModels)
         {
             Output.Plain($"  mcs add-entity --solution {library.AppName} --domain {library.EntityDomain} --name YourEntity --paginated");
         }

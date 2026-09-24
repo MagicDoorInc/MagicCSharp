@@ -46,11 +46,13 @@ public static class MagicUseCaseRegistrationModule
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddMagicUseCases(this IServiceCollection services, Func<Assembly, bool>? assemblyFilter = null)
     {
-        return services.AddImplementationsOf<IMagicUseCase>(
-            ServiceLifetime.Scoped,
-            true,
-            GetUseCaseLifetime,
-            assemblyFilter);
+        return services.AddImplementationsOf<IMagicUseCase>(new ImplementationRegistrationOptions
+        {
+            Lifetime = ServiceLifetime.Scoped,
+            ShouldRegisterLazy = true,
+            LifetimeSelector = GetUseCaseLifetime,
+            AssemblyFilter = assemblyFilter,
+        });
     }
 
     private static ServiceLifetime? GetUseCaseLifetime(Type implementationType)

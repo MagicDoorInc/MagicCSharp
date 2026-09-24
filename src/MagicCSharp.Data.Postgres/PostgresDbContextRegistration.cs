@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 
 namespace MagicCSharp.Data.Postgres;
 
@@ -34,26 +35,18 @@ public static class PostgresDbContextRegistration
     ///     Configuration to read <c>{prefix}_HOST</c>, <c>_PORT</c>, <c>_NAME</c>, <c>_USER</c> and
     ///     <c>_PASSWORD</c> from. Each is required; a missing one throws rather than silently defaulting.
     /// </param>
-    /// <param name="options">Connection pool and timeout settings. The defaults suit a typical service.</param>
-    /// <param name="configureDataSource">
-    ///     Hook to configure the Npgsql data source before it is built — where a type plugin such as pgvector's
-    ///     <c>UseVector()</c> goes.
-    /// </param>
-    /// <param name="configureNpgsql">Hook to configure the provider options inside <c>UseNpgsql</c>.</param>
-    /// <param name="configPrefix">
-    ///     Prefix for the configuration keys. Defaults to <c>DB</c>. Pass another, e.g. <c>VECTOR_DB</c>, to point
-    ///     a second context at a different database.
+    /// <param name="options">
+    ///     Connection pool and timeout settings, the configuration key prefix, and the hooks into Npgsql. The
+    ///     defaults suit a typical service reading <c>DB_*</c>.
     /// </param>
     public static IServiceCollection AddPostgresDbContextFactory<TContext>(
         this IServiceCollection services,
         IConfiguration configuration,
-        PostgresConnectionOptions? options = null,
-        Action<NpgsqlDataSourceBuilder>? configureDataSource = null,
-        Action<Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.NpgsqlDbContextOptionsBuilder>? configureNpgsql = null,
-        string configPrefix = "DB")
+        PostgresConnectionOptions? options = null)
         where TContext : MagicDbContext
     {
         options ??= new PostgresConnectionOptions();
+        var configPrefix = options.ConfigPrefix;
 
         var host = Required(configuration, $"{configPrefix}_HOST");
         var port = Required(configuration, $"{configPrefix}_PORT");
@@ -75,13 +68,13 @@ public static class PostgresDbContextRegistration
             ConnectionIdleLifetime = options.ConnectionIdleLifetimeSeconds,
             KeepAlive = options.KeepAliveSeconds,
             TcpKeepAlive = true,
-            IncludeErrorDetail = options.IncludeErrorDetail,
+            IncludeErrorDetail = options.ShouldIncludeErrorDetail,
         }.ConnectionString;
 
         // Configuration overrides the code default, so a test that replaces every repository, or a
         // container that starts before its database, can turn the check off without editing the
         // registration it is otherwise happy with.
-        if (Verify(configuration, $"{configPrefix}_VERIFY_CONNECTION", options.VerifyConnectionOnStartup))
+        if (ShouldVerifyConnection(configuration, $"{configPrefix}_VERIFY_CONNECTION", options.ShouldVerifyConnectionOnStartup))
         {
             using var connection = new NpgsqlConnection(connectionString);
             connection.Open();
@@ -92,12 +85,12 @@ public static class PostgresDbContextRegistration
             var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString)
                 .EnableDynamicJson()
                 .ConfigureJsonOptions(JsonDefaults.Options);
-            configureDataSource?.Invoke(dataSourceBuilder);
+            options.ConfigureDataSource?.Invoke(dataSourceBuilder);
 
             builder.UseNpgsql(dataSourceBuilder.Build(), npgsql =>
             {
                 npgsql.EnableRetryOnFailure(options.RetryCount, TimeSpan.FromSeconds(options.RetryMaxDelaySeconds), null);
-                configureNpgsql?.Invoke(npgsql);
+                options.ConfigureNpgsql?.Invoke(npgsql);
             });
 
             // A query that Includes two collections at once multiplies the rows and is almost never what was
@@ -114,11 +107,11 @@ public static class PostgresDbContextRegistration
     ///     Whether to open a connection now. The configured value wins when it is set and parses; anything
     ///     else falls back to what the caller asked for.
     /// </summary>
-    private static bool Verify(IConfiguration configuration, string key, bool fallback)
+    private static bool ShouldVerifyConnection(IConfiguration configuration, string key, bool isVerifiedByDefault)
     {
         var value = configuration[key];
 
-        return bool.TryParse(value, out var configured) ? configured : fallback;
+        return bool.TryParse(value, out var configured) ? configured : isVerifiedByDefault;
     }
 
     private static string Required(IConfiguration configuration, string key)
@@ -135,10 +128,26 @@ public static class PostgresDbContextRegistration
 }
 
 /// <summary>
-///     Connection pool and timeout settings for <see cref="PostgresDbContextRegistration.AddPostgresDbContextFactory{TContext}" />.
+///     How <see cref="PostgresDbContextRegistration.AddPostgresDbContextFactory{TContext}" /> connects: pool and
+///     timeout settings, where in configuration the connection details live, and the hooks into Npgsql.
 /// </summary>
 public record PostgresConnectionOptions
 {
+    /// <summary>
+    ///     Prefix for the configuration keys. Defaults to <c>DB</c>. Set another, e.g. <c>VECTOR_DB</c>, to point
+    ///     a second context at a different database.
+    /// </summary>
+    public string ConfigPrefix { get; init; } = "DB";
+
+    /// <summary>
+    ///     Hook to configure the Npgsql data source before it is built — where a type plugin such as pgvector's
+    ///     <c>UseVector()</c> goes.
+    /// </summary>
+    public Action<NpgsqlDataSourceBuilder>? ConfigureDataSource { get; init; }
+
+    /// <summary>Hook to configure the provider options inside <c>UseNpgsql</c>.</summary>
+    public Action<NpgsqlDbContextOptionsBuilder>? ConfigureNpgsql { get; init; }
+
     /// <summary>Seconds to wait for a connection before giving up.</summary>
     public int ConnectTimeoutSeconds { get; init; } = 60;
 
@@ -165,7 +174,7 @@ public record PostgresConnectionOptions
     ///     "duplicate key" into "duplicate key (email)=(x@y.com)"; turn it off if those errors reach somewhere
     ///     that must not see row data.
     /// </summary>
-    public bool IncludeErrorDetail { get; init; } = true;
+    public bool ShouldIncludeErrorDetail { get; init; } = true;
 
     /// <summary>Times a transient failure is retried before it surfaces.</summary>
     public int RetryCount { get; init; } = 5;
@@ -181,5 +190,5 @@ public record PostgresConnectionOptions
     ///         without a code change.
     ///     </para>
     /// </summary>
-    public bool VerifyConnectionOnStartup { get; init; } = true;
+    public bool ShouldVerifyConnectionOnStartup { get; init; } = true;
 }

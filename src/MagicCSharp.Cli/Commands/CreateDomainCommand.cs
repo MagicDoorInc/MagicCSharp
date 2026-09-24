@@ -37,12 +37,12 @@ public class CreateDomainCommand : Command<CreateDomainCommand.Settings>
         [CommandOption("-m|--models")]
         [Description("Also create a Models project. add-entity requires one.")]
         [DefaultValue(false)]
-        public bool IncludeModels { get; init; }
+        public bool ShouldIncludeModels { get; init; }
 
         [CommandOption("-t|--tests")]
         [Description("Also create a Tests project")]
         [DefaultValue(false)]
-        public bool IncludeTests { get; init; }
+        public bool ShouldIncludeTests { get; init; }
 
         public override ValidationResult Validate()
         {
@@ -73,6 +73,6 @@ public class CreateDomainCommand : Command<CreateDomainCommand.Settings>
             Output.Note($"Interpreting --name as {name}");
         }
 
-        return CreateAppLibCommand.Run(settings.Solution, name, settings.IncludeModels, settings.IncludeTests);
+        return CreateAppLibCommand.Run(settings.Solution, name, settings.ShouldIncludeModels, settings.ShouldIncludeTests);
     }
 }

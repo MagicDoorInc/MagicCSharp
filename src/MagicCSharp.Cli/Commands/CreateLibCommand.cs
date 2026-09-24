@@ -23,12 +23,12 @@ public class CreateLibCommand : Command<CreateLibCommand.Settings>
         [CommandOption("-m|--models")]
         [Description("Also create a Models project")]
         [DefaultValue(false)]
-        public bool IncludeModels { get; init; }
+        public bool ShouldIncludeModels { get; init; }
 
         [CommandOption("-t|--tests")]
         [Description("Also create a Tests project alongside it")]
         [DefaultValue(false)]
-        public bool IncludeTests { get; init; }
+        public bool ShouldIncludeTests { get; init; }
 
         public override ValidationResult Validate()
         {
@@ -45,7 +45,7 @@ public class CreateLibCommand : Command<CreateLibCommand.Settings>
 
     public override int Execute(CommandContext context, Settings settings)
     {
-        var config = RepoConfig.Load();
+        var config = RepositoryConfig.Load();
 
         if (config == null)
         {
@@ -56,37 +56,37 @@ public class CreateLibCommand : Command<CreateLibCommand.Settings>
         var directory = $"Libs/{name.Replace('.', '/')}";
         var assemblyName = $"{config.Prefix}.Libraries.{name}";
 
-        var renderer = new TemplateRenderer(TemplateResolver.ForRepository(config));
+        var templateRenderer = new TemplateRenderer(TemplateResolver.ForRepository(config));
         var model = new { prefix = config.Prefix, name, assembly_name = assemblyName };
 
         Output.Plain($"Library: {assemblyName}");
         Output.Blank();
 
         var defaultProject = $"{directory}/Default/{assemblyName}.csproj";
-        var created = renderer.Render("Libraries/default.csproj.hbs", defaultProject, model);
+        var isCreated = templateRenderer.Render("Libraries/default.csproj.hbs", defaultProject, model);
 
-        if (settings.IncludeModels)
+        if (settings.ShouldIncludeModels)
         {
             var modelsProject = $"{directory}/Models/{assemblyName}.Models.csproj";
-            created |= renderer.Render("Libraries/models.csproj.hbs", modelsProject, model);
+            isCreated |= templateRenderer.Render("Libraries/models.csproj.hbs", modelsProject, model);
 
             // Default depends on Models, never the reverse — Models is the half other projects reference.
             DotnetCli.EnsureReference(defaultProject, modelsProject);
         }
 
-        if (settings.IncludeTests)
+        if (settings.ShouldIncludeTests)
         {
-            created |= renderer.Render("Libraries/tests.csproj.hbs", $"{directory}/Tests/{assemblyName}.Tests.csproj", model);
+            isCreated |= templateRenderer.Render("Libraries/tests.csproj.hbs", $"{directory}/Tests/{assemblyName}.Tests.csproj", model);
         }
 
-        if (created)
+        if (isCreated)
         {
             SyncCommand.Run(config);
         }
 
         Output.Blank();
 
-        if (!created)
+        if (!isCreated)
         {
             Output.Note("Nothing to do — everything requested already exists.");
             return 0;

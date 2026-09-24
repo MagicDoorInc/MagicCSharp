@@ -76,13 +76,13 @@ public static class QueryFilterExtensions
         if (range.Start != null)
         {
             object value = range.Start.Value;
-            if (value is DateTimeOffset dateTimeOffset)
+            if (value is DateTimeOffset)
             {
                 // ensure the value is in UTC
-                value = dateTimeOffset.ToUniversalTime();
+                value = ((DateTimeOffset)value).ToUniversalTime();
             }
 
-            var expression = range.StartInclusive
+            var expression = range.IsStartInclusive
                 ? Expression.GreaterThanOrEqual(selector.Body, Expression.Constant(value, typeof(TValue?)))
                 : Expression.GreaterThan(selector.Body, Expression.Constant(value, typeof(TValue?)));
             query = query.Where(Expression.Lambda<Func<T, bool>>(expression, selector.Parameters));
@@ -91,13 +91,13 @@ public static class QueryFilterExtensions
         if (range.End != null)
         {
             object value = range.End.Value;
-            if (value is DateTimeOffset dateTimeOffset)
+            if (value is DateTimeOffset)
             {
                 // ensure the value is in UTC
-                value = dateTimeOffset.ToUniversalTime();
+                value = ((DateTimeOffset)value).ToUniversalTime();
             }
 
-            var expression = range.EndInclusive
+            var expression = range.IsEndInclusive
                 ? Expression.LessThanOrEqual(selector.Body, Expression.Constant(value, typeof(TValue?)))
                 : Expression.LessThan(selector.Body, Expression.Constant(value, typeof(TValue?)));
             query = query.Where(Expression.Lambda<Func<T, bool>>(expression, selector.Parameters));

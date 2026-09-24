@@ -25,9 +25,9 @@ public class TemplateResolver(string? overrideDirectory)
     /// <summary>
     ///     Builds a resolver from the repository config, falling back to the default directory when the
     ///     config does not mention one. Reading the file directly rather than through
-    ///     <see cref="RepoConfig" /> lets <c>init</c> resolve templates before the config exists.
+    ///     <see cref="RepositoryConfig" /> lets <c>init</c> resolve templates before the config exists.
     /// </summary>
-    public static TemplateResolver ForRepository(RepoConfig? config)
+    public static TemplateResolver ForRepository(RepositoryConfig? config)
     {
         return new TemplateResolver(config == null ? DefaultOverrideDirectory : config.Templates ?? DefaultOverrideDirectory);
     }
@@ -53,8 +53,8 @@ public class TemplateResolver(string? overrideDirectory)
         var overridden = OverridePath(name);
 
         return overridden != null && File.Exists(overridden)
-            ? new TemplateSource(name, overridden, true)
-            : new TemplateSource(name, "built-in", false);
+            ? new TemplateSource { Name = name, Location = overridden, IsOverride = true }
+            : new TemplateSource { Name = name, Location = "built-in", IsOverride = false };
     }
 
     /// <summary>The path an override for this template would live at, or null when overrides are off.</summary>
@@ -109,13 +109,15 @@ public class TemplateResolver(string? overrideDirectory)
     }
 }
 
-/// <param name="Name">The template's name, e.g. "Entities/dal.cs.hbs".</param>
-/// <param name="Location">The override's path, or "built-in".</param>
-/// <param name="IsOverride">Whether the repository provides it.</param>
-public record TemplateSource(string Name, string Location, bool IsOverride);
-
-public class TemplateNotFoundException(string name)
-    : Exception($"No template named '{name}'. Run 'mcs templates list' to see the names.")
+/// <summary>Where a template comes from.</summary>
+public record TemplateSource
 {
-    public string TemplateName { get; } = name;
+    /// <summary>The template's name, e.g. "Entities/dal.cs.hbs".</summary>
+    public required string Name { get; init; }
+
+    /// <summary>The override's path, or "built-in".</summary>
+    public required string Location { get; init; }
+
+    /// <summary>Whether the repository provides it.</summary>
+    public required bool IsOverride { get; init; }
 }

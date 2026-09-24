@@ -17,10 +17,6 @@ namespace MagicCSharp.Modules;
 public static class ImplementationRegistrationModule
 {
     /// <summary>
-    ///     Assemblies whose types can never implement an application marker interface. Skipping them keeps
-    ///     startup scanning proportional to the application rather than to the whole framework surface.
-    /// </summary>
-    /// <summary>
     ///     Registers every concrete implementation of every interface that extends <typeparamref name="TInterface" />,
     ///     under that sub-interface.
     ///     <para>
@@ -29,37 +25,21 @@ public static class ImplementationRegistrationModule
     ///     </para>
     /// </summary>
     /// <param name="services">The service collection to register into.</param>
-    /// <param name="lifetime">Lifetime used for any implementation the <paramref name="lifetimeSelector" /> does not override.</param>
-    /// <param name="registerLazy">
-    ///     Also register <c>Lazy&lt;TSubInterface&gt;</c> for each discovered interface, so a consumer can depend on a
-    ///     service without constructing it. Registered as transient: a singleton <c>Lazy&lt;T&gt;</c> would capture the
-    ///     root provider and hand every scope the same instance of a scoped service.
-    /// </param>
-    /// <param name="lifetimeSelector">Optional per-implementation lifetime override, e.g. reading an attribute.</param>
-    /// <param name="assemblyFilter">
-    ///     Optional filter narrowing which loaded assemblies are scanned. Defaults to everything that is not a
-    ///     framework assembly. Pass a filter to exclude test doubles from a production container.
-    /// </param>
-    /// <param name="allowMultipleImplementations">
-    ///     Whether one interface may have several implementations. False — the default — throws instead, because
-    ///     for a one-interface-one-implementation marker like a use case, a second implementation means
-    ///     <c>GetRequiredService&lt;T&gt;</c> silently resolves whichever was registered last. Set true for a
-    ///     marker that genuinely describes a catalog resolved as <c>IEnumerable&lt;T&gt;</c>.
+    /// <param name="options">
+    ///     Lifetime, lazy registration, assembly filter and whether several implementations are allowed. Omit it for
+    ///     transient, one implementation per interface, every application assembly.
     /// </param>
     /// <exception cref="InvalidOperationException">
     ///     An interface extends the marker but has no concrete implementation, or has several while
-    ///     <paramref name="allowMultipleImplementations" /> is false.
+    ///     <see cref="ImplementationRegistrationOptions.AllowMultipleImplementations" /> is false.
     /// </exception>
     public static IServiceCollection AddImplementationsOf<TInterface>(
         this IServiceCollection services,
-        ServiceLifetime lifetime = ServiceLifetime.Transient,
-        bool registerLazy = false,
-        Func<Type, ServiceLifetime?>? lifetimeSelector = null,
-        Func<Assembly, bool>? assemblyFilter = null,
-        bool allowMultipleImplementations = false)
+        ImplementationRegistrationOptions? options = null)
     {
+        options ??= new ImplementationRegistrationOptions();
         var markerType = typeof(TInterface);
-        var types = LoadTypes(assemblyFilter);
+        var types = LoadTypes(options.AssemblyFilter);
 
         // One pass over every type, bucketing implementations by the sub-interface they satisfy.
         var implementationsByInterface = new Dictionary<Type, List<Type>>();
@@ -102,7 +82,7 @@ public static class ImplementationRegistrationModule
 
         foreach (var (interfaceType, implementations) in implementationsByInterface)
         {
-            if (implementations.Count > 1 && !allowMultipleImplementations)
+            if (implementations.Count > 1 && !options.AllowMultipleImplementations)
             {
                 var names = string.Join(", ", implementations.Select(type => type.FullName));
                 throw new InvalidOperationException(
@@ -113,11 +93,11 @@ public static class ImplementationRegistrationModule
 
             foreach (var implementationType in implementations)
             {
-                var resolved = lifetimeSelector?.Invoke(implementationType) ?? lifetime;
+                var resolved = options.LifetimeSelector?.Invoke(implementationType) ?? options.Lifetime;
                 services.Add(new ServiceDescriptor(interfaceType, implementationType, resolved));
             }
 
-            if (registerLazy)
+            if (options.ShouldRegisterLazy)
             {
                 RegisterLazy(services, interfaceType);
             }
@@ -157,7 +137,7 @@ public static class ImplementationRegistrationModule
 
     private static bool IsConcreteClass(Type type)
     {
-        return type is { IsClass: true, IsAbstract: false, ContainsGenericParameters: false };
+        return type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters;
     }
 
     private static List<Type> LoadTypes(Func<Assembly, bool>? assemblyFilter)

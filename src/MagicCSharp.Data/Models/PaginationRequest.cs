@@ -11,10 +11,10 @@ public record PaginationRequest
     /// <summary>
     ///     Creates a pagination request.
     /// </summary>
-    /// <param name="disable">If true, pagination is disabled and all items are returned.</param>
-    public PaginationRequest(bool disable = false)
+    /// <param name="isDisabled">If true, pagination is disabled and all items are returned.</param>
+    public PaginationRequest(bool isDisabled = false)
     {
-        Disable = disable;
+        IsDisabled = isDisabled;
     }
 
     /// <summary>
@@ -31,7 +31,7 @@ public record PaginationRequest
     /// <summary>
     ///     If true, pagination is disabled and all items are returned.
     /// </summary>
-    public bool Disable { get; set; }
+    public bool IsDisabled { get; set; }
 
     /// <summary>
     ///     Current page number (1-based). Minimum value is 1.

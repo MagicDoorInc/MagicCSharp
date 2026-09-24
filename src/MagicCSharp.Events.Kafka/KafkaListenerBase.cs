@@ -146,13 +146,14 @@ public abstract class KafkaListenerBase<T>(
             return;
         }
 
-        if (ex is ConsumeException consumeEx)
+        var consumeException = ex as ConsumeException;
+        if (consumeException != null)
         {
-            var error = consumeEx.Error;
+            var error = consumeException.Error;
 
             if (error.IsFatal)
             {
-                logger.LogError(consumeEx,
+                logger.LogError(consumeException,
                     "Fatal Kafka error: code={code}, reason={reason}. Consumer will attempt to continue after {delay} seconds.",
                     error.Code, error.Reason, FatalErrorRetryDelay.TotalSeconds);
                 await Task.Delay(FatalErrorRetryDelay, stoppingToken);
@@ -160,7 +161,7 @@ public abstract class KafkaListenerBase<T>(
             else
             {
                 // Non-fatal error (network issues, etc.) - Kafka library will auto-reconnect
-                logger.LogWarning(consumeEx,
+                logger.LogWarning(consumeException,
                     "Kafka consume error: code={code}, reason={reason}. Kafka client will attempt automatic recovery after {delay} seconds.",
                     error.Code, error.Reason, NonFatalErrorRetryDelay.TotalSeconds);
                 await Task.Delay(NonFatalErrorRetryDelay, stoppingToken);
@@ -169,9 +170,10 @@ public abstract class KafkaListenerBase<T>(
             return;
         }
 
-        if (ex is KafkaException kafkaEx)
+        var kafkaException = ex as KafkaException;
+        if (kafkaException != null)
         {
-            logger.LogError(kafkaEx, "Kafka exception. Will attempt to continue after {delay} seconds.",
+            logger.LogError(kafkaException, "Kafka exception. Will attempt to continue after {delay} seconds.",
                 FatalErrorRetryDelay.TotalSeconds);
             await Task.Delay(FatalErrorRetryDelay, stoppingToken);
             return;
