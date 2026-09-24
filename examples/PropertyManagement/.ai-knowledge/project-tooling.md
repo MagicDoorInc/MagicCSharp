@@ -67,7 +67,7 @@ mcs create-app-lib --solution {Service} --name {Library}      # inside one servi
 ```bash
 mcs validate --path .     # the conventions the compiler cannot check
 mcs sync                  # rebuild Acme.All.slnx after moving things around
-mcs update ai-files       # refresh CLAUDE.md and these guides to the version your mcs ships
+mcs update ai-files       # refresh AGENTS.md and these guides to the version your mcs ships
 ```
 
 Code style is checked by the compiler through `MagicCSharp.Analyzers` (see `coding-style.md`); `mcs validate`

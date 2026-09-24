@@ -7,6 +7,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ---
 
+## 1.0.2 — Unreleased
+
+### Changed
+
+- **The agent guide is `AGENTS.md`**, the name Codex, Cursor, Copilot, Gemini and most other coding agents
+  look for. `CLAUDE.md` now only imports it (`@AGENTS.md`), so Claude Code reads the same text. `mcs init`
+  writes both; in a repository from 1.0.1, `mcs update ai-files` creates `AGENTS.md` and turns `CLAUDE.md`
+  into the import.
+
+---
+
 ## 1.0.1 — 2026-09-23
 
 Found by building the property-management example from 1.0.0 in a freshly generated repository.

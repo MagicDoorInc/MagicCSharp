@@ -3,7 +3,8 @@ using System.Reflection;
 namespace MagicCSharp.Cli.Infrastructure;
 
 /// <summary>
-///     The guides for AI coding agents that mcs ships: <c>CLAUDE.md</c> and <c>.ai-knowledge/</c>. Their source is
+///     The guides for AI coding agents that mcs ships: <c>AGENTS.md</c> for every agent, <c>CLAUDE.md</c> importing it
+///     for Claude Code, and <c>.ai-knowledge/</c>. Their source is
 ///     the <c>AIAgents/</c> folder at the root of the MagicCSharp repository, embedded into this tool at build time,
 ///     so there is one place to edit them and every repository gets the version its mcs ships.
 ///     <para>

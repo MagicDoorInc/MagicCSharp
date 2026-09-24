@@ -38,8 +38,8 @@
             always write the version this tool ships. Listed file by file because the wildcard would not look
             inside the hidden .ai-knowledge folder.
         -->
-        <EmbeddedResource Include="../../AIAgents/CLAUDE.md"
-                          LogicalName="AIAgents/CLAUDE.md"
+        <EmbeddedResource Include="../../AIAgents/AGENTS.md;../../AIAgents/CLAUDE.md"
+                          LogicalName="AIAgents/%(Filename)%(Extension)"
                           WithCulture="false" />
         <EmbeddedResource Include="../../AIAgents/.ai-knowledge/*.md"
                           LogicalName="AIAgents/.ai-knowledge/%(Filename)%(Extension)"

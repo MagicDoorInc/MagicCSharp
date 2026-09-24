@@ -3,7 +3,8 @@
 The conventions of a MagicCSharp repository, written for AI coding agents — and useful to any person new to
 one. This folder is their source:
 
-- `CLAUDE.md` — where an agent starts.
+- `AGENTS.md` — where an agent starts; the name most coding agents look for.
+- `CLAUDE.md` — imports `AGENTS.md` (`@AGENTS.md`), so Claude Code reads the same text.
 - `.ai-knowledge/` — one guide per topic, indexed by `INDEX.md`, and `project.md`, the stub a repository fills
   in with what is specific to it.
 

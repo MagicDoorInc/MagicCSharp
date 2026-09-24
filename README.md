@@ -134,7 +134,7 @@ Ask the same thing here and the unit of work is `ApplyLateFeesUseCase`: one file
   is corrected by the compiler, on the spot, not by a reviewer three days later.
 - **The structure comes from a tool.** `mcs` creates services, domains and entities, so an agent adds an entity
   the way everyone else does instead of inventing a folder layout.
-- **The rules are written down for it.** `mcs init` writes a `CLAUDE.md` and an `.ai-knowledge/` folder — where
+- **The rules are written down for it.** `mcs init` writes an `AGENTS.md` and an `.ai-knowledge/` folder — where
   a use case goes, how an entity is shaped, how events, background services and tests work — so the agent
   follows the same conventions the build enforces. `mcs update ai-files` brings in improved guides with each
   release.
@@ -499,7 +499,8 @@ mcs add-entity --solution Shop --domain Orders --name Order --paginated
 names, namespaces and generic arguments, and registers it — not typing saved so much as a class of mistake
 removed. Nothing is ever overwritten, and re-running any command produces no diff.
 
-`mcs init` also writes the conventions down for AI coding agents: a `CLAUDE.md` and an `.ai-knowledge/`
+`mcs init` also writes the conventions down for AI coding agents: an `AGENTS.md` — which Claude Code, Codex,
+Cursor and the rest all read, `CLAUDE.md` importing it — and an `.ai-knowledge/`
 folder, one guide per topic — where a use case goes, how an entity is shaped, how events, background services
 and tests work — plus a `project.md` for what is specific to your repository. An agent working in the
 repository follows the same rules the build enforces, and `mcs update ai-files` brings in improved guides with

@@ -44,7 +44,7 @@ app.Configure(config =>
     {
         update.SetDescription("Bring files mcs ships up to this version");
         update.AddCommand<UpdateAiFilesCommand>("ai-files")
-            .WithDescription("Refresh CLAUDE.md and the .ai-knowledge/ guides; never touches .ai-knowledge/project.md");
+            .WithDescription("Refresh AGENTS.md, CLAUDE.md and the .ai-knowledge/ guides; never touches .ai-knowledge/project.md");
     });
 
     config.AddBranch("templates", templates =>

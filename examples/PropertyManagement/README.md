@@ -117,7 +117,8 @@ Libs/
   Web/                             pagination and id parsing for the endpoints
 .ai-knowledge/                     the conventions, one guide per topic, from mcs — start at INDEX.md
   project.md                       what is specific to this service
-CLAUDE.md                          where an AI coding agent starts, from mcs
+AGENTS.md                          where an AI coding agent starts, from mcs
+CLAUDE.md                          imports AGENTS.md, so Claude Code reads the same
 compose.yaml                       PostgreSQL and Kafka
 ```
 
@@ -127,7 +128,7 @@ never the other way round.
 
 ## Working on it with an AI agent
 
-[`CLAUDE.md`](CLAUDE.md) and [`.ai-knowledge/`](.ai-knowledge/INDEX.md) are the conventions this service is
+[`AGENTS.md`](AGENTS.md) and [`.ai-knowledge/`](.ai-knowledge/INDEX.md) are the conventions this service is
 written to — where a use case goes, how an entity is shaped, how events and background services work, how
 tests move time — written for an agent to read before it changes anything, and useful to a person for the same
 reason. `mcs init` wrote them, as it does into every new repository, and `mcs update ai-files` brings them up

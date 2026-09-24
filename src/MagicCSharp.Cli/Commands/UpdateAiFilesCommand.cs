@@ -4,7 +4,7 @@ using Spectre.Console.Cli;
 namespace MagicCSharp.Cli.Commands;
 
 /// <summary>
-///     Refreshes <c>CLAUDE.md</c> and the <c>.ai-knowledge/</c> guides to the version this mcs ships, so a
+///     Refreshes <c>AGENTS.md</c>, <c>CLAUDE.md</c> and the <c>.ai-knowledge/</c> guides to the version this mcs ships, so a
 ///     repository picks up improved guidance by upgrading the tool and running one command.
 ///     <para>
 ///         It overwrites the files mcs ships and nothing else: <c>.ai-knowledge/project.md</c> and any other file

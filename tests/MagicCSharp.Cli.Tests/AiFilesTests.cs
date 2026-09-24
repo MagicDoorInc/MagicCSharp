@@ -6,11 +6,12 @@ namespace MagicCSharp.Cli.Tests;
 public class AiFilesTests
 {
     [Fact]
-    public void The_tool_carries_CLAUDE_md_the_index_and_the_project_file()
+    public void The_tool_carries_AGENTS_md_CLAUDE_md_the_index_and_the_project_file()
     {
         // The hidden .ai-knowledge folder is embedded file by file; this fails if the csproj stops finding it.
         var paths = AiFiles.Bundled("Acme").Select(aiFile => aiFile.Path).ToList();
 
+        Assert.Contains("AGENTS.md", paths);
         Assert.Contains("CLAUDE.md", paths);
         Assert.Contains(".ai-knowledge/INDEX.md", paths);
         Assert.Contains(AiFiles.ProjectFile, paths);
@@ -23,10 +24,21 @@ public class AiFilesTests
 
         InitCommand.WriteRepository(temporaryRepository.Root, new InitCommand.Settings { Prefix = "Acme", PackageVersion = "1.2.3" });
 
-        var claudeMd = File.ReadAllText(Path.Combine(temporaryRepository.Root, "CLAUDE.md"));
-        Assert.Contains("dotnet build Acme.All.slnx", claudeMd);
-        Assert.DoesNotContain("{{ prefix }}", claudeMd);
+        var agentsMd = File.ReadAllText(Path.Combine(temporaryRepository.Root, "AGENTS.md"));
+        Assert.Contains("dotnet build Acme.All.slnx", agentsMd);
+        Assert.DoesNotContain("{{ prefix }}", agentsMd);
         Assert.True(File.Exists(Path.Combine(temporaryRepository.Root, ".ai-knowledge", "INDEX.md")));
+    }
+
+    [Fact]
+    public void Claude_md_imports_AGENTS_md_so_every_agent_reads_the_same_guide()
+    {
+        using var temporaryRepository = new TemporaryRepository();
+
+        InitCommand.WriteRepository(temporaryRepository.Root, new InitCommand.Settings { Prefix = "Acme", PackageVersion = "1.2.3" });
+
+        var claudeMd = File.ReadAllText(Path.Combine(temporaryRepository.Root, "CLAUDE.md"));
+        Assert.StartsWith("@AGENTS.md", claudeMd);
     }
 
     [Fact]
@@ -36,6 +48,7 @@ public class AiFilesTests
 
         InitCommand.WriteRepository(temporaryRepository.Root, new InitCommand.Settings { Prefix = "Acme", PackageVersion = "1.2.3", ShouldSkipAiKnowledge = true });
 
+        Assert.False(File.Exists(Path.Combine(temporaryRepository.Root, "AGENTS.md")));
         Assert.False(File.Exists(Path.Combine(temporaryRepository.Root, "CLAUDE.md")));
         Assert.False(Directory.Exists(Path.Combine(temporaryRepository.Root, ".ai-knowledge")));
     }
