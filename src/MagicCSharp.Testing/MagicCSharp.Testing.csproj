@@ -20,7 +20,7 @@
         <PackageReference Include="DistributedLock.Core" Version="1.0.8"/>
         <!-- FakeTimeProvider: .NET's own test clock, which also fakes timers and Task.Delay. Re-exported so a
              test project referencing MagicCSharp.Testing has it without a second package. -->
-        <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="9.10.0"/>
+        <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0"/>
     </ItemGroup>
 
     <ItemGroup>
