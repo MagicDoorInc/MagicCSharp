@@ -48,7 +48,7 @@
 
     <ItemGroup>
         <PackageReference Include="Spectre.Console.Cli" Version="0.50.0"/>
-        <PackageReference Include="Scriban" Version="7.2.5"/>
+        <PackageReference Include="Scriban" Version="7.5.0"/>
     </ItemGroup>
 
     <ItemGroup>
