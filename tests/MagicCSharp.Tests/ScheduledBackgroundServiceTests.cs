@@ -61,6 +61,36 @@ public class ScheduledBackgroundServiceTests
         Assert.True(nightlyWorkBackgroundService.HasRun);
     }
 
+    [Fact]
+    public async Task A_check_that_wakes_a_few_milliseconds_before_the_due_time_still_runs()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddScoped<ScopedWork>();
+        services.AddInMemoryScheduleStore();
+        await using var serviceProvider = services.BuildServiceProvider();
+
+        var timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 3, 1, 10, 0, 0, TimeSpan.Zero));
+        await serviceProvider.GetRequiredService<IScheduleStore>()
+            .SetNextRunTime("nightly-work", new DateTimeOffset(2026, 3, 1, 10, 5, 0, 2, TimeSpan.Zero));
+        var nightlyWorkBackgroundService = new NightlyWorkBackgroundService(
+            serviceProvider.GetRequiredService<IServiceScopeFactory>(),
+            timeProvider,
+            NullLogger<NightlyWorkBackgroundService>.Instance);
+
+        await nightlyWorkBackgroundService.StartAsync(CancellationToken.None);
+        await nightlyWorkBackgroundService.WaitForIdle();
+
+        // Act — the 10:05 check wakes at 10:05:00.000, 2 ms before the stored run time, as a real timer can.
+        timeProvider.Advance(TimeSpan.FromMinutes(5));
+        await nightlyWorkBackgroundService.WaitForIdle();
+
+        await nightlyWorkBackgroundService.StopAsync(CancellationToken.None);
+
+        // Assert
+        Assert.True(nightlyWorkBackgroundService.HasRun);
+    }
+
     private class ScopedWork
     {
         public bool HasRun { get; private set; }
