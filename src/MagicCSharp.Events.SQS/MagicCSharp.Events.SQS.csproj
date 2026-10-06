@@ -18,8 +18,8 @@
 
     <ItemGroup>
         <PackageReference Include="AWSSDK.SQS" Version="3.7.400.58"/>
-        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0"/>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12"/>
     </ItemGroup>
 
     <ItemGroup>
