@@ -54,6 +54,8 @@ public abstract class ScheduledBackgroundService(
     /// </summary>
     protected virtual TimeSpan LockOutTime => TimeSpan.FromMinutes(15);
 
+    private static readonly TimeSpan EarlyWakeTolerance = TimeSpan.FromSeconds(1);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation(
@@ -136,6 +138,13 @@ public abstract class ScheduledBackgroundService(
         }
     }
 
+    // A timer can wake a few milliseconds early; without the tolerance that wake reads as "not due" and the run
+    // slips a whole check interval.
+    private static bool IsDue(DateTimeOffset now, DateTimeOffset nextRun)
+    {
+        return now >= nextRun - EarlyWakeTolerance;
+    }
+
     private async Task CheckAndRunIfDue(CancellationToken stoppingToken)
     {
         using var scope = ServiceScopeFactory.CreateScope();
@@ -151,8 +160,7 @@ public abstract class ScheduledBackgroundService(
             return;
         }
 
-        // Check if we're past the scheduled run time
-        if (now < nextRun.Value)
+        if (!IsDue(now, nextRun.Value))
         {
             // Not time yet
             logger.LogTrace("{ServiceName} not due yet (next run: {NextRun}, now: {Now})", ServiceName, nextRun.Value,
@@ -177,7 +185,7 @@ public abstract class ScheduledBackgroundService(
         // Double-check that we're still past the scheduled run time after acquiring the lock
         // Another instance might have already executed and updated the next run time
         var nextRunAfterLock = await scheduleStore.GetNextRunTime(ScheduleKey);
-        if (nextRunAfterLock == null || timeProvider.GetUtcNow() < nextRunAfterLock.Value)
+        if (nextRunAfterLock == null || !IsDue(timeProvider.GetUtcNow(), nextRunAfterLock.Value))
         {
             logger.LogDebug("{ServiceName} not due anymore after acquiring lock (another instance already ran it)",
                 ServiceName);
