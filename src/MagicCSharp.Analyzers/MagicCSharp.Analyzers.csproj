@@ -30,7 +30,7 @@
     <ItemGroup>
         <!-- The oldest compiler an analyzer is built against is the oldest one that can load it. 4.8 is the
              .NET 8 SDK; a newer reference would be silently skipped (CS9057) by a .NET 9 SDK build. -->
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" PrivateAssets="all"/>
     </ItemGroup>
 
     <ItemGroup>
