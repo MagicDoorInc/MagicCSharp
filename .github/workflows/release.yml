@@ -17,7 +17,7 @@ permissions:
 jobs:
   publish:
     name: Publish to NuGet.org
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     environment: nuget
     permissions:
       contents: read

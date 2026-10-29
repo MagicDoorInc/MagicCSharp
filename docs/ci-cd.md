@@ -176,7 +176,7 @@ concurrency:
 
 jobs:
   plan:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       apps: ${{ steps.affected.outputs.apps }}
     steps:
@@ -200,7 +200,7 @@ jobs:
   test:
     needs: plan
     if: needs.plan.outputs.apps != '[]'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     strategy:
       fail-fast: false
       matrix:
@@ -218,7 +218,7 @@ jobs:
   result:
     needs: [plan, test]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     name: CI result
     steps:
       - name: Fail if planning or any app failed
@@ -256,7 +256,7 @@ permissions:
 
 jobs:
   plan:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       apps: ${{ steps.affected.outputs.apps }}
     steps:
@@ -322,7 +322,7 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -333,7 +333,7 @@ jobs:
 
   image:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       digest: ${{ steps.push.outputs.digest }}
     steps:
@@ -356,7 +356,7 @@ jobs:
   # run against each environment's database before that environment gets the new image.
   migrations:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -425,7 +425,7 @@ permissions:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     # The environment supplies the secrets, and production's required reviewer pauses the job here until
     # someone approves.
     environment: ${{ inputs.environment }}
