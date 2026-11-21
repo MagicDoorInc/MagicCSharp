@@ -57,7 +57,7 @@ internal static class MagicClientWriter
         sourceWriter.WriteLine("public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection Add" + declaration.ClientName +
                                "(this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services, global::Microsoft.Extensions.Configuration.IConfiguration configuration)");
         sourceWriter.OpenBlock();
-        var clientFullyQualifiedName = "global::" + NamespacePrefix(declaration.Interface) + declaration.ClientName;
+        var clientFullyQualifiedName = GlobalAlias.Prefix + NamespacePrefix(declaration.Interface) + declaration.ClientName;
         sourceWriter.WriteLine("return " + declaration.Convention.RegistrationTypeFullyQualifiedName + "." + declaration.Convention.RegistrationMethod + "<" +
                                declaration.Interface.FullyQualifiedName + ", " + clientFullyQualifiedName + ">(services, configuration, " +
                                BaseUrlExpression(declaration) + ");");

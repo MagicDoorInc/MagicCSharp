@@ -33,7 +33,7 @@ public static class DalReader
             return NotADal;
         }
 
-        var dal = DeclarationReader.ReadType(dalClass, cancellationToken);
+        var dal = TypeDeclarationReader.Read(dalClass, cancellationToken);
         var primaryKind = PrimaryKindOf(dalClass);
         var ownToEntity = FindMappingMethod(dalClass, ToEntityMethodName, method => method.Parameters.Length == 0);
         var ownApply = FindMappingMethod(dalClass, ApplyMethodName,
@@ -58,8 +58,8 @@ public static class DalReader
             Declaration = new DalDeclaration
             {
                 Dal = dal,
-                Entity = DeclarationReader.ReadTypeReference(entityType),
-                Edit = DeclarationReader.ReadTypeReference(editType),
+                Entity = TypeReferenceReader.Read(entityType),
+                Edit = TypeReferenceReader.Read(editType),
                 DalProperties = dalProperties,
                 EntityProperties = ReadMappableProperties(entityType),
                 EditProperties = ReadMappableProperties(editType),
@@ -174,7 +174,7 @@ public static class DalReader
         return new MappableProperty
         {
             Name = property.Name,
-            TypeName = DeclarationReader.ReadTypeReference(property.Type).FullyQualifiedName,
+            TypeName = TypeReferenceReader.Read(property.Type).FullyQualifiedName,
             IsReadable = property.GetMethod != null && property.GetMethod.DeclaredAccessibility == Accessibility.Public,
             IsSettable = hasPublicSetter && !setter!.IsInitOnly,
             IsInitializable = hasPublicSetter,

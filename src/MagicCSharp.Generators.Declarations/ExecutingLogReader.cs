@@ -19,7 +19,7 @@ public static class ExecutingLogReader
         var resolvedInterfaces = useCaseClass.AllInterfaces.Where(implementedInterface => implementedInterface.TypeKind == TypeKind.Interface).ToArray();
         return new ExecutingLogClassReading
         {
-            UseCaseClass = DeclarationReader.ReadType(useCaseClass, cancellationToken),
+            UseCaseClass = TypeDeclarationReader.Read(useCaseClass, cancellationToken),
             OwnExecutingLineLocation = FindOwnExecutingLine(useCaseClass, cancellationToken),
             ImplementedInterfaces = new EquatableArray<ImplementedInterfaceReading>(resolvedInterfaces.Select(implementedInterface =>
                 ReadImplementedInterface(useCaseClass, implementedInterface, cancellationToken))),
@@ -33,7 +33,7 @@ public static class ExecutingLogReader
     {
         return new ImplementedInterfaceReading
         {
-            Interface = DeclarationReader.ReadTypeReference(implementedInterface),
+            Interface = TypeReferenceReader.Read(implementedInterface),
             DisplayName = implementedInterface.ToDisplayString(),
             ExtendedInterfaceMetadataNames = new EquatableArray<string>(implementedInterface.AllInterfaces.Select(extendedInterface => extendedInterface.ToDisplayString())),
             Methods = new EquatableArray<MethodDeclaration>(InterfaceMethods(implementedInterface)
@@ -52,14 +52,14 @@ public static class ExecutingLogReader
     // that ties a secret to the method are on the class's implementation.
     private static MethodDeclaration ReadAsImplemented(INamedTypeSymbol useCaseClass, IMethodSymbol interfaceMethod, CancellationToken cancellationToken)
     {
-        var interfaceMethodDeclaration = DeclarationReader.ReadMethod(interfaceMethod, cancellationToken);
+        var interfaceMethodDeclaration = MethodDeclarationReader.Read(interfaceMethod, cancellationToken);
         var implementation = useCaseClass.FindImplementationForInterfaceMember(interfaceMethod) as IMethodSymbol;
         if (implementation == null)
         {
             return interfaceMethodDeclaration;
         }
 
-        var implementationDeclaration = DeclarationReader.ReadMethod(implementation, cancellationToken);
+        var implementationDeclaration = MethodDeclarationReader.Read(implementation, cancellationToken);
         var parameters = interfaceMethodDeclaration.Parameters.Select((parameter, index) => parameter with
         {
             Attributes = implementationDeclaration.Parameters[index].Attributes,
@@ -86,7 +86,7 @@ public static class ExecutingLogReader
 
     private static IEnumerable<SecretParameterReading> FindSecretParameters(IMethodSymbol method, CancellationToken cancellationToken)
     {
-        var methodDeclaration = DeclarationReader.ReadMethod(method, cancellationToken);
+        var methodDeclaration = MethodDeclarationReader.Read(method, cancellationToken);
         for (var index = 0; index < method.Parameters.Length; index++)
         {
             if (LoggedParameters.IsLogged(methodDeclaration.Parameters[index]) && SecretParameters.LooksSecret(method.Parameters[index]))

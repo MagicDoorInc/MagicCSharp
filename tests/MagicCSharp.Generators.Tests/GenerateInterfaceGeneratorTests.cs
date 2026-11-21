@@ -351,6 +351,36 @@ public class GenerateInterfaceGeneratorTests
     }
 
     [Fact]
+    public void GenerateInterface_WritesAPartialRecord_ForAUseCaseDeclaredAsARecord()
+    {
+        // Arrange
+        const string source = """
+                              using System.Threading.Tasks;
+                              using MagicCSharp.UseCases;
+
+                              namespace Acme.Leasing.Charges;
+
+                              [GenerateInterface]
+                              public partial record PayChargeUseCase
+                              {
+                                  public Task Execute(long chargeId)
+                                  {
+                                      return Task.CompletedTask;
+                                  }
+                              }
+                              """;
+
+        // Act
+        var generatorRunResult = GeneratorHarness.RunClean(source);
+
+        // Assert
+        Assert.Contains("partial record PayChargeUseCase : global::Acme.Leasing.Charges.IPayChargeUseCase",
+            generatorRunResult.GeneratedText("Acme.Leasing.Charges.PayChargeUseCase.Interface.g.cs"));
+        var useCaseRecord = generatorRunResult.OutputCompilation.GetTypeByMetadataName("Acme.Leasing.Charges.PayChargeUseCase")!;
+        Assert.Contains(useCaseRecord.AllInterfaces, implemented => implemented.ToDisplayString() == "Acme.Leasing.Charges.IPayChargeUseCase");
+    }
+
+    [Fact]
     public void GenerateInterface_GivesAnInternalInterface_ToAnInternalUseCase()
     {
         // Arrange

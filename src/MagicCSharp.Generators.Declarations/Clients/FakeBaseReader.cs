@@ -15,7 +15,7 @@ internal static class FakeBaseReader
             return ClientGenerationResult.Nothing;
         }
 
-        var classDeclaration = DeclarationReader.ReadType(fakeBaseClass, cancellationToken);
+        var classDeclaration = TypeDeclarationReader.Read(fakeBaseClass, cancellationToken);
         var problems = ShapeProblems(classDeclaration);
         var generateFakeBaseAttribute = fakeBaseClass.GetAttributes()
             .First(attribute => attribute.AttributeClass != null &&
@@ -43,7 +43,7 @@ internal static class FakeBaseReader
         var fakeBaseDeclaration = new FakeBaseDeclaration
         {
             Class = classDeclaration,
-            InterfaceFullyQualifiedName = DeclarationReader.ReadTypeReference(fakedType).FullyQualifiedName,
+            InterfaceFullyQualifiedName = TypeReferenceReader.Read(fakedType).FullyQualifiedName,
             Members = new EquatableArray<FakeMember>(stubbedMembers.Select(member => ReadMember(member, cancellationToken))),
         };
         return ClientGenerationResult.Generated(FakeBaseWriter.WriteFile(fakeBaseDeclaration));
@@ -143,7 +143,7 @@ internal static class FakeBaseReader
         var method = member as IMethodSymbol;
         if (method != null)
         {
-            var methodDeclaration = DeclarationReader.ReadMethod(method, cancellationToken);
+            var methodDeclaration = MethodDeclarationReader.Read(method, cancellationToken);
             return new FakeMember
             {
                 Kind = FakeMemberKind.Method,
@@ -159,14 +159,14 @@ internal static class FakeBaseReader
         var property = member as IPropertySymbol;
         if (property != null)
         {
-            var propertyDeclaration = DeclarationReader.ReadProperty(property, cancellationToken);
+            var propertyDeclaration = PropertyDeclarationReader.Read(property, cancellationToken);
             var getter = property.GetMethod;
             return new FakeMember
             {
                 Kind = property.IsIndexer ? FakeMemberKind.Indexer : FakeMemberKind.Property,
                 Name = UseCaseInterfaceWriter.EscapedName(property.Name),
                 TypeFullyQualifiedName = propertyDeclaration.Type.FullyQualifiedName,
-                ParameterList = property.IsIndexer && getter != null ? UseCaseInterfaceWriter.ParameterList(DeclarationReader.ReadMethod(getter, cancellationToken)) : "",
+                ParameterList = property.IsIndexer && getter != null ? UseCaseInterfaceWriter.ParameterList(MethodDeclarationReader.Read(getter, cancellationToken)) : "",
                 HasGetter = propertyDeclaration.HasGetter,
                 SetterKind = propertyDeclaration.SetterKind,
                 ScriptedName = interfaceName + "." + (property.IsIndexer ? "this[" + ShortParameterTypes(property.Parameters) + "]" : property.Name),
@@ -178,7 +178,7 @@ internal static class FakeBaseReader
         {
             Kind = FakeMemberKind.Event,
             Name = UseCaseInterfaceWriter.EscapedName(eventSymbol.Name),
-            TypeFullyQualifiedName = DeclarationReader.ReadTypeReference(eventSymbol.Type).FullyQualifiedName,
+            TypeFullyQualifiedName = TypeReferenceReader.Read(eventSymbol.Type).FullyQualifiedName,
             ParameterList = "",
             HasGetter = false,
             SetterKind = SetterKind.None,

@@ -57,13 +57,13 @@ internal static class ClientConventionReader
         return new ClientConvention
         {
             DeclaringAssemblies = EquatableArray<string>.Empty,
-            BaseFullyQualifiedName = baseType == null ? "global::" + DefaultBaseMetadataName : baseType.ToDisplayString(FullyQualifiedFormat),
+            BaseFullyQualifiedName = baseType == null ? GlobalAlias.Prefix + DefaultBaseMetadataName : baseType.ToDisplayString(FullyQualifiedFormat),
             BaseConstructors = baseType == null
                 ? EquatableArray<MethodDeclaration>.Empty
-                : new EquatableArray<MethodDeclaration>(CopiedConstructors(baseType).Select(constructor => DeclarationReader.ReadMethod(constructor, cancellationToken))),
+                : new EquatableArray<MethodDeclaration>(CopiedConstructors(baseType).Select(constructor => MethodDeclarationReader.Read(constructor, cancellationToken))),
             BaseMembers = baseType == null ? EquatableArray<string>.Empty : new EquatableArray<string>(OfferedMembers(baseType)),
             RegistrationTypeFullyQualifiedName = registrationType == null
-                ? "global::" + DefaultRegistrationMetadataName
+                ? GlobalAlias.Prefix + DefaultRegistrationMetadataName
                 : registrationType.ToDisplayString(FullyQualifiedFormat),
             RegistrationMethod = registrationMethod,
             HasRegistrationMethod = registrationType != null && HasRegistrationMethod(registrationType, registrationMethod),

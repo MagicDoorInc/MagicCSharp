@@ -9,18 +9,7 @@ public static class UseCaseReader
 
     // Stands in until the pipeline joins the class with the marker interface, which comes from the whole
     // compilation rather than the class.
-    private static readonly TypeReference PendingMarkerInterface = new TypeReference
-    {
-        Name = "",
-        Namespace = "",
-        FullyQualifiedName = "",
-        Kind = TypeReferenceKind.Unresolved,
-        IsNullable = false,
-        IsValueType = false,
-        IsUnresolved = true,
-        TypeArguments = EquatableArray<TypeReference>.Empty,
-        ElementType = null,
-    };
+    private static readonly TypeReference PendingMarkerInterface = TypeReferenceReader.Unresolved("");
 
     /// <param name="useCaseClass">The class marked <c>[GenerateInterface]</c>.</param>
     /// <param name="markerInterface">The use case marker interface; null when the compilation has none, which refuses the class.</param>
@@ -31,7 +20,7 @@ public static class UseCaseReader
         var markerInterfaceLookup = new MarkerInterfaceLookup
         {
             MetadataName = markerInterface == null ? UseCaseMarkerInterfaceSetting.DefaultMetadataName : markerInterface.ToDisplayString(),
-            Interface = markerInterface == null || markerInterface.TypeKind != TypeKind.Interface ? null : DeclarationReader.ReadTypeReference(markerInterface),
+            Interface = markerInterface == null || markerInterface.TypeKind != TypeKind.Interface ? null : TypeReferenceReader.Read(markerInterface),
         };
         return WithMarkerInterface(classReading, markerInterfaceLookup);
     }
@@ -44,44 +33,59 @@ public static class UseCaseReader
             return Skipped();
         }
 
-        var classDeclaration = DeclarationReader.ReadType(useCaseClass, cancellationToken);
+        var classDeclaration = TypeDeclarationReader.Read(useCaseClass, cancellationToken);
         var shapeProblems = ShapeProblems(classDeclaration);
         if (shapeProblems.Count > 0)
         {
             return Refused(shapeProblems);
         }
 
-        var executeMethods = useCaseClass.GetMembers(ExecuteMethodName)
-            .OfType<IMethodSymbol>()
-            .Where(method => method.MethodKind == MethodKind.Ordinary && method.DeclaredAccessibility == Accessibility.Public && !method.IsStatic)
-            .ToArray();
-        if (executeMethods.Length == 0)
+        var executeMethods = PublicInstanceExecuteMethods(useCaseClass);
+        var executeProblems = ExecuteProblems(classDeclaration, executeMethods);
+        if (executeProblems.Count > 0)
         {
-            return Refused([Problem(GeneratorDiagnostics.NoPublicExecute, classDeclaration.Location, classDeclaration.Name)]);
+            return Refused(executeProblems);
         }
 
-        var genericExecuteProblems = executeMethods.Where(method => method.IsGenericMethod)
-            .Select(method => Problem(GeneratorDiagnostics.GenericExecute, SourceLocation.From(method.Locations.FirstOrDefault()), classDeclaration.Name))
-            .ToList();
-        if (genericExecuteProblems.Count > 0)
-        {
-            return Refused(genericExecuteProblems);
-        }
-
-        var namespacePrefix = classDeclaration.Namespace == "" ? "" : classDeclaration.Namespace + ".";
         return new UseCaseReadResult
         {
-            Declaration = new UseCaseDeclaration
-            {
-                Class = classDeclaration,
-                InterfaceName = interfaceName,
-                InterfaceFullyQualifiedName = "global::" + namespacePrefix + interfaceName,
-                MarkerInterface = PendingMarkerInterface,
-                ExecuteMethods = new EquatableArray<MethodDeclaration>(executeMethods.Select(method => DeclarationReader.ReadMethod(method, cancellationToken))),
-            },
+            Declaration = BuildDeclaration(classDeclaration, interfaceName, executeMethods, cancellationToken),
             IsSkipped = false,
             Diagnostics = EquatableArray<DiagnosticInfo>.Empty,
         };
+    }
+
+    private static UseCaseDeclaration BuildDeclaration(TypeDeclaration classDeclaration, string interfaceName, IMethodSymbol[] executeMethods, CancellationToken cancellationToken)
+    {
+        var namespacePrefix = classDeclaration.Namespace == "" ? "" : classDeclaration.Namespace + ".";
+        return new UseCaseDeclaration
+        {
+            Class = classDeclaration,
+            InterfaceName = interfaceName,
+            InterfaceFullyQualifiedName = GlobalAlias.Prefix + namespacePrefix + interfaceName,
+            MarkerInterface = PendingMarkerInterface,
+            ExecuteMethods = new EquatableArray<MethodDeclaration>(executeMethods.Select(method => MethodDeclarationReader.Read(method, cancellationToken))),
+        };
+    }
+
+    private static IMethodSymbol[] PublicInstanceExecuteMethods(INamedTypeSymbol useCaseClass)
+    {
+        return useCaseClass.GetMembers(ExecuteMethodName)
+            .OfType<IMethodSymbol>()
+            .Where(method => method.MethodKind == MethodKind.Ordinary && method.DeclaredAccessibility == Accessibility.Public && !method.IsStatic)
+            .ToArray();
+    }
+
+    private static List<DiagnosticInfo> ExecuteProblems(TypeDeclaration classDeclaration, IMethodSymbol[] executeMethods)
+    {
+        if (executeMethods.Length == 0)
+        {
+            return [Problem(GeneratorDiagnostics.NoPublicExecute, classDeclaration.Location, classDeclaration.Name)];
+        }
+
+        return executeMethods.Where(method => method.IsGenericMethod)
+            .Select(method => Problem(GeneratorDiagnostics.GenericExecute, SourceLocation.From(method.Locations.FirstOrDefault()), classDeclaration.Name))
+            .ToList();
     }
 
     internal static UseCaseReadResult WithMarkerInterface(UseCaseReadResult classReading, MarkerInterfaceLookup markerInterfaceLookup)

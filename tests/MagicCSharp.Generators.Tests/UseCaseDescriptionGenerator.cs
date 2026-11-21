@@ -33,8 +33,8 @@ public sealed class UseCaseDescriptionGenerator : IIncrementalGenerator
             (_, _) => true,
             (attributeContext, cancellationToken) => new DescribedUseCase
             {
-                DescriptionClass = DeclarationReader.ReadType((INamedTypeSymbol)attributeContext.TargetSymbol, cancellationToken),
-                NamedInterface = DeclarationReader.ReadAttribute(attributeContext.Attributes[0]).ConstructorArguments[0],
+                DescriptionClass = TypeDeclarationReader.Read((INamedTypeSymbol)attributeContext.TargetSymbol, cancellationToken),
+                NamedInterface = AttributeDeclarationReader.Read(attributeContext.Attributes[0]).ConstructorArguments[0],
             });
         var index = UseCasePipelines.GeneratedInterfaceIndex(context);
         context.RegisterSourceOutput(describedUseCases.Combine(index), WriteDescription);

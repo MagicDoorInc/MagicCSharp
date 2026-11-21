@@ -24,7 +24,7 @@ internal static class MagicClientReader
             return ClientGenerationResult.Nothing;
         }
 
-        var interfaceDeclaration = DeclarationReader.ReadType(clientInterface, cancellationToken);
+        var interfaceDeclaration = TypeDeclarationReader.Read(clientInterface, cancellationToken);
         var shapeProblems = ShapeProblems(interfaceDeclaration, convention);
         if (shapeProblems.Count > 0)
         {
@@ -160,12 +160,12 @@ internal static class MagicClientReader
         var resultType = returnType!.TypeArguments.FirstOrDefault();
         return new ClientMethod
         {
-            Method = DeclarationReader.ReadMethod(method, cancellationToken),
+            Method = MethodDeclarationReader.Read(method, cancellationToken),
             HttpMethodProperty = routeMethod.HttpMethodProperty,
             Path = routeMethod.Path,
             Parameters = new EquatableArray<ClientParameter>(parameters),
-            ResultFullyQualifiedName = resultType == null ? null : DeclarationReader.ReadTypeReference(resultType).FullyQualifiedName,
-            IsNullableResult = resultType != null && DeclarationReader.ReadTypeReference(resultType).IsNullable,
+            ResultFullyQualifiedName = resultType == null ? null : TypeReferenceReader.Read(resultType).FullyQualifiedName,
+            IsNullableResult = resultType != null && TypeReferenceReader.Read(resultType).IsNullable,
         };
     }
 

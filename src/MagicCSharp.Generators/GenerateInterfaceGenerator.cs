@@ -14,10 +14,10 @@ public sealed class GenerateInterfaceGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var readResults = UseCasePipelines.GeneratedInterfaceReadResults(context);
-        context.RegisterSourceOutput(readResults, WriteInterface);
+        context.RegisterSourceOutput(readResults, ReportProblemsAndAddInterfaceFile);
     }
 
-    private static void WriteInterface(SourceProductionContext sourceProductionContext, UseCaseReadResult readResult)
+    private static void ReportProblemsAndAddInterfaceFile(SourceProductionContext sourceProductionContext, UseCaseReadResult readResult)
     {
         foreach (var diagnosticInfo in readResult.Diagnostics)
         {

@@ -93,7 +93,7 @@ public class DeclarationsReuseTests
         var executeMethod = compilation.GetTypeByMetadataName("Acme.Payments.RefundChargeUseCase")!.GetMembers("Execute").OfType<IMethodSymbol>().Single();
 
         // Act
-        var documentation = DeclarationReader.ReadDocumentation(executeMethod, CancellationToken.None);
+        var documentation = DocumentationCommentReader.Read(executeMethod, CancellationToken.None);
 
         // Assert
         Assert.Equal([" <summary>Refunds a paid charge.</summary>", " <param name=\"chargeId\">The charge to refund.</param>"], documentation.Lines);

@@ -18,7 +18,7 @@ public sealed record GeneratedInterfaceIndex
     /// </summary>
     public bool TryFind(ITypeSymbol interfaceSymbol, [NotNullWhen(true)] out UseCaseDeclaration? declaration)
     {
-        return TryFind(DeclarationReader.ReadTypeReference(interfaceSymbol), out declaration);
+        return TryFind(TypeReferenceReader.Read(interfaceSymbol), out declaration);
     }
 
     /// <summary>
@@ -46,7 +46,7 @@ public sealed record GeneratedInterfaceIndex
     /// <summary>Finds a use case by its interface's full name, <c>Acme.Leasing.ISignLeaseUseCase</c>.</summary>
     public bool TryFind(string interfaceFullName, [NotNullWhen(true)] out UseCaseDeclaration? declaration)
     {
-        var fullyQualifiedName = "global::" + interfaceFullName;
+        var fullyQualifiedName = GlobalAlias.Prefix + interfaceFullName;
         declaration = Declarations.FirstOrDefault(candidate => candidate.InterfaceFullyQualifiedName == fullyQualifiedName);
         return declaration != null;
     }

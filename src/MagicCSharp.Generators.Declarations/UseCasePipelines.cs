@@ -41,7 +41,7 @@ public static class UseCasePipelines
         return new MarkerInterfaceLookup
         {
             MetadataName = metadataName,
-            Interface = markerInterface == null || markerInterface.TypeKind != TypeKind.Interface ? null : DeclarationReader.ReadTypeReference(markerInterface),
+            Interface = markerInterface == null || markerInterface.TypeKind != TypeKind.Interface ? null : TypeReferenceReader.Read(markerInterface),
         };
     }
 }
