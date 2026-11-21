@@ -52,7 +52,7 @@ public static class UseCaseInterfaceWriter
         };
     }
 
-    private static string ParameterList(MethodDeclaration method)
+    internal static string ParameterList(MethodDeclaration method)
     {
         return string.Join(", ", method.Parameters.Select(ParameterText));
     }
@@ -84,12 +84,12 @@ public static class UseCaseInterfaceWriter
         }
     }
 
-    private static string EscapedName(string name)
+    internal static string EscapedName(string name)
     {
         return SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None ? name : "@" + name;
     }
 
-    private static string AccessibilityKeyword(Accessibility accessibility)
+    internal static string AccessibilityKeyword(Accessibility accessibility)
     {
         return accessibility == Accessibility.Public ? "public" : "internal";
     }

@@ -14,15 +14,23 @@ namespace MagicCSharp.Data.EntityFramework.Repositories;
 ///     time. Derive from this when the entity's result sets grow without bound; derive from the plain base when
 ///     they do not, so the contract says so.
 /// </summary>
-public abstract class BaseIdPaginatedRepository<TContext, TDal, TEntity, TFilter, TEdit>(
-    IDbContextFactory<TContext> contextFactory,
-    TimeProvider timeProvider,
-    ILoggerFactory loggerFactory)
-    : BaseIdRepository<TContext, TDal, TEntity, TFilter, TEdit>(contextFactory, timeProvider, loggerFactory), IPaginatedRepository<TEntity, TFilter>
+public abstract class BaseIdPaginatedRepository<TContext, TDal, TEntity, TFilter, TEdit>
+    : BaseIdRepository<TContext, TDal, TEntity, TFilter, TEdit>, IPaginatedRepository<TEntity, TFilter>
     where TDal : class, IDalTransform<TEntity, TEdit>, IDalId, IDal
     where TEntity : class, TEdit, IIdEntity
     where TContext : DbContext
 {
+    protected BaseIdPaginatedRepository(IDbContextFactory<TContext> contextFactory, TimeProvider timeProvider, ILoggerFactory loggerFactory)
+        : base(contextFactory, timeProvider, loggerFactory)
+    {
+    }
+
+    /// <summary>Everything from one <see cref="RepositoryServices{TContext}" />, the key service included.</summary>
+    protected BaseIdPaginatedRepository(RepositoryServices<TContext> repositoryServices)
+        : base(repositoryServices)
+    {
+    }
+
     public virtual async Task<Pagination<TEntity>> Get(PaginationRequest pagination, TFilter filter)
     {
         await using var context = await ContextFactory.CreateDbContextAsync();

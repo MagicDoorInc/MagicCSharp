@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <ProjectReference Include="..\MagicCSharp.Clients\MagicCSharp.Clients.csproj"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!-- NuGet Package Metadata -->
+        <PackageId>MagicCSharp.Testing.Clients</PackageId>
+        <Description>Checks MagicCSharp clients against the service they call: a server's test project calls ClientRouteCheck.AssertEveryClientRouteIsServed, and any [MagicClient] path or verb no controller route serves fails the test. Separate from MagicCSharp.Testing because it needs ASP.NET Core to read the controllers' routes.</Description>
+        <PackageTags>testing;http-client;routing;aspnetcore;contract-tests</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- MVC's own action model gives the routes exactly as the server serves them; it lives in the shared framework. -->
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+</Project>

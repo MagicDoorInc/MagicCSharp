@@ -13,15 +13,23 @@ namespace MagicCSharp.Data.EntityFramework.Repositories;
 ///     <see cref="BaseIdSearchRepository{TContext,TDal,TEntity,TFilter,TEdit}" /> for how the column is kept
 ///     current and queried.
 /// </summary>
-public abstract class BaseKeySearchRepository<TContext, TDal, TEntity, TFilter, TEdit>(
-    IDbContextFactory<TContext> contextFactory,
-    TimeProvider timeProvider,
-    ILoggerFactory loggerFactory)
-    : BaseKeyPaginatedRepository<TContext, TDal, TEntity, TFilter, TEdit>(contextFactory, timeProvider, loggerFactory), ISearchRepository<string>
+public abstract class BaseKeySearchRepository<TContext, TDal, TEntity, TFilter, TEdit>
+    : BaseKeyPaginatedRepository<TContext, TDal, TEntity, TFilter, TEdit>, ISearchRepository<string>
     where TDal : class, IDalTransform<TEntity, TEdit>, IDalKey, IDal, IDalSearchField
     where TEntity : class, TEdit, IKeyEntity
     where TContext : DbContext
 {
+    protected BaseKeySearchRepository(IDbContextFactory<TContext> contextFactory, TimeProvider timeProvider, ILoggerFactory loggerFactory)
+        : base(contextFactory, timeProvider, loggerFactory)
+    {
+    }
+
+    /// <summary>Everything from one <see cref="RepositoryServices{TContext}" />, the key service included.</summary>
+    protected BaseKeySearchRepository(RepositoryServices<TContext> repositoryServices)
+        : base(repositoryServices)
+    {
+    }
+
     /// <inheritdoc cref="BaseIdSearchRepository{TContext,TDal,TEntity,TFilter,TEdit}.SearchSynonyms" />
     protected virtual IReadOnlyDictionary<string, string>? SearchSynonyms => null;
 

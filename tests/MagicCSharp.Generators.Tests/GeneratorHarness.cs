@@ -34,7 +34,7 @@ public static class GeneratorHarness
 
     public static GeneratorRunResult Run(GeneratorRunRequest request)
     {
-        var compilation = CreateCompilation(request.SourceFiles, References.Value);
+        var compilation = CreateCompilation(request.SourceFiles, References.Value.AddRange(request.AdditionalReferences));
         var driver = CreateDriver(request, false);
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out _);
         var runResult = driver.GetRunResult();
@@ -44,7 +44,7 @@ public static class GeneratorHarness
             .ToArray();
         foreach (var generatedTestSourceFile in generatedFiles)
         {
-            AssertFollowsGeneratedCodeRules(generatedTestSourceFile);
+            AssertFollowsGeneratedCodeRules(generatedTestSourceFile, outputCompilation);
         }
 
         AssertDeterministic(request, compilation, generatedFiles);
@@ -98,18 +98,23 @@ public static class GeneratorHarness
         return $"{diagnostic.Id} {lineSpan.Path}:{lineSpan.StartLinePosition.Line + 1} {diagnostic.GetMessage()}";
     }
 
-    private static void AssertFollowsGeneratedCodeRules(TestSourceFile generatedFile)
+    private static void AssertFollowsGeneratedCodeRules(TestSourceFile generatedFile, Compilation outputCompilation)
     {
         Assert.StartsWith(GeneratedFile.Header, generatedFile.Text);
         Assert.DoesNotContain("\r", generatedFile.Text);
 
-        var root = CSharpSyntaxTree.ParseText(generatedFile.Text, ParseOptions).GetRoot();
+        var generatedTree = outputCompilation.SyntaxTrees.Single(syntaxTree => syntaxTree.FilePath.EndsWith(generatedFile.Path, StringComparison.Ordinal));
+        var semanticModel = outputCompilation.GetSemanticModel(generatedTree);
+        var root = generatedTree.GetRoot();
         Assert.Empty(root.DescendantNodes().OfType<UsingDirectiveSyntax>());
         Assert.Empty(root.DescendantNodes().OfType<ArrowExpressionClauseSyntax>());
 
+        // Only type names must be global::-qualified; a method body also names parameters, locals and inherited
+        // members, which bind to no type.
         var unqualifiedNames = root.DescendantNodes()
             .OfType<SimpleNameSyntax>()
-            .Where(simpleName => !IsInNamespaceName(simpleName) && !IsGlobalAlias(simpleName) && !StartsFromGlobal(simpleName))
+            .Where(simpleName => !IsInNamespaceName(simpleName) && !IsGlobalAlias(simpleName) && !StartsFromGlobal(simpleName) &&
+                                 NamesATypeOrNamespace(simpleName, semanticModel))
             .Select(simpleName => simpleName.ToString())
             .ToArray();
         Assert.True(unqualifiedNames.Length == 0, $"{generatedFile.Path} names types without global::: {string.Join(", ", unqualifiedNames)}");
@@ -129,6 +134,17 @@ public static class GeneratorHarness
     {
         var errors = compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).Select(Describe).ToArray();
         Assert.Empty(errors);
+    }
+
+    private static bool NamesATypeOrNamespace(SimpleNameSyntax simpleName, SemanticModel semanticModel)
+    {
+        if (simpleName.IsVar)
+        {
+            return false;
+        }
+
+        var symbol = semanticModel.GetSymbolInfo(simpleName).Symbol;
+        return symbol == null || symbol is ITypeSymbol || symbol is INamespaceSymbol;
     }
 
     private static bool IsInNamespaceName(SyntaxNode node)

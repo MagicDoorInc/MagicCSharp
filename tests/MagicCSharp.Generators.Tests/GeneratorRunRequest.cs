@@ -11,4 +11,7 @@ public record GeneratorRunRequest
 
     /// <summary>Generators that run beside <see cref="GenerateInterfaceGenerator" />.</summary>
     public IIncrementalGenerator[] OtherGenerators { get; init; } = [];
+
+    /// <summary>Assemblies the subject compiles against besides the defaults (the platform and MagicCSharp).</summary>
+    public MetadataReference[] AdditionalReferences { get; init; } = [];
 }

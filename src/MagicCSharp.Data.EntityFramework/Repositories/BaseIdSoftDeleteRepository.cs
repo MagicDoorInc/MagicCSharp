@@ -19,16 +19,24 @@ namespace MagicCSharp.Data.EntityFramework.Repositories;
 ///         that for free rather than having to remember.
 ///     </para>
 /// </summary>
-public abstract class BaseIdSoftDeleteRepository<TContext, TDal, TEntity, TFilter, TEdit>(
-    IDbContextFactory<TContext> contextFactory,
-    TimeProvider timeProvider,
-    ILoggerFactory loggerFactory)
-    : BaseIdPaginatedRepository<TContext, TDal, TEntity, TFilter, TEdit>(contextFactory, timeProvider, loggerFactory),
+public abstract class BaseIdSoftDeleteRepository<TContext, TDal, TEntity, TFilter, TEdit>
+    : BaseIdPaginatedRepository<TContext, TDal, TEntity, TFilter, TEdit>,
         ISoftDeleteRepository<TEntity, long, TFilter>
     where TDal : class, IDalTransform<TEntity, TEdit>, IDalId, IDal, IDalDeleted
     where TEntity : class, TEdit, IIdEntity, IDeletedEntity
     where TContext : DbContext
 {
+    protected BaseIdSoftDeleteRepository(IDbContextFactory<TContext> contextFactory, TimeProvider timeProvider, ILoggerFactory loggerFactory)
+        : base(contextFactory, timeProvider, loggerFactory)
+    {
+    }
+
+    /// <summary>Everything from one <see cref="RepositoryServices{TContext}" />, the key service included.</summary>
+    protected BaseIdSoftDeleteRepository(RepositoryServices<TContext> repositoryServices)
+        : base(repositoryServices)
+    {
+    }
+
     public virtual async Task<TEntity> SoftDelete(long id)
     {
         Log.LogTrace("SoftDelete: id={Id}", id);

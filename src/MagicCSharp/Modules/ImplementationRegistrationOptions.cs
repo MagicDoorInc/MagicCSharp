@@ -36,4 +36,11 @@ public record ImplementationRegistrationOptions
     ///     marker that genuinely describes a catalog resolved as <c>IEnumerable&lt;T&gt;</c>.
     /// </summary>
     public bool AllowMultipleImplementations { get; init; }
+
+    /// <summary>
+    ///     Whether an interface that already has a registration keeps it. False — the default — adds the discovered
+    ///     one after it. Set true where the convention fills in what a module did not register by hand, so a hand
+    ///     line still decides its interface.
+    /// </summary>
+    public bool ShouldKeepExistingRegistrations { get; init; }
 }

@@ -13,15 +13,23 @@ namespace MagicCSharp.Data.EntityFramework.Repositories;
 ///     A <see cref="BaseKeyRepository{TContext,TDal,TEntity,TFilter,TEdit}" /> that can also return one page at a
 ///     time.
 /// </summary>
-public abstract class BaseKeyPaginatedRepository<TContext, TDal, TEntity, TFilter, TEdit>(
-    IDbContextFactory<TContext> contextFactory,
-    TimeProvider timeProvider,
-    ILoggerFactory loggerFactory)
-    : BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit>(contextFactory, timeProvider, loggerFactory), IPaginatedRepository<TEntity, TFilter>
+public abstract class BaseKeyPaginatedRepository<TContext, TDal, TEntity, TFilter, TEdit>
+    : BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit>, IPaginatedRepository<TEntity, TFilter>
     where TDal : class, IDalTransform<TEntity, TEdit>, IDalKey, IDal
     where TEntity : class, TEdit, IKeyEntity
     where TContext : DbContext
 {
+    protected BaseKeyPaginatedRepository(IDbContextFactory<TContext> contextFactory, TimeProvider timeProvider, ILoggerFactory loggerFactory)
+        : base(contextFactory, timeProvider, loggerFactory)
+    {
+    }
+
+    /// <summary>Everything from one <see cref="RepositoryServices{TContext}" />, the key service included.</summary>
+    protected BaseKeyPaginatedRepository(RepositoryServices<TContext> repositoryServices)
+        : base(repositoryServices)
+    {
+    }
+
     public virtual async Task<Pagination<TEntity>> Get(PaginationRequest pagination, TFilter filter)
     {
         await using var context = await ContextFactory.CreateDbContextAsync();

@@ -9,4 +9,12 @@
     <CompilerVisibleProperty Include="MagicCSharpUseCaseMarkerInterface"/>
   </ItemGroup>
 
+  <!--
+    MagicCSharpUseCaseCallerPrefixes: caller prefixes besides External and Internal, ';'-separated (Partner;Admin), so
+    [LogExecuting] on PartnerGetInvoiceUseCase is refused as read-only like GetInvoiceUseCase.
+  -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="MagicCSharpUseCaseCallerPrefixes"/>
+  </ItemGroup>
+
 </Project>

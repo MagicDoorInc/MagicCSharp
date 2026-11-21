@@ -20,6 +20,11 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- The analyzers' word splitting, compiled in rather than referenced: the two packages load separately. -->
+        <Compile Include="..\MagicCSharp.Analyzers\IdentifierWords.cs" Link="Shared\IdentifierWords.cs"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <AdditionalFiles Include="AnalyzerReleases.Shipped.md"/>
         <AdditionalFiles Include="AnalyzerReleases.Unshipped.md"/>
     </ItemGroup>

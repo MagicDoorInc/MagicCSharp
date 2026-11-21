@@ -12,16 +12,24 @@ namespace MagicCSharp.Data.EntityFramework.Repositories;
 ///     <see cref="BaseIdSoftDeleteRepository{TContext,TDal,TEntity,TFilter,TEdit}" /> for how soft and hard delete
 ///     sit alongside each other.
 /// </summary>
-public abstract class BaseKeySoftDeleteRepository<TContext, TDal, TEntity, TFilter, TEdit>(
-    IDbContextFactory<TContext> contextFactory,
-    TimeProvider timeProvider,
-    ILoggerFactory loggerFactory)
-    : BaseKeyPaginatedRepository<TContext, TDal, TEntity, TFilter, TEdit>(contextFactory, timeProvider, loggerFactory),
+public abstract class BaseKeySoftDeleteRepository<TContext, TDal, TEntity, TFilter, TEdit>
+    : BaseKeyPaginatedRepository<TContext, TDal, TEntity, TFilter, TEdit>,
         ISoftDeleteRepository<TEntity, string, TFilter>
     where TDal : class, IDalTransform<TEntity, TEdit>, IDalKey, IDal, IDalDeleted
     where TEntity : class, TEdit, IKeyEntity, IDeletedEntity
     where TContext : DbContext
 {
+    protected BaseKeySoftDeleteRepository(IDbContextFactory<TContext> contextFactory, TimeProvider timeProvider, ILoggerFactory loggerFactory)
+        : base(contextFactory, timeProvider, loggerFactory)
+    {
+    }
+
+    /// <summary>Everything from one <see cref="RepositoryServices{TContext}" />, the key service included.</summary>
+    protected BaseKeySoftDeleteRepository(RepositoryServices<TContext> repositoryServices)
+        : base(repositoryServices)
+    {
+    }
+
     public virtual async Task<TEntity> SoftDelete(string key)
     {
         Log.LogTrace("SoftDelete: key={Key}", key);

@@ -19,15 +19,23 @@ namespace MagicCSharp.Data.EntityFramework.Repositories;
 ///         query predicates.
 ///     </para>
 /// </summary>
-public abstract class BaseIdSearchRepository<TContext, TDal, TEntity, TFilter, TEdit>(
-    IDbContextFactory<TContext> contextFactory,
-    TimeProvider timeProvider,
-    ILoggerFactory loggerFactory)
-    : BaseIdPaginatedRepository<TContext, TDal, TEntity, TFilter, TEdit>(contextFactory, timeProvider, loggerFactory), ISearchRepository<long>
+public abstract class BaseIdSearchRepository<TContext, TDal, TEntity, TFilter, TEdit>
+    : BaseIdPaginatedRepository<TContext, TDal, TEntity, TFilter, TEdit>, ISearchRepository<long>
     where TDal : class, IDalTransform<TEntity, TEdit>, IDalId, IDal, IDalSearchField
     where TEntity : class, TEdit, IIdEntity
     where TContext : DbContext
 {
+    protected BaseIdSearchRepository(IDbContextFactory<TContext> contextFactory, TimeProvider timeProvider, ILoggerFactory loggerFactory)
+        : base(contextFactory, timeProvider, loggerFactory)
+    {
+    }
+
+    /// <summary>Everything from one <see cref="RepositoryServices{TContext}" />, the key service included.</summary>
+    protected BaseIdSearchRepository(RepositoryServices<TContext> repositoryServices)
+        : base(repositoryServices)
+    {
+    }
+
     /// <summary>
     ///     Domain synonyms applied to both stored keywords and incoming queries — a map from the long form to the
     ///     short one, e.g. <c>"street" =&gt; "st"</c>. Empty by default.

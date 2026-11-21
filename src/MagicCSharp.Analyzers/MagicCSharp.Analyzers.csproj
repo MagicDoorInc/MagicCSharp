@@ -34,6 +34,13 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- One rule for MCS0015 and the [LogExecuting] generator: compiled into both, so neither package loads the
+             other's assembly. -->
+        <Compile Include="..\MagicCSharp.Generators.Declarations\ReadOnlyUseCaseName.cs" Link="Shared\ReadOnlyUseCaseName.cs"/>
+        <Compile Include="..\MagicCSharp.Generators.Declarations\ExecutingLineSyntax.cs" Link="Shared\ExecutingLineSyntax.cs"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <AdditionalFiles Include="AnalyzerReleases.Shipped.md"/>
         <AdditionalFiles Include="AnalyzerReleases.Unshipped.md"/>
     </ItemGroup>

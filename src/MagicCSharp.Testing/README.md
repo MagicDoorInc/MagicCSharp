@@ -79,8 +79,32 @@ closes the gap: while `SyncEventDispatcher` is dispatching, a handler re-acquiri
 gets a no-op handle rather than deadlocking. The window is scoped to that one dispatch, so genuinely
 concurrent flows still get ordinary mutual exclusion.
 
+## A generated fake base
+
+With `MagicCSharp.Generators` referenced, one line gives an interface a fake base whose every member is
+`virtual` and throws `NotScriptedException` ("IOrdersClient.GetOrders(OrderFilter) is not scripted"):
+
+```csharp
+[GenerateFakeBase(typeof(IOrdersClient))]
+public abstract partial class FakeOrdersClientBase;
+
+public class FakeOrdersClient : FakeOrdersClientBase
+{
+    public override Task<OrderDto?> GetOrder(long orderId)
+    {
+        ...
+    }
+}
+```
+
+The fake overrides only what its tests use. A member added to the interface later breaks no fake, and a test
+that calls a member nobody scripted fails loudly instead of passing on an empty answer. The fake base keeps any
+base class you give it.
+
 ## Related packages
 
+- [MagicCSharp.Testing.Clients](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Testing.Clients/README.md)
+  — checks that every client route is served by a controller route
 - [MagicCSharp.Testing.Database](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Testing.Database/README.md)
   — repository tests against a real PostgreSQL in a container
 - [MagicCSharp](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp/README.md)
