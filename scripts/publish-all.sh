@@ -3,8 +3,8 @@
 # MagicCSharp release preparation
 # Usage: ./publish-all.sh [--dry-run] [--major|--minor|--patch]
 #
-# Bumps the shared version, then builds and packs all fourteen packages so you can see the release is sound.
-# It does not publish: commit the bumped files, tag the commit v<version> and push the tag, and
+# Bumps the shared version, builds and packs all seventeen packages, then builds and runs the package smoke
+# check (scripts/package-smoke) from those packages, so you can see the release is sound. It does not publish: commit the bumped files, tag the commit v<version> and push the tag, and
 # .github/workflows/release.yml publishes to NuGet.org through trusted publishing.
 #
 # Flags:
@@ -39,9 +39,12 @@ PACKAGES=(
     "src/MagicCSharp.Events/MagicCSharp.Events.csproj"
     "src/MagicCSharp.Events.Kafka/MagicCSharp.Events.Kafka.csproj"
     "src/MagicCSharp.Events.SQS/MagicCSharp.Events.SQS.csproj"
+    "src/MagicCSharp.Clients/MagicCSharp.Clients.csproj"
     "src/MagicCSharp.Testing/MagicCSharp.Testing.csproj"
     "src/MagicCSharp.Testing.Database/MagicCSharp.Testing.Database.csproj"
+    "src/MagicCSharp.Testing.Clients/MagicCSharp.Testing.Clients.csproj"
     "src/MagicCSharp.Analyzers/MagicCSharp.Analyzers.csproj"
+    "src/MagicCSharp.Generators/MagicCSharp.Generators.csproj"
     "src/MagicCSharp.Cli/MagicCSharp.Cli.csproj"
 )
 
@@ -115,7 +118,7 @@ echo ""
 echo "$NEW_VERSION" > $VERSION_FILE
 echo "Updated $VERSION_FILE"
 
-# One line in src/Directory.Build.props, inherited by every package — rather than sed over fourteen
+# One line in src/Directory.Build.props, inherited by every package — rather than sed over seventeen
 # .csproj files and leaving them to drift, which is how version.txt, the csprojs and the dotnet new
 # template ended up disagreeing.
 SHARED_PROPS="src/Directory.Build.props"
@@ -179,6 +182,24 @@ for PROJECT in "${PACKAGES[@]}"; do
 
     echo ""
 done
+
+# The packages as a consumer gets them: a small app built only from ./nupkgs uses every generator and fails
+# naming the one that did not run. Its own NuGet cache, so a locally packed version never lands in the shared
+# one, where it would shadow the published package of the same number.
+echo "─────────────────────────────────────────────"
+echo "Package smoke check..."
+echo "─────────────────────────────────────────────"
+SMOKE_CACHE=$(mktemp -d)
+if NUGET_PACKAGES="$SMOKE_CACHE" dotnet run --project scripts/package-smoke/PackageSmoke \
+    -p:MagicCSharpVersion="$NEW_VERSION" -p:RestoreAdditionalProjectSources="$(cd "$OUTPUT_DIR" && pwd)"; then
+    echo "✓ Package smoke check passed"
+    rm -rf "$SMOKE_CACHE"
+else
+    echo "✗ Package smoke check failed"
+    rm -rf "$SMOKE_CACHE"
+    exit 1
+fi
+echo ""
 
 # Summary
 echo "================================================"

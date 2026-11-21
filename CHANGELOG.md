@@ -7,6 +7,93 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ---
 
+## 1.1.0 — 2026-11-21
+
+The compiler writes the repetitive parts. Everything here is opt-in: code that does not ask for a generator compiles,
+logs and behaves as on 1.0.3, apart from the two changes under **Changed**.
+
+### Added
+
+- **`MagicCSharp.Generators`**, a new package of source generators. Each writes code on every build from a
+  declaration you already have; the IDE shows it and nothing is committed. [What each writes →](src/MagicCSharp.Generators/)
+  - `[GenerateInterface]` on a `partial` use case writes its interface from its public `Execute` methods and their
+    doc comments.
+  - `[LogExecuting]` on a use case writes a decorator, registered in its place, that logs
+    `Executing: name=value, …` at trace level. A read-only name, a secret-looking parameter without `[NotLogged]`,
+    or a hand-written line left in fails the build.
+  - A `partial` DAL with only its columns gets `ToEntity`, `Apply` and `From`, matched by name and type.
+  - A `partial` repository without `ApplyFilter` gets one call per filter field, read from the field's name and type;
+    a `partial` filter listing `IEntityFilter<TEntity>` gets the same rules as `Matches(entity)`. Fields no rule
+    fits go in `ApplyCustomFilter` and `MatchesCustomFilter`, which the compiler then requires.
+  - `[MagicClient]` on an interface with `[ClientGet]`, `[ClientPost]`, `[ClientPut]`, `[ClientPatch]` and
+    `[ClientDelete]` methods writes the client class and `services.Add{Name}(configuration)`.
+  - `[GenerateFakeBase(typeof(IX))]` on an `abstract partial` test class writes every member of `IX` as `virtual`,
+    throwing `NotScriptedException` until a fake overrides it.
+  - `MagicCSharpGenerateAssemblyLoader=true` writes a module initializer that loads every referenced project
+    before `Main`.
+  - `[MigrationsDatabase("name")]` on a context writes its design-time factory for `dotnet ef`.
+  - Build errors `MCS1001`–`MCS1609`, one per reason a generator refuses, each naming what to change.
+  - `MagicCSharp.Generators.Declarations`, the declaration model, readers and writers, inside the package, for a
+    generator in another repository to build on.
+- **`MagicCSharp.Clients`**, a new package: the client attributes, `MagicHttpClientBase` (System.Text.Json, `null`
+  for a 404 or 204 on a nullable result, `MagicHttpClientException` whose message leaves out the query string and the
+  body), `AddMagicHttpClient`, and `[assembly: MagicClientConvention]` for a codebase with its own base and
+  registration.
+- **`MagicCSharp.Testing.Clients`**, a new package: `ClientRouteCheck.AssertEveryClientRouteIsServed` fails a
+  server's test when a client path or verb matches no controller route, read from MVC's own action model.
+- **MagicCSharp.Data.EntityFramework:** `RepositoryServices<TContext>`, one constructor parameter for every base
+  repository; `CreateDal` defaults to the DAL's `From` with an id from `IKeyGenService`; `AddRepositoriesFrom<TContext>`
+  registers repositories by convention; `[assembly: TenantKey("…")]` names the tenant column; every base repository
+  is an `ITenantScopedDestroyer` (`DestroyTenant(tenantId)`) and an `ITenantTableDestroyer`;
+  `TenantDeletionPlanner` and `TenantDataDestroyer` empty a tenant's tables children first, ordered by the
+  `Restrict`, `NoAction` and `ClientNoAction` foreign keys in the EF model, leaving `[KeptOnTenantDeletion("reason")]` tables alone
+  and logging and skipping a step that fails; `[MigrationsDatabase]`; `IDalFromEdit` and `DalFromEdit`.
+- **MagicCSharp.Data:** `ITenantScopedDestroyer`; `ApplyNullablePresenceFilter`.
+- **MagicCSharp:** `[GenerateInterface]`, `[LogExecuting]`, `[NotLogged]`; `IEntityFilter<TEntity>` and
+  `FilterMatching`, the in-memory twin of each query filter helper; `[RegisteredInPlaceOf]`, which
+  `AddImplementationsOf` honours; `AddImplementationsOf(Type)`, for an open generic marker; and
+  `ImplementationRegistrationOptions.ShouldKeepExistingRegistrations`.
+- **MagicCSharp.App:** `MagicApp.Run<TStartup>(args)` and `MagicApp.Build<TStartup>(args)` with a `MagicAppStartup`
+  setup class, each step a method to override.
+- **MagicCSharp.Testing:** `InMemoryRepository` and `InMemorySoftDeleteRepository`, a repository fake that behaves
+  like the EF bases and filters through `Matches`; `TestServices`, which builds the use case under test from DI with
+  your fakes; `[GenerateFakeBase]` and `NotScriptedException`. The package now references `MagicCSharp.Data` and
+  `Microsoft.Extensions.DependencyInjection`.
+- **MagicCSharp.Testing.Database:** `MigrationTestBase<TContext>`, one test that a context's migrations upgrade its
+  baseline dump to the latest and leave nothing pending, and `MigrationUpgradeCheck` for other test frameworks.
+- **`mcs`:** `mcs init` references `MagicCSharp.Generators` in every project, with or without `--no-build-rules`.
+  `mcs validate` accepts a `required` column in a `partial` DAL whose `From` is generated. `mcs update ai-files` brings
+  two new guides, `generated-code.md` and `service-clients.md`. The files `mcs add-entity` writes are unchanged.
+
+### Changed
+
+- **Query filter helpers send values as SQL parameters** instead of inlining them, so one query plan serves every
+  value. The rows returned are the same.
+- **`BaseIdRepository.CreateDal` is `virtual`** with a default, instead of `abstract`. Every override still compiles.
+
+### Upgrading from 1.0.3
+
+Nothing to change, with one rare exception. The base repositories gained four members. A repository of yours that
+already declares a member of the same name now hides the base's, which is warning CS0108 or CS0114, and an error in a
+repository whose build treats warnings as errors (every repository `mcs init` created):
+
+| Your repository declares | 1.1.0 |
+|---|---|
+| `public Task<int> DestroyTenant(long tenantId)` | add `override`, or rename it if it means something else |
+| a `DalType` or `DbContextType` property | rename it; the base's say which DAL and context the repository empties |
+| a `KeyGenService` property or field | rename it, or build the repository on `RepositoryServices<TContext>` and use the base's |
+
+The analyzers are unchanged: `MCS0015` still names Get, List and Search as read-only, and no rule was added.
+
+To use the generators, add the package where your repository pins its versions and reference it from every project:
+
+```xml
+<PackageVersion Include="MagicCSharp.Generators" Version="1.1.0" />
+<PackageReference Include="MagicCSharp.Generators" PrivateAssets="all" />
+```
+
+---
+
 ## 1.0.2 — 2026-09-23
 
 ### Added

@@ -13,7 +13,7 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.Testing</PackageId>
-        <Description>Test doubles for MagicCSharp: a deterministic key generator driven by the test's TimeProvider, a synchronous event dispatcher, and an in-memory distributed lock. No test framework or database dependencies — see MagicCSharp.Testing.Database for those.</Description>
+        <Description>Test doubles for MagicCSharp: a deterministic key generator driven by the test's TimeProvider, a synchronous event dispatcher, an in-memory distributed lock, an in-memory repository that behaves like the Entity Framework bases, TestServices to build a use case from DI with your fakes, and [GenerateFakeBase] for fakes that throw until scripted. No test framework or database dependencies — see MagicCSharp.Testing.Database for those.</Description>
         <PackageTags>testing;test-doubles;fake;timeprovider;events;clean-architecture</PackageTags>
     </PropertyGroup>
 

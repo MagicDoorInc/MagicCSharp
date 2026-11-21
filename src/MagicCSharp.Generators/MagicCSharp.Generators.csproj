@@ -11,7 +11,7 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.Generators</PackageId>
-        <Description>Source generators for a MagicCSharp codebase: mark a use case class [GenerateInterface] and the compiler writes its interface from its public Execute methods, doc comments included, on every build. Generated code is never committed; the IDE shows it. Also ships MagicCSharp.Generators.Declarations, the declaration model other generators build on.</Description>
+        <Description>Source generators for a MagicCSharp codebase. The compiler writes use case interfaces ([GenerateInterface]), the opt-in Executing log line ([LogExecuting]), DAL mapping, repository filter queries and their in-memory Matches, HTTP clients ([MagicClient]), test fake bases ([GenerateFakeBase]), an assembly loader and design-time DbContext factories, on every build. Generated code is never committed; the IDE shows it. Also ships MagicCSharp.Generators.Declarations, the declaration model other generators build on.</Description>
         <PackageTags>source-generator;roslyn;use-case;clean-architecture;boilerplate</PackageTags>
 
         <!-- A generator package, packed like MagicCSharp.Analyzers: the dlls go under analyzers/, nothing is

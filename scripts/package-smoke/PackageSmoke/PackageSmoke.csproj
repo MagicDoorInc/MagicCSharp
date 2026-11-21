@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <MagicCSharpGenerateAssemblyLoader>true</MagicCSharpGenerateAssemblyLoader>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MagicCSharp" Version="$(MagicCSharpVersion)"/>
+        <PackageReference Include="MagicCSharp.Clients" Version="$(MagicCSharpVersion)"/>
+        <PackageReference Include="MagicCSharp.Data.EntityFramework" Version="$(MagicCSharpVersion)"/>
+        <PackageReference Include="MagicCSharp.Data.Postgres" Version="$(MagicCSharpVersion)"/>
+        <PackageReference Include="MagicCSharp.Generators" Version="$(MagicCSharpVersion)" PrivateAssets="all"/>
+        <PackageReference Include="MagicCSharp.Testing" Version="$(MagicCSharpVersion)"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.1"/>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.1"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../PackageSmoke.Library/PackageSmoke.Library.csproj"/>
+    </ItemGroup>
+
+</Project>

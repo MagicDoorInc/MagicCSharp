@@ -31,9 +31,19 @@ The compiler writes `LeasesClient` and `services.AddLeasesClient(configuration)`
 - A `CancellationToken` parameter is passed on.
 - `Task<T?>` returns `null` when the service answers 404 or 204; `Task<T>` throws on 404.
 
-A method with real logic (skipping the call for an empty list, streaming) has no route attribute and is written by
-hand in `partial class LeasesClient`. A member written by hand there that keeps its route attribute is left to the
-hand-written body. Declare a constructor there when the client needs more services; the generator then writes none.
+The URL comes from configuration under `UrlSetting`, else `DefaultUrl`; with neither, registration throws naming the
+client and its missing setting. A failed call throws `MagicHttpClientException` with `StatusCode` and `ResponseBody`; its
+message names the method, the path without its query string and the status, so logging it logs neither what the
+service sent back nor the values the caller asked about.
+
+**When to write it by hand:** a method with real logic (skipping the call for an empty list, streaming) has no route
+attribute and is written by hand in `partial class LeasesClient`. A member written by hand there that keeps its route
+attribute is left to the hand-written body, and the route check below still checks its path. Declare a constructor
+there when the client needs more services; the generator then writes none.
+
+To leave the generated client, write `class LeasesClient : MagicHttpClientBase, ILeasesClient` with every method and
+its registration (copy them from the generated files), and remove `[MagicClient]`. Keeping the route attributes keeps
+the route check.
 
 ## Your own base and registration
 

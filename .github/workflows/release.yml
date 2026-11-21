@@ -50,10 +50,18 @@ jobs:
             dotnet pack "$proj" -c Release --no-build -o out --nologo
           done
           ls out
-          # Every package ships together. Fewer than fourteen means a project stopped packing, and a
+          # Every package ships together. Fewer than seventeen means a project stopped packing, and a
           # partial release leaves consumers with packages whose dependencies do not exist.
           COUNT=$(ls out/*."$VERSION".nupkg | wc -l)
-          [ "$COUNT" -eq 14 ] || { echo "::error::Expected 14 packages at $VERSION, got $COUNT"; exit 1; }
+          [ "$COUNT" -eq 17 ] || { echo "::error::Expected 17 packages at $VERSION, got $COUNT"; exit 1; }
+
+      # The packages as a consumer gets them: an app built only from out/ uses every generator and fails naming
+      # the one that did not run. The tests above use the generators as project references, not as packed.
+      - name: Package smoke check
+        run: >
+          dotnet run --project scripts/package-smoke/PackageSmoke
+          -p:MagicCSharpVersion="$VERSION"
+          -p:RestoreAdditionalProjectSources="$GITHUB_WORKSPACE/out"
 
       - uses: NuGet/login@v1
         id: nuget

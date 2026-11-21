@@ -243,6 +243,11 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
     ///         keyword would force a meaningless placeholder. So <c>required</c> is accepted exactly when
     ///         <c>From()</c>'s initializer assigns the property and <c>Apply()</c> does not.
     ///     </para>
+    ///     <para>
+    ///         A <c>partial</c> DAL without a <c>From()</c> of its own gets one from MagicCSharp.Generators, which sets
+    ///         exactly the <c>required</c> columns (and the key and tenant key) and leaves them out of the generated
+    ///         <c>Apply()</c>. There <c>required</c> is accepted unless a hand-written <c>Apply()</c> assigns it.
+    ///     </para>
     /// </summary>
     internal static IEnumerable<Violation> DalPropertiesAreRequired(IReadOnlyList<SourceFile> files)
     {
@@ -250,11 +255,16 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
 
         var typeDeclaration = new Regex(@"^\s*(?:public|internal|abstract|sealed|partial|\s)*\b(?<kind>interface|class|record|struct)\b");
 
+        var partialClass = new Regex(@"\bpartial\s+class\b");
+        const string fromSignature = @"\bstatic\s+\w+\s+From\s*\(";
+
         foreach (var sourceFile in files.Where(sourceFile => sourceFile.Name.EndsWith("Dal.cs")))
         {
             var isInInterface = false;
-            var setInFrom = AssignedIn(sourceFile, @"\bstatic\s+\w+\s+From\s*\(");
+            var setInFrom = AssignedIn(sourceFile, fromSignature);
             var setInApply = AssignedIn(sourceFile, @"\bvoid\s+Apply\s*\(");
+            var isPartialDal = sourceFile.Lines.Any(line => partialClass.IsMatch(line) && !IsComment(line));
+            var isFromGenerated = isPartialDal && !Declares(sourceFile, fromSignature);
 
             for (var index = 0; index < sourceFile.Lines.Length; index++)
             {
@@ -277,7 +287,7 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
                 if (match.Groups["required"].Success)
                 {
                     var name = match.Groups["name"].Value;
-                    var isSetOnceInFrom = setInFrom.Contains(name) && !setInApply.Contains(name);
+                    var isSetOnceInFrom = (isFromGenerated || setInFrom.Contains(name)) && !setInApply.Contains(name);
 
                     if (isSetOnceInFrom || HasAttributeAbove(sourceFile, index, "Key"))
                     {
@@ -318,6 +328,13 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
                 };
             }
         }
+    }
+
+    /// <summary>Whether a line outside a comment declares a method whose signature matches.</summary>
+    private static bool Declares(SourceFile sourceFile, string methodSignature)
+    {
+        var signature = new Regex(methodSignature);
+        return sourceFile.Lines.Any(line => signature.IsMatch(line) && !IsComment(line));
     }
 
     /// <summary>

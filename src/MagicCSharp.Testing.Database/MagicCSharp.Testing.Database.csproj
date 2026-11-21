@@ -12,7 +12,7 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.Testing.Database</PackageId>
-        <Description>Repository integration testing for MagicCSharp against a real PostgreSQL in Testcontainers: one container shared across the suite, a logical database per test class, schema created once, and tables truncated between tests. Separate from MagicCSharp.Testing because it needs Docker, xUnit and Npgsql.</Description>
+        <Description>Repository integration testing for MagicCSharp against a real PostgreSQL in Testcontainers: one container shared across the suite, a logical database per test class, schema created once, and tables truncated between tests; and a check that a context's migrations upgrade its last released schema. Separate from MagicCSharp.Testing because it needs Docker, xUnit and Npgsql.</Description>
         <PackageTags>testing;testcontainers;postgres;integration-tests;xunit</PackageTags>
     </PropertyGroup>
 

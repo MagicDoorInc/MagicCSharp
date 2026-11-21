@@ -115,14 +115,77 @@ when it is null:
 | `ApplyListFilter(values, x => (long?)x.Id)` | membership in a list |
 | `ApplyNavigationNullableFilter(values, x => x.Tags, tag => (long?)tag.Id)` | any related row's value being in a list |
 | `ApplyIsDeletedFilter(isDeleted, x => x.Deleted)` | null: every row; false: live only; true: deleted only |
+| `ApplyNullablePresenceFilter(isPresent, x => x.Delivered)` | null: every row; true: the column has a value; false: it is null |
 
 The selector casts to the nullable type so the helper can compare against a possibly-null column. An empty
 list deliberately matches nothing rather than everything: `Ids = []` from a caller that computed "no orders"
 should return no orders.
 
+Filter values are sent as SQL parameters, so one query plan serves every value.
+
 Write a custom method when the filter genuinely cannot express the query — a join across several tables, a
 window function, an aggregation, raw SQL for performance. Those are the exceptions, and the interface should
 say so by having very few of them.
+
+## Generated filters
+
+With [MagicCSharp.Generators](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Generators/README.md)
+referenced, most of a filter needs no code: a field named and typed after an entity property already says what it
+narrows on. Make the repository `partial` and leave out `ApplyFilter`, and the compiler writes it, one helper call per
+field. Make the filter `partial` and list `IEntityFilter<TEntity>`, and it writes `Matches(entity)`, the same rules in
+memory, which `InMemoryRepository` in `MagicCSharp.Testing` uses — so a fake and the database cannot disagree.
+
+```csharp
+public partial class ShipmentFilter : IEntityFilter<Shipment>
+{
+    public List<long>? Ids { get; init; }                         // Id is in the list
+    public long? CarrierId { get; init; }                         // CarrierId equals it
+    public List<ShipmentStatus>? Statuses { get; init; }          // Status is in the list
+    public bool? IsDelivered { get; init; }                       // Delivered has a value, or not
+    public ComparableRange<DateTimeOffset>? Created { get; init; }
+    public ComparableRange<DateTimeOffset>? DeliveredRange { get; init; }
+    public string? TrackingCodeStartsWith { get; init; }          // fits no rule: custom
+
+    private partial bool MatchesCustomFilter(Shipment entity)
+    {
+        return TrackingCodeStartsWith == null || entity.TrackingCode.StartsWith(TrackingCodeStartsWith, StringComparison.Ordinal);
+    }
+}
+
+public partial class ShipmentsRepository(RepositoryServices<TestDbContext> repositoryServices)
+    : BaseIdSoftDeleteRepository<TestDbContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices)
+{
+    private partial IQueryable<ShipmentDal> ApplyCustomFilter(IQueryable<ShipmentDal> query, ShipmentFilter filter)
+    {
+        var trackingCodeStart = filter.TrackingCodeStartsWith;
+        if (trackingCodeStart == null)
+        {
+            return query;
+        }
+
+        return query.Where(shipmentDal => shipmentDal.TrackingCode.StartsWith(trackingCodeStart));
+    }
+}
+```
+
+The rules, by the field's name and type against the entity's properties:
+
+| Field | Entity property | Means |
+|---|---|---|
+| a list of `V`, plural name (`Ids`, `Statuses`, `Categories`) | the singular (`Id`, `Status`, `Category`), `V` or `V?` | the value is in the list; an empty list matches nothing |
+| `V?`, same name | `V` or `V?` | equal; a null value never matches |
+| `bool? Is{X}` with no entity `Is{X}` | `{X}`, a nullable struct | `{X}` has a value (true) or not (false) |
+| `ComparableRange<V>`, named `{X}` or `{X}Range` | `{X}`, `V` or `V?` | inside the range |
+
+A null field narrows nothing. A field that fits no rule is custom: the generator declares
+`ApplyCustomFilter` on the repository and `MatchesCustomFilter` on the filter, the compiler then requires both, and
+each must read every custom field (MCS1301, MCS1304), so the two sides cannot drift apart. A field that fits a rule
+needs a DAL column of the entity property's name and type (MCS1302, MCS1303). No attribute or setting changes a rule.
+
+**When to write it by hand:** a query the rules cannot say goes in `ApplyCustomFilter`, not in a hand-written
+`ApplyFilter`; write all of `ApplyFilter` only when most fields are custom. A filter without `IEntityFilter` gets no
+`Matches`. To leave the generated shape, write `ApplyFilter` (or `Matches`) in the class — the generator stops when one
+exists — and drop `partial` if nothing else is generated for it.
 
 ## Pages
 
@@ -163,7 +226,7 @@ matches when it contains every term, so more words narrow the result rather than
 ## Implementations
 
 - [MagicCSharp.Data.EntityFramework](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Data.EntityFramework/README.md)
-  — `BaseIdRepository` and friends: derive, supply `CreateDal` and `ApplyFilter`, inherit the rest
+  — `BaseIdRepository` and friends: derive, supply `ApplyFilter` (or let the compiler write it), inherit the rest
 - [MagicCSharp.Data.Postgres](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Data.Postgres/README.md)
   — pooled context factory, design-time factory, UTC interceptor
 - [MagicCSharp.Testing.Database](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Testing.Database/README.md)
