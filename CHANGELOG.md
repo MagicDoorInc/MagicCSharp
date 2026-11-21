@@ -73,15 +73,18 @@ logs and behaves as on 1.0.3, apart from the two changes under **Changed**.
 
 ### Upgrading from 1.0.3
 
-Nothing to change, with one rare exception. The base repositories gained four members. A repository of yours that
-already declares a member of the same name now hides the base's, which is warning CS0108 or CS0114, and an error in a
-repository whose build treats warnings as errors (every repository `mcs init` created):
+Nothing to change, with one rare exception. The base repositories gained two members that a repository of yours can
+hide: `DestroyTenant` and `KeyGenService`. A repository that already declares a member of the same name now hides the
+base's, which is warning CS0108 or CS0114, and an error in a repository whose build treats warnings as errors (every
+repository `mcs init` created):
 
 | Your repository declares | 1.1.0 |
 |---|---|
 | `public Task<int> DestroyTenant(long tenantId)` | add `override`, or rename it if it means something else |
-| a `DalType` or `DbContextType` property | rename it; the base's say which DAL and context the repository empties |
 | a `KeyGenService` property or field | rename it, or build the repository on `RepositoryServices<TContext>` and use the base's |
+
+The base's `DalType` and `DbContextType` are explicit interface implementations, so a member of yours with those names
+hides nothing.
 
 The analyzers are unchanged: `MCS0015` still names Get, List and Search as read-only, and no rule was added.
 

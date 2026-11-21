@@ -389,7 +389,8 @@ that fetches by id needs no null branch.
 
 Most of that repository, and of the DAL behind it, is copying a property to the one of the same name. With
 `MagicCSharp.Generators` the compiler writes it: a `partial` DAL with only its columns gets its mapping, and a
-`partial` repository on `RepositoryServices` gets `CreateDal` and an `ApplyFilter` read from the filter's field names
+`partial` repository on `RepositoryServices` gets an `ApplyFilter` read from the filter's field names, and the base's
+default `CreateDal` builds the row through the DAL's generated `From`
 ([the generated shape](src/MagicCSharp.Data.EntityFramework/README.md#generated-dal-mapping)).
 
 `OrderDal` is the row: the `[Table]` and `[Column]` attributes, the EF types, the mapping to and from

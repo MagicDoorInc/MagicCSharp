@@ -66,8 +66,8 @@ public partial class WidgetsRepository(RepositoryServices<SmokeContext> reposito
     }
 }
 
-/// <summary>Contexts from the generated design-time factory; they never open a connection here.</summary>
-public class DesignTimeContexts : IDbContextFactory<SmokeContext>
+/// <summary>A context factory built from the generated design-time factory; the contexts never open a connection here.</summary>
+public class ContextFactoryFromDesignTimeFactory : IDbContextFactory<SmokeContext>
 {
     public SmokeContext CreateDbContext()
     {

@@ -62,7 +62,7 @@ these values from an editorconfig, where `;` starts a comment.
 | `MagicCSharpUseCaseMarkerInterface` | `MagicCSharp.UseCases.IMagicUseCase` | The interface generated use case interfaces extend, for a codebase with its own marker |
 | `MagicCSharpUseCaseCallerPrefixes` | (none) | Caller prefixes besides `External` and `Internal`, e.g. `Partner,Admin`, so `[LogExecuting]` refuses `PartnerGetInvoiceUseCase` as read-only |
 | `MagicCSharpGenerateAssemblyLoader` | `false` | `true` in a host project writes its `AssemblyLoader` |
-| `MagicCSharpDesignTimeContextFactoryBase` | `MagicCSharp.Data.Postgres.MagicDbContextFactory`1` | The class generated design-time factories derive from |
+| `MagicCSharpDesignTimeContextFactoryBase` | ``MagicCSharp.Data.Postgres.MagicDbContextFactory`1`` | The class generated design-time factories derive from |
 
 ## Rules
 

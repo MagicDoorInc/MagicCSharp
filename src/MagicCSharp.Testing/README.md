@@ -93,7 +93,10 @@ repository interface:
 public class ParcelsRepository(TimeProvider timeProvider, long firstId = 1)
     : InMemorySoftDeleteRepository<Parcel, ParcelEdit, ParcelFilter>(timeProvider, firstId), IParcelsRepository
 {
-    protected override string? TenantKeyPropertyName => nameof(Parcel.WarehouseId);
+    protected override string? TenantKeyPropertyName
+    {
+        get { return nameof(Parcel.WarehouseId); }
+    }
 }
 ```
 

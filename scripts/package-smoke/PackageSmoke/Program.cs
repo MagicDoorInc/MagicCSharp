@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using PackageSmoke.Library;
 
 namespace PackageSmoke;
@@ -83,7 +84,7 @@ public static class Program
     private static void CheckTheGeneratedFilterQuery(List<string> failures)
     {
         var widgetsRepository = CreateWidgetsRepository();
-        using var smokeContext = new DesignTimeContexts().CreateDbContext();
+        using var smokeContext = new ContextFactoryFromDesignTimeFactory().CreateDbContext();
 
         var filterSql = widgetsRepository.ToFilterSql(smokeContext, new WidgetFilter { Ids = [1, 2], OwnerId = 3 });
 
@@ -92,7 +93,7 @@ public static class Program
 
     private static async Task CheckTheGeneratedMatchesInMemory(List<string> failures)
     {
-        var widgetsRepository = new InMemoryRepository<Widget, WidgetEdit, WidgetFilter>(TimeProvider.System);
+        var widgetsRepository = new InMemoryRepository<Widget, WidgetEdit, WidgetFilter>(CreateFixedTimeProvider());
         await widgetsRepository.Create(new WidgetEdit { OwnerId = 3, Name = "Lamp" });
         await widgetsRepository.Create(new WidgetEdit { OwnerId = 4, Name = "Desk" });
 
@@ -134,9 +135,15 @@ public static class Program
 
     private static WidgetsRepository CreateWidgetsRepository()
     {
+        var timeProvider = CreateFixedTimeProvider();
         var repositoryServices = new RepositoryServices<SmokeContext>(
-            new DesignTimeContexts(), new FakeKeyGen(TimeProvider.System), TimeProvider.System, NullLoggerFactory.Instance);
+            new ContextFactoryFromDesignTimeFactory(), new FakeKeyGen(timeProvider), timeProvider, NullLoggerFactory.Instance);
         return new WidgetsRepository(repositoryServices);
+    }
+
+    private static FakeTimeProvider CreateFixedTimeProvider()
+    {
+        return new FakeTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
     }
 
     private static void Expect(List<string> failures, bool isMet, string expectation)

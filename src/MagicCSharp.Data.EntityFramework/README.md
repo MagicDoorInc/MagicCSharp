@@ -393,8 +393,8 @@ var tenantDeletionResult = await tenantDataDestroyer.DestroyTenant(tenantId, des
 ```
 
 `TenantDataDestroyer` (registered by `AddTenantDeletion`, which `AddRepositoriesFrom` calls) runs the steps
-`TenantDeletionPlanner` orders, logs each with its row count, and logs and skips a step that fails, so one table's
-problem does not leave every other table full. `TenantDeletionResult` has `TotalDeleted`, `SucceededCount` and
+`TenantDeletionPlanner` orders, logs a step at trace level only when it deleted rows, logs the totals once at the end,
+and logs and skips a step that fails, so one table's problem does not leave every other table full. `TenantDeletionResult` has `TotalDeleted`, `SucceededCount` and
 `StepCount`.
 
 The order comes from the foreign keys in the context's EF model. Only a key whose delete behavior is `Restrict`,
