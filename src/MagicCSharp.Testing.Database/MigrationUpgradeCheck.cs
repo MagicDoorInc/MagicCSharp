@@ -18,6 +18,15 @@ namespace MagicCSharp.Testing.Database;
 /// </summary>
 public static class MigrationUpgradeCheck
 {
+    /// <summary>PostgreSQL cuts identifiers longer than this, so a longer database name would collide with its prefix.</summary>
+    private const int PostgreSqlIdentifierMaxLength = 63;
+
+    private const string ThrowawayNameMarker = "_upgrade_";
+
+    private const int GuidCharactersInThrowawayName = 12;
+
+    private static readonly int ThrowawayNameSuffixLength = ThrowawayNameMarker.Length + GuidCharactersInThrowawayName;
+
     /// <summary>Upgrades a fresh database of <typeparamref name="TContext" /> and checks the result.</summary>
     /// <typeparam name="TContext">A context with <c>[MigrationsDatabase]</c>, constructible from its options.</typeparam>
     /// <exception cref="MigrationUpgradeException">The context has no migrations, or the upgrade did not reach the latest one.</exception>
@@ -25,35 +34,36 @@ public static class MigrationUpgradeCheck
         where TContext : DbContext
     {
         var databaseName = MigrationsDatabaseAttribute.NameOf(typeof(TContext));
-        var upgradedDatabaseName = $"{databaseName}_upgrade_{Guid.NewGuid():N}".Substring(0, Math.Min(63, databaseName.Length + 21));
+        var throwawayDatabaseName = $"{databaseName}{ThrowawayNameMarker}{Guid.NewGuid():N}"
+            .Substring(0, Math.Min(PostgreSqlIdentifierMaxLength, databaseName.Length + ThrowawayNameSuffixLength));
 
-        await RunOnServer(container, $"CREATE DATABASE \"{upgradedDatabaseName}\";", cancellationToken);
+        await RunOnServer(container, $"CREATE DATABASE \"{throwawayDatabaseName}\";", cancellationToken);
         try
         {
-            var upgradedDatabase = new UpgradedDatabase
+            var databaseToUpgrade = new DatabaseToUpgrade
             {
                 Container = container,
                 DatabaseName = databaseName,
-                UpgradedDatabaseName = upgradedDatabaseName,
+                ThrowawayDatabaseName = throwawayDatabaseName,
                 Options = options,
             };
-            await RestoreBaselineIfPresent(upgradedDatabase, cancellationToken);
-            await UpgradeAndCompare<TContext>(upgradedDatabase, cancellationToken);
+            await RestoreBaselineIfPresent(databaseToUpgrade, cancellationToken);
+            await UpgradeAndCompare<TContext>(databaseToUpgrade, cancellationToken);
         }
         finally
         {
-            await RunOnServer(container, $"DROP DATABASE IF EXISTS \"{upgradedDatabaseName}\" WITH (FORCE);", CancellationToken.None);
+            await RunOnServer(container, $"DROP DATABASE IF EXISTS \"{throwawayDatabaseName}\" WITH (FORCE);", CancellationToken.None);
         }
     }
 
-    private static async Task UpgradeAndCompare<TContext>(UpgradedDatabase upgradedDatabase, CancellationToken cancellationToken)
+    private static async Task UpgradeAndCompare<TContext>(DatabaseToUpgrade databaseToUpgrade, CancellationToken cancellationToken)
         where TContext : DbContext
     {
-        var databaseName = upgradedDatabase.DatabaseName;
-        var options = upgradedDatabase.Options;
-        var connectionString = new NpgsqlConnectionStringBuilder(upgradedDatabase.Container.GetConnectionString())
+        var databaseName = databaseToUpgrade.DatabaseName;
+        var options = databaseToUpgrade.Options;
+        var connectionString = new NpgsqlConnectionStringBuilder(databaseToUpgrade.Container.GetConnectionString())
         {
-            Database = upgradedDatabase.UpgradedDatabaseName,
+            Database = databaseToUpgrade.ThrowawayDatabaseName,
             Pooling = false,
         }.ConnectionString;
         var contextOptions = new DbContextOptionsBuilder<TContext>().UseNpgsql(connectionString, options.ConfigureNpgsql).Options;
@@ -85,12 +95,12 @@ public static class MigrationUpgradeCheck
         }
     }
 
-    private static async Task RestoreBaselineIfPresent(UpgradedDatabase upgradedDatabase, CancellationToken cancellationToken)
+    private static async Task RestoreBaselineIfPresent(DatabaseToUpgrade databaseToUpgrade, CancellationToken cancellationToken)
     {
-        var container = upgradedDatabase.Container;
-        var databaseName = upgradedDatabase.DatabaseName;
-        var upgradedDatabaseName = upgradedDatabase.UpgradedDatabaseName;
-        var options = upgradedDatabase.Options;
+        var container = databaseToUpgrade.Container;
+        var databaseName = databaseToUpgrade.DatabaseName;
+        var throwawayDatabaseName = databaseToUpgrade.ThrowawayDatabaseName;
+        var options = databaseToUpgrade.Options;
         var baselinePath = Path.Combine(options.BaselineDirectory, $"{databaseName}_baseline.dump");
         if (!File.Exists(baselinePath))
         {
@@ -101,7 +111,7 @@ public static class MigrationUpgradeCheck
         var archive = await File.ReadAllBytesAsync(baselinePath, cancellationToken);
         options.WriteLine?.Invoke($"{databaseName}: restoring {Path.GetFileName(baselinePath)} ({archive.Length} bytes).");
 
-        var archivePathInContainer = $"/tmp/{upgradedDatabaseName}.dump";
+        var archivePathInContainer = $"/tmp/{throwawayDatabaseName}.dump";
         try
         {
             await container.CopyAsync(archive, archivePathInContainer, fileMode: UnixFileModes.UserRead | UnixFileModes.UserWrite, ct: cancellationToken);
@@ -109,7 +119,7 @@ public static class MigrationUpgradeCheck
             var restoreResult = await container.ExecAsync([
                 "pg_restore",
                 "--username", userName!,
-                "--dbname", upgradedDatabaseName,
+                "--dbname", throwawayDatabaseName,
                 "--no-owner",
                 "--no-acl",
                 "--no-password",
@@ -139,13 +149,13 @@ public static class MigrationUpgradeCheck
     }
 
     /// <summary>The database a check upgrades: the context's database name and the throwaway copy it runs on.</summary>
-    private sealed record UpgradedDatabase
+    private sealed record DatabaseToUpgrade
     {
         public required PostgreSqlContainer Container { get; init; }
 
         public required string DatabaseName { get; init; }
 
-        public required string UpgradedDatabaseName { get; init; }
+        public required string ThrowawayDatabaseName { get; init; }
 
         public required MigrationUpgradeOptions Options { get; init; }
     }

@@ -15,25 +15,36 @@ public class MigrationUpgradeCheckTests(PostgresContainerFixture postgres) : ICl
 
     private readonly string baselineDirectory = Directory.CreateTempSubdirectory("boilers-baseline-").FullName;
 
-    private readonly List<string> progressLines = [];
-
     public void Dispose()
     {
         Directory.Delete(baselineDirectory, true);
     }
 
     [Fact]
-    public async Task MigrationUpgradeCheck_UpgradesFromARestoredBaseline()
+    public async Task MigrationUpgradeCheck_UpgradesARestoredBaselineWithRows_AndDropsTheCopyItUpgraded()
     {
-        // Arrange: production is one migration behind.
-        await WriteBaseline("boilers_one_behind", "");
+        // Arrange: production is one migration behind and holds a boiler.
+        await WriteBaseline("boilers_one_behind", """INSERT INTO "boilers" ("tenant_id") VALUES (1);""");
 
         // Act
         await MigrationUpgradeCheck.Verify<BoilersDbContext>(postgres.Container, Options(), CancellationToken.None);
 
+        // Assert: the check finished, and no copy it upgraded is left on the server.
+        Assert.Equal(0, await CountDatabasesNamedLike("boilers\\_upgrade\\_%"));
+    }
+
+    [Fact]
+    public async Task MigrationUpgradeCheck_UpgradesTheBaselinesSchema_NotAnEmptyDatabase()
+    {
+        // Arrange: production already has the column the second migration adds, so upgrading its schema must fail.
+        await WriteBaseline("boilers_with_column", """ALTER TABLE "boilers" ADD COLUMN "serial_number" text;""");
+
+        // Act
+        var exception = await Assert.ThrowsAsync<PostgresException>(() =>
+            MigrationUpgradeCheck.Verify<BoilersDbContext>(postgres.Container, Options(), CancellationToken.None));
+
         // Assert
-        Assert.Contains(progressLines, line => line.StartsWith("boilers: restoring boilers_baseline.dump", StringComparison.Ordinal));
-        Assert.Contains("boilers: 1 applied migrations before upgrade; 2 in code.", progressLines);
+        Assert.Equal(PostgresErrorCodes.DuplicateColumn, exception.SqlState);
     }
 
     [Fact]
@@ -53,7 +64,7 @@ public class MigrationUpgradeCheckTests(PostgresContainerFixture postgres) : ICl
 
     private MigrationUpgradeOptions Options()
     {
-        return new MigrationUpgradeOptions { BaselineDirectory = baselineDirectory, WriteLine = progressLines.Add };
+        return new MigrationUpgradeOptions { BaselineDirectory = baselineDirectory };
     }
 
     /// <summary>A database at the first migration, plus <paramref name="extraSql" />, dumped as the baseline.</summary>
@@ -76,6 +87,16 @@ public class MigrationUpgradeCheckTests(PostgresContainerFixture postgres) : ICl
         Assert.Equal(0, dumpResult.ExitCode);
         var archive = await postgres.Container.ReadFileAsync("/tmp/baseline.dump");
         await File.WriteAllBytesAsync(Path.Combine(baselineDirectory, "boilers_baseline.dump"), archive);
+    }
+
+    private async Task<long> CountDatabasesNamedLike(string pattern)
+    {
+        await using var connection = new NpgsqlConnection(postgres.Container.GetConnectionString());
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT count(*) FROM pg_database WHERE datname LIKE @pattern";
+        command.Parameters.AddWithValue("pattern", pattern);
+        return (long)(await command.ExecuteScalarAsync())!;
     }
 
     private async Task RunOnServer(string commandText, string? databaseName)

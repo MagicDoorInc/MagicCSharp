@@ -26,6 +26,36 @@ public class TenantDeletionPlannerTests
     }
 
     [Fact]
+    public void PlanDeletion_EmptiesAGrandchildBeforeItsChildAndItsChildBeforeTheParent_WhateverTheGivenOrder()
+    {
+        // Arrange: leases point at apartments, which point at buildings; given parent first.
+        var buildings = StatedTable<BuildingDal>();
+        var apartments = StatedTable<ApartmentDal>();
+        var leases = StatedTable<LeaseDal>();
+
+        // Act
+        var tenantDeletionPlan = planner.PlanDeletion([buildings, apartments, leases]);
+
+        // Assert
+        Assert.Equal([leases, apartments, buildings], tenantDeletionPlan.Steps);
+    }
+
+    [Fact]
+    public void PlanDeletion_MovesAParentAfterAChildGivenLater_AndKeepsTheChildsOwnChildBeforeIt()
+    {
+        // Arrange: the grandchild is given last, after an unrelated table.
+        var apartments = StatedTable<ApartmentDal>();
+        var notices = StatedTable<NoticeDal>();
+        var leases = StatedTable<LeaseDal>();
+
+        // Act
+        var tenantDeletionPlan = planner.PlanDeletion([apartments, notices, leases]);
+
+        // Assert: the apartments wait for their lease; notices stay where they were given.
+        Assert.Equal([leases, apartments, notices], tenantDeletionPlan.Steps);
+    }
+
+    [Fact]
     public void PlanDeletion_ListsKeptTablesWithTheirReason_OutsideTheSteps()
     {
         // Arrange

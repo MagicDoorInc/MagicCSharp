@@ -30,7 +30,7 @@ public sealed class TenantDeletionPlanner(IServiceProvider services)
     public TenantDeletionPlan PlanDeletion(IEnumerable<ITenantScopedDestroyer> destroyers)
     {
         var modelsByContext = new Dictionary<Type, IModel>();
-        var tables = new List<DestroyedTable>();
+        var tables = new List<TableToEmpty>();
         var kept = new List<KeptTenantTable>();
         var unorderableDestroyers = new List<string>();
 
@@ -57,7 +57,7 @@ public sealed class TenantDeletionPlanner(IServiceProvider services)
                 continue;
             }
 
-            tables.Add(new DestroyedTable { Destroyer = destroyer, DbContextType = tableDestroyer.DbContextType, EntityType = entityType });
+            tables.Add(new TableToEmpty { Destroyer = destroyer, DbContextType = tableDestroyer.DbContextType, EntityType = entityType });
         }
 
         if (unorderableDestroyers.Count > 0)
@@ -73,12 +73,12 @@ public sealed class TenantDeletionPlanner(IServiceProvider services)
     ///     moves only when a key makes it. In a cycle of keys the table met first runs after the others; its key back
     ///     to them is the one ignored.
     /// </summary>
-    private static IReadOnlyList<ITenantScopedDestroyer> OrderChildrenFirst(List<DestroyedTable> tables)
+    private static IReadOnlyList<ITenantScopedDestroyer> OrderChildrenFirst(List<TableToEmpty> tables)
     {
         var childrenFirstOrder = new ChildrenFirstOrder(tables);
-        foreach (var destroyedTable in tables)
+        foreach (var tableToEmpty in tables)
         {
-            childrenFirstOrder.PlaceAfterItsChildren(destroyedTable);
+            childrenFirstOrder.PlaceAfterItsChildren(tableToEmpty);
         }
 
         return childrenFirstOrder.Ordered;
@@ -88,7 +88,7 @@ public sealed class TenantDeletionPlanner(IServiceProvider services)
     ///     Whether <paramref name="child" />'s table holds a foreign key to <paramref name="parent" />'s. Two destroyers
     ///     of one table, and a table's key to itself, set no order.
     /// </summary>
-    private static bool HasForeignKeyTo(DestroyedTable child, DestroyedTable parent)
+    private static bool HasForeignKeyTo(TableToEmpty child, TableToEmpty parent)
     {
         if (child.DbContextType != parent.DbContextType || IsSameTable(child.EntityType, parent.EntityType))
         {
@@ -123,33 +123,33 @@ public sealed class TenantDeletionPlanner(IServiceProvider services)
     }
 
     /// <summary>The order being built: each table goes in once, after the children it has among the given tables.</summary>
-    private sealed class ChildrenFirstOrder(List<DestroyedTable> tables)
+    private sealed class ChildrenFirstOrder(List<TableToEmpty> tables)
     {
-        private readonly HashSet<DestroyedTable> placed = [];
-        private readonly HashSet<DestroyedTable> beingPlaced = [];
+        private readonly HashSet<TableToEmpty> placed = [];
+        private readonly HashSet<TableToEmpty> beingPlaced = [];
 
         public List<ITenantScopedDestroyer> Ordered { get; } = [];
 
-        public void PlaceAfterItsChildren(DestroyedTable destroyedTable)
+        public void PlaceAfterItsChildren(TableToEmpty tableToEmpty)
         {
             // Met again while its own children are being placed: a cycle, broken here.
-            if (placed.Contains(destroyedTable) || !beingPlaced.Add(destroyedTable))
+            if (placed.Contains(tableToEmpty) || !beingPlaced.Add(tableToEmpty))
             {
                 return;
             }
 
-            foreach (var childDestroyedTable in tables.Where(candidate => HasForeignKeyTo(candidate, destroyedTable)))
+            foreach (var childTableToEmpty in tables.Where(candidate => HasForeignKeyTo(candidate, tableToEmpty)))
             {
-                PlaceAfterItsChildren(childDestroyedTable);
+                PlaceAfterItsChildren(childTableToEmpty);
             }
 
-            placed.Add(destroyedTable);
-            Ordered.Add(destroyedTable.Destroyer);
+            placed.Add(tableToEmpty);
+            Ordered.Add(tableToEmpty.Destroyer);
         }
     }
 
     /// <summary>A destroyer with the context and entity type of the table it empties.</summary>
-    private sealed record DestroyedTable
+    private sealed record TableToEmpty
     {
         public required ITenantScopedDestroyer Destroyer { get; init; }
 
