@@ -210,7 +210,7 @@ public class InMemoryRepositoryTests
     }
 
     [Fact]
-    public async Task Update_KeepsTenantKey()
+    public async Task Update_KeepsASetOnceProperty()
     {
         var parcelsRepository = new ParcelsRepository(timeProvider);
         var parcel = await parcelsRepository.Create(ParcelEdit.Received("Blue box"));
@@ -421,32 +421,6 @@ public class InMemoryRepositoryTests
 
         Assert.Equal(1, deletedRowCount);
         Assert.Equal(new[] { receivedParcel }, parcelsRepository.StoredRowsByIdAscending);
-    }
-
-    [Fact]
-    public async Task DestroyTenant_RemovesOnlyThatTenantsRows()
-    {
-        var parcelsRepository = new ParcelsRepository(timeProvider);
-        parcelsRepository.SeedStoredRow(ParcelEdit.Received("First"));
-        parcelsRepository.SeedStoredRow(ParcelEdit.Received("Second"));
-        var otherWarehouseParcel = parcelsRepository.SeedStoredRow(ParcelEdit.Received("Other warehouse") with { WarehouseId = ParcelEdit.OtherWarehouse });
-
-        var destroyedRowCount = await parcelsRepository.DestroyTenant(ParcelEdit.MainWarehouse);
-
-        Assert.Equal(2, destroyedRowCount);
-        Assert.Equal(new[] { otherWarehouseParcel }, parcelsRepository.StoredRowsByIdAscending);
-    }
-
-    [Fact]
-    public async Task DestroyTenant_NoTenantKey_ReturnsZero()
-    {
-        var inMemoryRepository = new InMemoryRepository<Parcel, ParcelEdit, ParcelFilter>(timeProvider);
-        var parcel = inMemoryRepository.SeedStoredRow(ParcelEdit.Received("Blue box"));
-
-        var destroyedRowCount = await inMemoryRepository.DestroyTenant(ParcelEdit.MainWarehouse);
-
-        Assert.Equal(0, destroyedRowCount);
-        Assert.Equal(new[] { parcel }, inMemoryRepository.StoredRowsByIdAscending);
     }
 
     [Fact]

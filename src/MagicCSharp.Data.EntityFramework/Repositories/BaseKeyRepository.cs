@@ -20,7 +20,7 @@ namespace MagicCSharp.Data.EntityFramework.Repositories;
 /// <typeparam name="TEntity">The entity type.</typeparam>
 /// <typeparam name="TFilter">The query filter type.</typeparam>
 /// <typeparam name="TEdit">The type carrying the writable fields.</typeparam>
-public abstract class BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit> : IRepository<TEntity, string, TEdit, TFilter>, ITenantTableDestroyer
+public abstract class BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit> : IRepository<TEntity, string, TEdit, TFilter>
     where TDal : class, IDalTransform<TEntity, TEdit>, IDalKey, IDal
     where TEntity : class, TEdit, IKeyEntity
     where TContext : DbContext
@@ -316,40 +316,6 @@ public abstract class BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit>
 
         // Deletes in the database in one statement; the delete hooks do not run.
         return await query.ExecuteDeleteAsync();
-    }
-
-    /// <summary>The context this repository's table lives in, for ordering tenant deletion.</summary>
-    Type ITenantTableDestroyer.DbContextType
-    {
-        get
-        {
-            return typeof(TContext);
-        }
-    }
-
-    /// <summary>The Dal of the table <see cref="DestroyTenant" /> empties, for ordering tenant deletion.</summary>
-    Type ITenantTableDestroyer.DalType
-    {
-        get
-        {
-            return typeof(TDal);
-        }
-    }
-
-    /// <inheritdoc cref="BaseIdRepository{TContext,TDal,TEntity,TFilter,TEdit}.DestroyTenant" />
-    public virtual async Task<int> DestroyTenant(long tenantId)
-    {
-        var tenantKeyPropertyName = TenantRows.FindKeyPropertyName(typeof(TDal));
-        if (tenantKeyPropertyName == null)
-        {
-            return 0;
-        }
-
-        Log.LogTrace("DestroyTenant: tenantId={TenantId}", tenantId);
-
-        await using var context = await ContextFactory.CreateDbContextAsync();
-
-        return await TenantRows.WhereTenant(GetDbSet(context), tenantKeyPropertyName, tenantId).ExecuteDeleteAsync();
     }
 
     /// <summary>

@@ -11,7 +11,7 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>MagicCSharp.Data.EntityFramework</PackageId>
-        <Description>Entity Framework Core implementation of the MagicCSharp repository contracts. Base repositories for id- and key-keyed entities with batch writes, opt-in pagination, soft delete and search; the DAL base classes; and a DbContext that stores enums by name and normalizes timestamps to UTC. With MagicCSharp.Generators, DAL mapping and filter queries are written by the compiler. Repository registration by convention, and tenant deletion ordered by foreign keys. Provider-agnostic.</Description>
+        <Description>Entity Framework Core implementation of the MagicCSharp repository contracts. Base repositories for id- and key-keyed entities with batch writes, opt-in pagination, soft delete and search; the DAL base classes; and a DbContext that stores enums by name and normalizes timestamps to UTC. With MagicCSharp.Generators, DAL mapping and filter queries are written by the compiler. Repository registration by convention. Provider-agnostic.</Description>
         <PackageTags>entity-framework;repository;dal;efcore;clean-architecture</PackageTags>
     </PropertyGroup>
 

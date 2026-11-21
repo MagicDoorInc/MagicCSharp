@@ -58,7 +58,7 @@ public partial class ShipmentFilter : IEntityFilter<Shipment>
 public partial class ShipmentDal : BaseIdDal<Shipment, ShipmentEdit>, IDalDeleted
 {
     [Column("tenant_id")]
-    public long TenantId { get; set; }
+    public required long TenantId { get; set; }
 
     [Column("status")]
     public ShipmentStatus Status { get; set; }

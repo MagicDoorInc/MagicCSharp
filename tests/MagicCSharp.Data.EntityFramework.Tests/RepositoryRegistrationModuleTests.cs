@@ -1,5 +1,4 @@
 using MagicCSharp.Data.EntityFramework.Tests.Fixtures;
-using MagicCSharp.Data.Repositories;
 using MagicCSharp.Infrastructure.KeyGen;
 using MagicCSharp.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -34,25 +33,6 @@ public class RepositoryRegistrationModuleTests
         using var provider = services.BuildServiceProvider();
         using var scope = provider.CreateScope();
         Assert.IsType<NotesRepository>(scope.ServiceProvider.GetRequiredService<INotesRepository>());
-    }
-
-    [Fact]
-    public void AddRepositoriesFrom_RegistersDestroyersUnderTheBaseAndSubInterfaces_Once()
-    {
-        // Arrange: a module that already registered one destroyer by hand, as modules do today.
-        var services = ServicesWithRepositoryDependencies();
-        services.AddScoped<ITenantScopedDestroyer, NotesRepository>();
-
-        // Act
-        services.AddRepositoriesFrom<TestDbContext>();
-
-        // Assert
-        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(ITenantScopedDestroyer) &&
-                                              descriptor.ImplementationType == typeof(NotesRepository));
-        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(INoteTenantDestroyer) &&
-                                              descriptor.ImplementationType == typeof(NotesRepository));
-        Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(ITenantScopedDestroyer) &&
-                                                descriptor.ImplementationType == typeof(WidgetsRepository));
     }
 
     [Fact]

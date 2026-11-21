@@ -72,6 +72,38 @@ public class DalValidationTests
     }
 
     [Fact]
+    public void Required_is_reported_in_a_partial_Dal_that_maps_by_hand_without_From()
+    {
+        var violations = Validate(PartialDal(
+            "public required long LeaseId { get; set; }",
+            ownMethods: """
+                        public override Charge ToEntity()
+                        {
+                            return new Charge { Id = Id, LeaseId = LeaseId };
+                        }
+                        """));
+
+        var violation = Assert.Single(violations);
+        Assert.Equal("LeaseId is 'required' and From() does not assign it", violation.Message);
+    }
+
+    [Fact]
+    public void Required_is_accepted_in_a_partial_Dal_that_maps_by_hand_and_lists_IDalFromEdit()
+    {
+        var violations = Validate(PartialDal(
+            "public required long LeaseId { get; set; }",
+            ownMethods: """
+                        public override Charge ToEntity()
+                        {
+                            return new Charge { Id = Id, LeaseId = LeaseId };
+                        }
+                        """,
+            baseList: "BaseIdDal<Charge, ChargeEdit>, IDalFromEdit<ChargeDal, ChargeEdit>"));
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
     public void Required_is_reported_in_a_partial_Dal_whose_own_Apply_sets_it()
     {
         var violations = Validate(PartialDal(
@@ -142,10 +174,10 @@ public class DalValidationTests
     }
 
     /// <summary>A DAL the generator maps: <c>partial</c>, with only the methods it writes by hand.</summary>
-    private static string PartialDal(string property, string ownMethods)
+    private static string PartialDal(string property, string ownMethods, string baseList = "BaseIdDal<Charge, ChargeEdit>")
     {
         return $$"""
-                 public partial class ChargeDal : BaseIdDal<Charge, ChargeEdit>
+                 public partial class ChargeDal : {{baseList}}
                  {
                      [Required]
                      [Column("column")]

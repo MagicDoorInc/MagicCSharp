@@ -40,7 +40,8 @@ asked about widens the change.
 A generator writes only what restates a declaration. Write by hand the member that does something else, and only
 that member; the generator still writes the rest of the class:
 
-- a DAL method for a column that converts its value (JSON, a value object, a computed column);
+- a DAL method for a column that converts its value (JSON, a value object, a computed column); an id DAL that writes
+  `ToEntity` or `Apply` lists `IDalFromEdit<TDal, TEdit>` to keep its generated `From`;
 - a filter field that is not a plain comparison, in `ApplyCustomFilter` and `MatchesCustomFilter`;
 - a client method with logic (skipping the call for an empty list, streaming), without a route attribute;
 - an interface that must hold something other than the class's `Execute` methods;

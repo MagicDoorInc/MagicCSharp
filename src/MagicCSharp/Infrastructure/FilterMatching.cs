@@ -2,8 +2,8 @@ namespace MagicCSharp.Infrastructure;
 
 /// <summary>
 ///     The in-memory twin of each query filter helper in <c>MagicCSharp.Data.Utils.QueryFilterExtensions</c>: the same
-///     filter value selects the same entities in memory as the helper selects rows in the database, null and empty
-///     included. Generated <c>Matches</c> methods call these.
+///     filter value selects the same entities in memory as the helper selects rows in PostgreSQL with its default
+///     collation, null and empty included. Generated <c>Matches</c> methods call these.
 /// </summary>
 public static class FilterMatching
 {
@@ -22,7 +22,12 @@ public static class FilterMatching
         return value != null && values.Contains(value.Value);
     }
 
-    /// <summary>Twin of <c>ApplyListFilter</c> over strings, compared exactly (ordinal), as the database compares them.</summary>
+    /// <summary>
+    ///     Twin of <c>ApplyListFilter</c> over strings, compared exactly (ordinal), as PostgreSQL compares them under a
+    ///     deterministic collation, its default. A column with a case-insensitive or non-deterministic collation, or
+    ///     another provider whose default comparison ignores case (SQL Server's) or trailing spaces, selects rows this
+    ///     does not.
+    /// </summary>
     public static bool MatchesListFilter(IEnumerable<string>? values, string? value)
     {
         if (values == null)

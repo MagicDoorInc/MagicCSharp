@@ -30,8 +30,9 @@ The attributes live in the runtime package of what they mark (`[GenerateInterfac
 
 ## Writing it by hand instead
 
-Every generator leaves alone what you write yourself. A DAL that declares its own `Apply` gets only `ToEntity` and
-`From`; a repository that declares `ApplyFilter` gets none; a client method without a route attribute is yours to
+Every generator leaves alone what you write yourself. A DAL that declares its own `Apply` gets only `ToEntity`, and
+`From` too when it lists `IDalFromEdit<TDal, TEdit>` (a DAL that maps by hand, as one written before 1.1 does, gets no
+`From` and no error about one); a repository that declares `ApplyFilter` gets none; a client method without a route attribute is yours to
 write in the `partial` class. So the generated shape is the default, and a hand-written member is the exception that
 says "this one is different": a column that converts its value, a filter that is not a plain comparison, a call that
 skips the request for an empty list.
@@ -87,7 +88,7 @@ Each refusal is a build error with its own id, naming what to change.
 | MCS1108 | It takes a `ref`, `out` or `in` parameter |
 | MCS1201 | `ToEntity` cannot be generated: an entity property has no DAL column of the same name and type |
 | MCS1202 | `Apply` cannot be generated: an edit property has no settable DAL column of the same name and type |
-| MCS1203 | `From` cannot be generated: a column set only at creation has no edit property to come from |
+| MCS1203 | `From` cannot be generated: a column set only at creation has no edit property to come from (only on a DAL that lists `IDalFromEdit` or writes neither `ToEntity` nor `Apply`) |
 | MCS1204 | A `partial` DAL is nested |
 | MCS1205 | A `partial` DAL is generic |
 | MCS1206 | The entity has no accessible parameterless constructor |
@@ -111,7 +112,6 @@ Each refusal is a build error with its own id, naming what to change.
 | MCS1514 | `[GenerateFakeBase]` names a type that is not an interface |
 | MCS1515 | The interface has a generic method |
 | MCS1516 | A `[GenerateFakeBase]` class is nested |
-| MCS1601 | `[KeptOnTenantDeletion]` has a blank reason |
 | MCS1602 | `[MigrationsDatabase]` has a blank name |
 | MCS1603 | The design-time factory base type is not in the compilation |
 | MCS1604 | It is not a generic class with one type parameter and a constructor taking the database name first |
@@ -130,6 +130,10 @@ the source writers. A generator in another repository compiles against it from t
            HintPath="$(PkgMagicCSharp_Generators)/analyzers/dotnet/cs/MagicCSharp.Generators.Declarations.dll"
            Private="false"/>
 ```
+
+The declarations are a building block with no compatibility promise: their types may change between any two
+versions, patch releases included. A generator built on them pins the exact version of `MagicCSharp.Generators`
+(`Version="[1.1.1]"`) and is rebuilt and checked against each new one.
 
 A generator never sees another's output, so one that needs a generated use case interface looks it up through
 `UseCasePipelines.GeneratedInterfaceIndex`. Its own diagnostics use its own ids, never `MCS`.

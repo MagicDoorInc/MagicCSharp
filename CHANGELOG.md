@@ -7,7 +7,77 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ---
 
+## 1.1.1 — 2026-11-21
+
+Use 1.1.1 instead of 1.1.0. It removes what 1.1.0 added for one product's needs and corrects what a 1.0.3 codebase
+would have seen change; see **Upgrading** below.
+
+### Removed
+
+- **The tenant-deletion feature added in 1.1.0** — it assumed one product's multi-tenant model.
+  Gone: `ITenantScopedDestroyer` (MagicCSharp.Data); `ITenantTableDestroyer`, `TenantRows`, the base repositories'
+  `DestroyTenant`, and the `MagicCSharp.Data.EntityFramework.TenantDeletion` namespace (`TenantDeletionPlanner`,
+  `TenantDataDestroyer`, `TenantDeletionPlan`, `TenantDeletionResult`, `KeptTenantTable`, `AddTenantDeletion`)
+  (MagicCSharp.Data.EntityFramework); `[KeptOnTenantDeletion]` and its build error `MCS1601`
+  (MagicCSharp.Generators); `InMemoryRepository.DestroyTenant` (MagicCSharp.Testing). `AddRepositoriesFrom<TContext>`
+  registers repositories and `RepositoryServices<TContext>` only.
+- **`[assembly: TenantKey("…")]`.** Its one remaining effect, the generated `Apply` leaving that column alone, is what a
+  `required` DAL column already gets.
+- **`InMemoryRepository.TenantKeyPropertyName`**, replaced by `SetOncePropertyNames` (below).
+- **`DalFromEdit<TDal, TEdit>.IsAvailable`**, which nothing used.
+
+### Changed
+
+- **The DAL generator writes `From` only for a DAL that asks for it:** one that writes neither `ToEntity` nor `Apply`
+  by hand, or one that lists `IDalFromEdit<TDal, TEdit>`. A `partial` DAL that maps by hand, as a 1.0.3 DAL does, is
+  left as it is: no `From`, no `IDalFromEdit`, and no `MCS1203`. In 1.1.0 such a DAL got a `From` (or `MCS1203` when a
+  `required` column had no edit property). `mcs validate` follows the same rule for a `required` column.
+- **The default HTTP client speaks the JSON a MagicApp server does.** `MagicHttpClientBase` reads and writes with
+  `MagicJsonConventions.HttpClientOptions`: the web defaults, enums by name, and `Optional<T>` sent as its value, as
+  `null`, or left out of the body when it holds no value. In 1.1.0 it used `JsonSerializerOptions.Web`, so it could not
+  read an enum a MagicApp server sent and could not send an `Optional<T>`. `MagicCSharp.Clients` now depends on
+  `MagicCSharp`.
+- **`InMemoryRepository.SetOncePropertyNames`**: the edit properties an update never changes, as a DAL's `Apply`
+  leaves its set-once columns (for a generated `Apply`, its `required` and `[Key]` properties). None by default, so an
+  update copies every edit property; a fake lists the set-once columns of its DAL.
+- **`MagicHttpClientRegistration.HttpClientName(Type)` is public**, so a consumer can add handlers to a client's named
+  `HttpClient`.
+
+### Added
+
+- **`MagicJsonConventions`** (MagicCSharp): `AddConverters(options)`, the enum and `Optional<T>` converters that
+  `AddMagicJsonConventions` gives a MagicApp server, and `HttpClientOptions`, which the default client uses.
+
+### Documented
+
+- `MagicCSharp.Generators.Declarations` is a building block with no compatibility promise between versions, patch
+  releases included; a generator built on it pins the exact version of `MagicCSharp.Generators`.
+- `[RegisteredInPlaceOf]` and the decorator `[LogExecuting]` writes are registered only by `AddImplementationsOf` (and
+  `AddMagicUseCases` and `AddMagicCSharp`, which call it).
+- The default design-time factory `[MigrationsDatabase]` writes targets PostgreSQL.
+- `FilterMatching` compares strings as PostgreSQL does under its default collation; another collation or provider
+  can differ.
+
+### Upgrading
+
+- **From 1.0.3:** follow 1.1.0's note below, except that the base repositories no longer have `DestroyTenant`, so
+  `KeyGenService` is the only member a repository of yours can hide.
+- **From 1.1.0:**
+  - Code that called `DestroyTenant`, resolved `ITenantScopedDestroyer`, used `TenantDataDestroyer` or
+    `TenantDeletionPlanner`, or put `[KeptOnTenantDeletion]` on a DAL no longer compiles. Delete it, or write the
+    deletion in your own code; a repository that overrode `DestroyTenant` drops the `override`.
+  - Delete `[assembly: TenantKey("…")]` and make that column `required` on each `partial` DAL that has it, so the
+    generated `Apply` still leaves it alone and the generated `From` still sets it.
+  - A fake that overrode `TenantKeyPropertyName` overrides `SetOncePropertyNames` instead:
+    `protected override IReadOnlyCollection<string> SetOncePropertyNames => [nameof(Parcel.WarehouseId)];`.
+  - A `partial` DAL that writes `ToEntity` or `Apply` by hand and relied on the generated `From` (through the default
+    `CreateDal`) lists `IDalFromEdit<TDal, TEdit>`; without it, `Create` throws naming the DAL.
+
+---
+
 ## 1.1.0 — 2026-11-21
+
+Use 1.1.1, which removes the tenant-deletion feature described below and corrects what is listed under its **Changed**.
 
 The compiler writes the repetitive parts. Everything here is opt-in: code that does not ask for a generator compiles,
 logs and behaves as on 1.0.3, apart from the two changes under **Changed**.
@@ -68,7 +138,10 @@ logs and behaves as on 1.0.3, apart from the two changes under **Changed**.
 ### Changed
 
 - **Query filter helpers send values as SQL parameters** instead of inlining them, so one query plan serves every
-  value. The rows returned are the same.
+  value. The rows returned are the same on PostgreSQL for the column types the parity tests cover (numbers, enums,
+  `text`, timestamps). A column type, collation or provider that compares a typed parameter differently
+  from an inlined literal — a fixed-length `char` column's trailing spaces, an `nvarchar` parameter against a
+  `varchar` column's collation on SQL Server — can return other rows; check filters on such columns.
 - **`BaseIdRepository.CreateDal` is `virtual`** with a default, instead of `abstract`. Every override still compiles.
 
 ### Upgrading from 1.0.3

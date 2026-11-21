@@ -10,9 +10,12 @@ namespace MagicCSharp.Generators.Declarations.Dals;
 ///         <item><c>ToEntity</c>: every entity property with a public <c>set</c> or <c>init</c>, from the Dal.</item>
 ///         <item>
 ///             <c>Apply</c>: every edit property onto the Dal, except the columns set only when the row is created —
-///             <c>required</c> or <c>[Key]</c> ones, the id or key, and the tenant key.
+///             <c>required</c> or <c>[Key]</c> ones, and the id or key.
 ///         </item>
-///         <item><c>From</c>: the id or key from its parameter, the other columns set only at creation from the edit, then <c>Apply</c>.</item>
+///         <item>
+///             <c>From</c>: the id or key from its parameter, the other columns set only at creation from the edit, then
+///             <c>Apply</c>; only for a Dal that opted into it (<see cref="DalDeclaration.HasOptedIntoFrom" />).
+///         </item>
 ///     </list>
 /// </summary>
 public static class DalMappingPlanner
@@ -32,12 +35,11 @@ public static class DalMappingPlanner
 
     /// <summary>
     ///     Whether <paramref name="dalMappableProperty" /> is set once, by <c>From</c>, and never by <c>Apply</c>: a row keeps its
-    ///     id, key, tenant and creation-time columns.
+    ///     id, key and creation-time columns.
     /// </summary>
     public static bool IsSetOnlyAtCreation(DalDeclaration dal, MappableProperty dalMappableProperty)
     {
-        return dalMappableProperty.IsRequired || dalMappableProperty.IsKey || dalMappableProperty.Name == dal.TenantKeyPropertyName ||
-               IsPrimaryKey(dal, dalMappableProperty);
+        return dalMappableProperty.IsRequired || dalMappableProperty.IsKey || IsPrimaryKey(dal, dalMappableProperty);
     }
 
     private static MethodPlan PlanToEntity(DalDeclaration dal)
@@ -100,7 +102,7 @@ public static class DalMappingPlanner
 
     private static MethodPlan PlanFrom(DalDeclaration dal)
     {
-        if (dal.PrimaryKind == DalPrimaryKind.None || dal.HasOwnFrom)
+        if (dal.PrimaryKind == DalPrimaryKind.None || dal.HasOwnFrom || !dal.HasOptedIntoFrom)
         {
             return MethodPlan.LeftToTheDal;
         }

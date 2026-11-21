@@ -4,7 +4,7 @@ namespace MagicCSharp.Clients.Tests.Leases;
 public partial interface ILeasesClient
 {
     [ClientGet("{leaseId}")]
-    Task<LeaseDto?> GetLease(long leaseId, long companyId);
+    Task<LeaseDto?> GetLease(long leaseId, long propertyId);
 
     [ClientGet("by-tenant/{tenantName}")]
     Task<LeaseDto> GetLeaseByTenant(string tenantName);

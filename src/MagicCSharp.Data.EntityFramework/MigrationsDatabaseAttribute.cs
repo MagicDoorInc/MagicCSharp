@@ -8,6 +8,11 @@ namespace MagicCSharp.Data.EntityFramework;
 ///         <c>dotnet ef</c> and the migration test both need it. With it, MagicCSharp.Generators writes the context's
 ///         design-time factory, and <c>MigrationUpgradeCheck</c> names its database and baseline after it.
 ///     </para>
+///     <para>
+///         By default the generated factory derives from <c>MagicCSharp.Data.Postgres.MagicDbContextFactory&lt;TContext&gt;</c>,
+///         so it targets PostgreSQL and the project references that package. For another database, set the MSBuild
+///         property <c>MagicCSharpDesignTimeContextFactoryBase</c> to a factory base of your own.
+///     </para>
 /// </summary>
 /// <example>
 ///     <code language="csharp">

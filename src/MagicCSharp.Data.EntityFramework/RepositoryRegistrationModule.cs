@@ -1,6 +1,4 @@
-using System.Reflection;
 using MagicCSharp.Data.EntityFramework.Repositories;
-using MagicCSharp.Data.EntityFramework.TenantDeletion;
 using MagicCSharp.Data.Repositories;
 using MagicCSharp.Modules;
 using Microsoft.EntityFrameworkCore;
@@ -23,19 +21,10 @@ public static class RepositoryRegistrationModule
     ///         its class name does not matter. An interface already registered by hand keeps that registration. Two
     ///         classes implementing one such interface throw, as <see cref="ImplementationRegistrationModule" /> does.
     ///     </para>
-    ///     <para>
-    ///         Every class in the assembly implementing <see cref="ITenantScopedDestroyer" /> — the repository bases do
-    ///         — is also registered under it and under each non-generic interface extending it, once, even if a module
-    ///         already registered it by hand, so the handler that deletes a tenant finds every table.
-    ///     </para>
-    ///     <para>
-    ///         Also registers <see cref="TenantDeletionPlanner" /> and <see cref="TenantDataDestroyer" />, which order and
-    ///         run those destroyers when a tenant is deleted.
-    ///     </para>
     ///     <para>The context factory itself is registered by the provider package, not here.</para>
     /// </summary>
     /// <param name="services">The service collection to register into.</param>
-    /// <param name="lifetime">The lifetime of the repositories and destroyers. Scoped unless given.</param>
+    /// <param name="lifetime">The lifetime of the repositories. Scoped unless given.</param>
     public static IServiceCollection AddRepositoriesFrom<TContext>(this IServiceCollection services, ServiceLifetime lifetime = ServiceLifetime.Scoped)
         where TContext : DbContext
     {
@@ -48,44 +37,7 @@ public static class RepositoryRegistrationModule
             AssemblyFilter = assembly => assembly == repositoryAssembly,
             ShouldKeepExistingRegistrations = true,
         });
-        AddTenantScopedDestroyers(services, repositoryAssembly, lifetime);
-        services.AddTenantDeletion();
 
         return services;
-    }
-
-    private static void AddTenantScopedDestroyers(IServiceCollection services, Assembly repositoryAssembly, ServiceLifetime lifetime)
-    {
-        foreach (var destroyerType in TypesOf(repositoryAssembly).Where(IsConcreteTenantScopedDestroyer))
-        {
-            foreach (var destroyerInterface in DestroyerInterfaces(destroyerType))
-            {
-                services.TryAddEnumerable(new ServiceDescriptor(destroyerInterface, destroyerType, lifetime));
-            }
-        }
-    }
-
-    private static bool IsConcreteTenantScopedDestroyer(Type type)
-    {
-        return type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters && typeof(ITenantScopedDestroyer).IsAssignableFrom(type);
-    }
-
-    private static IEnumerable<Type> DestroyerInterfaces(Type destroyerType)
-    {
-        return destroyerType.GetInterfaces()
-            .Where(implemented => !implemented.IsGenericType && typeof(ITenantScopedDestroyer).IsAssignableFrom(implemented));
-    }
-
-    // A type that will not load is not this scan's problem; keep the ones that did, as ImplementationRegistrationModule does.
-    private static IEnumerable<Type> TypesOf(Assembly assembly)
-    {
-        try
-        {
-            return assembly.GetTypes();
-        }
-        catch (ReflectionTypeLoadException ex)
-        {
-            return ex.Types.Where(type => type != null).Cast<Type>();
-        }
     }
 }

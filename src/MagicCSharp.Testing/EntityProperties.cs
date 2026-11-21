@@ -59,28 +59,6 @@ internal static class EntityProperties<TEntity>
                                         property.SetMethod?.IsPublic == true);
     }
 
-    /// <summary>A public readable <c>long</c> or <c>long?</c> property of this name, read as <c>long?</c>; null when there is none.</summary>
-    public static Func<TEntity, long?>? FindLongReader(string propertyName)
-    {
-        var property = typeof(TEntity).GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
-        if (property == null || property.GetMethod == null || property.GetIndexParameters().Length != 0)
-        {
-            return null;
-        }
-
-        if (property.PropertyType == typeof(long))
-        {
-            return entity => (long)property.GetValue(entity)!;
-        }
-
-        if (property.PropertyType == typeof(long?))
-        {
-            return entity => (long?)property.GetValue(entity);
-        }
-
-        return null;
-    }
-
     private static Func<TEntity, long>? CreateIdReader()
     {
         if (IdProperty?.GetMethod == null)

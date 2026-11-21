@@ -13,7 +13,7 @@ dotnet add package MagicCSharp.Generators
 public interface ILeasesClient
 {
     [ClientGet("{leaseId}")]
-    Task<LeaseDto?> GetLease(long leaseId, long companyId);
+    Task<LeaseDto?> GetLease(long leaseId, long propertyId);
 
     [ClientPost]
     Task<LeaseDto> CreateLease(CreateLeaseRequest request);
@@ -31,10 +31,24 @@ The compiler writes `LeasesClient` and `services.AddLeasesClient(configuration)`
 - A `CancellationToken` parameter is passed on.
 - `Task<T?>` returns `null` when the service answers 404 or 204; `Task<T>` throws on 404.
 
+Bodies go both ways as JSON with the conventions a MagicApp server uses (`MagicJsonConventions.HttpClientOptions` in
+`MagicCSharp`): camelCase names, enums by name, and an `Optional<T>` sent as its value, as `null`, or left out of the
+body when it holds no value, so a PATCH can say "do not touch this".
+
 The URL comes from configuration under `UrlSetting`, else `DefaultUrl`; with neither, registration throws naming the
 client and its missing setting. A failed call throws `MagicHttpClientException` with `StatusCode` and `ResponseBody`; its
 message names the method, the path without its query string and the status, so logging it logs neither what the
 service sent back nor the values the caller asked about.
+
+Each client calls through a named `HttpClient`; `MagicHttpClientRegistration.HttpClientName(typeof(LeasesClient))`
+is its name. Add a handler (authentication, retries, a test server's handler) by configuring that name after the
+registration:
+
+```csharp
+services.AddLeasesClient(configuration);
+services.AddHttpClient(MagicHttpClientRegistration.HttpClientName(typeof(LeasesClient)))
+    .AddHttpMessageHandler<ServiceTokenHandler>();
+```
 
 **When to write it by hand:** a method with real logic (skipping the call for an empty list, streaming) has no route
 attribute and is written by hand in `partial class LeasesClient`. A member written by hand there that keeps its route

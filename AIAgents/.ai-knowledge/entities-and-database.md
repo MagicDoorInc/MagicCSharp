@@ -53,9 +53,8 @@ With `MagicCSharp.Generators` referenced, a DAL is `partial` and declares only i
 [Table("shipments")]
 public partial class ShipmentDal : BaseIdDal<Shipment, ShipmentEdit>, IDalDeleted
 {
-    [Required]
     [Column("tenant_id")]
-    public long TenantId { get; set; }
+    public required long TenantId { get; set; }
 
     [Required]
     [Column("status")]
@@ -71,12 +70,14 @@ public partial class ShipmentDal : BaseIdDal<Shipment, ShipmentEdit>, IDalDelete
 
 - `mcs add-entity` writes the mapping by hand. To let the compiler write it, add `partial` and delete `ToEntity`,
   `Apply` and `From`; keep a method only if it does something besides copying (below).
-- A column set once and never changed by `Apply` (a parent id) is `required`: the generated `From` sets it and the
-  generated `Apply` skips it. The key and the tenant key are skipped by `Apply` too.
+- A column set once and never changed by `Apply` (a parent id, a tenant) is `required`: the generated `From` sets it
+  and the generated `Apply` skips it. The key is skipped by `Apply` too.
 - A build error `MCS1201`–`MCS1203` names a property with no counterpart of the same name and type: rename or retype
   the column to match the entity, or write that one method by hand. Do not add a property only to silence it.
 - **Write a method by hand** when a column converts its value (JSON, a value object, a computed column). Write only
-  that method; the generator still writes the other two. Copy the generated version from the IDE as the start.
+  that method; the generator still writes the other mapping method. It writes `From` only for a DAL that writes
+  neither `ToEntity` nor `Apply` or lists `IDalFromEdit<TDal, TEdit>`, so an id DAL with a hand-written method lists
+  that interface. Copy the generated version from the IDE as the start.
 
 ### By hand: two-step construction
 
@@ -182,11 +183,3 @@ Do not add database-level defaults; the code owns defaults. Tests build their sc
 `dotnet ef` needs a design-time factory. `mcs create-app` writes one (`Magic{Service}ContextFactory`); with the
 generators, `[MigrationsDatabase("{database}")]` on the context writes it instead, and the hand-written one is deleted.
 Never keep both.
-
-## Deleting a tenant's data
-
-In a multi-tenant schema the DAL assembly names its tenant column once, `[assembly: TenantKey("TenantId")]`, and every
-repository can delete one tenant's rows (`DestroyTenant`). `TenantDataDestroyer` runs them all, ordered children first
-by the `Restrict`, `NoAction` and `ClientNoAction` foreign keys in the EF model (a cascade or set-null key orders
-nothing). A table whose rows must outlive their tenant carries `[KeptOnTenantDeletion("reason")]` with the real reason;
-never add it to make a deletion error go away.

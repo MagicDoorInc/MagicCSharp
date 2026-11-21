@@ -30,7 +30,7 @@ public static class JsonDefaults
             Modifiers =
             {
                 IgnorePropertyRequired,
-                SkipAbsentOptionals,
+                MagicJsonConventions.SkipAbsentOptionals,
             },
         },
     };
@@ -44,32 +44,6 @@ public static class JsonDefaults
             {
                 propertyInfo.IsRequired = false;
             }
-        }
-    }
-
-    /// <summary>
-    ///     Omit <see cref="Optional{T}" /> properties that hold no value.
-    ///     <para>
-    ///         The converter for an absent optional writes nothing, which after a property name is malformed JSON.
-    ///         Deciding here, before the property name is written, is the only place that can skip it entirely —
-    ///         and skipping is the right output: an absent optional means "the caller did not mention this".
-    ///     </para>
-    /// </summary>
-    private static void SkipAbsentOptionals(JsonTypeInfo typeInfo)
-    {
-        if (typeInfo.Kind != JsonTypeInfoKind.Object)
-        {
-            return;
-        }
-
-        foreach (var propertyInfo in typeInfo.Properties)
-        {
-            if (!typeof(IOptional).IsAssignableFrom(propertyInfo.PropertyType))
-            {
-                continue;
-            }
-
-            propertyInfo.ShouldSerialize = (_, value) => value is IOptional && ((IOptional)value).HasValue;
         }
     }
 }

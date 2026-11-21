@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis;
 namespace MagicCSharp.Generators;
 
 /// <summary>
-///     Writes <c>ToEntity</c>, <c>Apply</c> and <c>From</c> for every partial Dal that does not write them itself,
-///     copying each property to the property of the same name and type (see <see cref="DalMappingPlanner" />). No
-///     attribute: making the Dal partial is the opt-in.
+///     Writes <c>ToEntity</c> and <c>Apply</c> for every partial Dal that does not write them itself, copying each
+///     property to the property of the same name and type (see <see cref="DalMappingPlanner" />), and <c>From</c> for
+///     one that writes neither by hand or lists <c>IDalFromEdit</c>. No attribute: making the Dal partial is the opt-in.
 /// </summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class DalMappingGenerator : IIncrementalGenerator

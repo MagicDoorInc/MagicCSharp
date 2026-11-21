@@ -93,9 +93,9 @@ repository interface:
 public class ParcelsRepository(TimeProvider timeProvider, long firstId = 1)
     : InMemorySoftDeleteRepository<Parcel, ParcelEdit, ParcelFilter>(timeProvider, firstId), IParcelsRepository
 {
-    protected override string? TenantKeyPropertyName
+    protected override IReadOnlyCollection<string> SetOncePropertyNames
     {
-        get { return nameof(Parcel.WarehouseId); }
+        get { return [nameof(Parcel.WarehouseId)]; }
     }
 }
 ```
@@ -103,8 +103,9 @@ public class ParcelsRepository(TimeProvider timeProvider, long firstId = 1)
 It behaves as `BaseIdRepository` and `BaseIdPaginatedRepository` do on the database: reads newest first; `Created` and
 `Updated` from the `TimeProvider`, `Updated` only when something changed; an update or delete of a missing id throws
 `NotFoundIdException`; a bulk call checks every id first and writes nothing on a miss; paging honours `IsDisabled`;
-`DestroyTenant` removes one tenant's rows when `TenantKeyPropertyName` names the tenant column. A filter is applied
-through its `Matches`, which the generator writes for a `partial` filter listing `IEntityFilter<TEntity>`
+an update leaves the columns `SetOncePropertyNames` lists unchanged (none by default), as a DAL's `Apply` leaves the
+columns set once at creation — for a generated `Apply`, the DAL's `required` and `[Key]` properties; list those here.
+A filter is applied through its `Matches`, which the generator writes for a `partial` filter listing `IEntityFilter<TEntity>`
 ([MagicCSharp.Data](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Data/README.md#generated-filters)),
 so the fake narrows exactly as the generated query does.
 

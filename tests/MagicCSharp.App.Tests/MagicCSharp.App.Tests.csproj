@@ -10,6 +10,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\MagicCSharp.App\MagicCSharp.App.csproj"/>
+        <ProjectReference Include="..\..\src\MagicCSharp.Clients\MagicCSharp.Clients.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
