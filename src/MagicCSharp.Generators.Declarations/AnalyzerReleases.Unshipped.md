@@ -26,6 +26,14 @@ MCS1203 | MagicCSharp.Generators | Error | DalMappingDiagnostics
 MCS1204 | MagicCSharp.Generators | Error | DalMappingDiagnostics
 MCS1205 | MagicCSharp.Generators | Error | DalMappingDiagnostics
 MCS1206 | MagicCSharp.Generators | Error | DalMappingDiagnostics
+MCS1301 | MagicCSharp.Generators | Error | FilterDiagnostics
+MCS1302 | MagicCSharp.Generators | Error | FilterDiagnostics
+MCS1303 | MagicCSharp.Generators | Error | FilterDiagnostics
+MCS1304 | MagicCSharp.Generators | Error | FilterDiagnostics
+MCS1305 | MagicCSharp.Generators | Error | FilterDiagnostics
+MCS1306 | MagicCSharp.Generators | Error | FilterDiagnostics
+MCS1307 | MagicCSharp.Generators | Error | FilterDiagnostics
+MCS1308 | MagicCSharp.Generators | Error | FilterDiagnostics
 MCS1501 | MagicCSharp.Generators | Error | ClientGeneratorDiagnostics
 MCS1502 | MagicCSharp.Generators | Error | ClientGeneratorDiagnostics
 MCS1503 | MagicCSharp.Generators | Error | ClientGeneratorDiagnostics

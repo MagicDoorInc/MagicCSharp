@@ -52,7 +52,7 @@ public static class DalReader
             return Refused(shapeDescriptor, dal);
         }
 
-        var dalProperties = ReadMappableProperties(dalClass);
+        var dalProperties = MappablePropertyReader.Read(dalClass);
         return new DalReadResult
         {
             Declaration = new DalDeclaration
@@ -61,8 +61,8 @@ public static class DalReader
                 Entity = TypeReferenceReader.Read(entityType),
                 Edit = TypeReferenceReader.Read(editType),
                 DalProperties = dalProperties,
-                EntityProperties = ReadMappableProperties(entityType),
-                EditProperties = ReadMappableProperties(editType),
+                EntityProperties = MappablePropertyReader.Read(entityType),
+                EditProperties = MappablePropertyReader.Read(editType),
                 PrimaryKind = primaryKind,
                 TenantKeyPropertyName = FindTenantKeyPropertyName(dalClass),
                 HasOwnToEntity = ownToEntity.IsImplemented,
@@ -144,44 +144,6 @@ public static class DalReader
             .FirstOrDefault(method => method.IsStatic && method.Parameters.Length == 2 &&
                                       SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, editType) &&
                                       method.Parameters[1].Type.SpecialType == primarySpecialType);
-    }
-
-    private static EquatableArray<MappableProperty> ReadMappableProperties(ITypeSymbol type)
-    {
-        var seenNames = new HashSet<string>();
-        var mappableProperties = new List<MappableProperty>();
-        for (var declaringType = type; declaringType != null; declaringType = declaringType.BaseType)
-        {
-            var properties = declaringType.GetMembers()
-                .OfType<IPropertySymbol>()
-                .Where(property => property.DeclaredAccessibility == Accessibility.Public && !property.IsStatic && !property.IsIndexer);
-            foreach (var property in properties)
-            {
-                if (seenNames.Add(property.Name))
-                {
-                    mappableProperties.Add(ReadMappableProperty(property));
-                }
-            }
-        }
-
-        return new EquatableArray<MappableProperty>(mappableProperties);
-    }
-
-    private static MappableProperty ReadMappableProperty(IPropertySymbol property)
-    {
-        var setter = property.SetMethod;
-        var hasPublicSetter = setter != null && setter.DeclaredAccessibility == Accessibility.Public;
-        return new MappableProperty
-        {
-            Name = property.Name,
-            TypeName = TypeReferenceReader.Read(property.Type).FullyQualifiedName,
-            IsReadable = property.GetMethod != null && property.GetMethod.DeclaredAccessibility == Accessibility.Public,
-            IsSettable = hasPublicSetter && !setter!.IsInitOnly,
-            IsInitializable = hasPublicSetter,
-            IsRequired = property.IsRequired,
-            IsKey = property.GetAttributes().Any(attribute => attribute.AttributeClass != null &&
-                                                              MetadataNameOf(attribute.AttributeClass) == DataTypeNames.KeyAttribute),
-        };
     }
 
     private static string? FindTenantKeyPropertyName(INamedTypeSymbol dalClass)

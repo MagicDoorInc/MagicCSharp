@@ -18,4 +18,6 @@ public class TestDbContext(DbContextOptions options) : MagicDbContext(options)
     public DbSet<ReceiptDal> Receipts { get; set; } = null!;
 
     public DbSet<VisitDal> Visits { get; set; } = null!;
+
+    public DbSet<ShipmentDal> Shipments { get; set; } = null!;
 }

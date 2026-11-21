@@ -24,4 +24,7 @@ public sealed record MappableProperty
 
     /// <summary>Carries <c>[Key]</c>.</summary>
     public required bool IsKey { get; init; }
+
+    /// <summary>Its type is <c>Nullable&lt;T&gt;</c>, a value type that may hold no value (<c>DateTimeOffset?</c>, not <c>string?</c>).</summary>
+    public required bool IsNullableValueType { get; init; }
 }

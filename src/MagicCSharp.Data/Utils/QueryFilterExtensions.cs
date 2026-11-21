@@ -32,8 +32,29 @@ public static class QueryFilterExtensions
             return query;
         }
 
-        var condition = Expression.Equal(fieldSelector.Body, Expression.Constant(value, typeof(TValue?)));
+        var condition = Expression.Equal(fieldSelector.Body, CaptureValue(value));
         return query.Where(Expression.Lambda<Func<T, bool>>(condition, fieldSelector.Parameters));
+    }
+
+    /// <summary>
+    ///     Filter on whether a nullable column has a value: null leaves the query as it is, true keeps the rows that
+    ///     have one, false the rows that have none. <c>IsDeleted</c> over a <c>Deleted</c> timestamp is the usual case.
+    /// </summary>
+    public static IQueryable<T> ApplyNullablePresenceFilter<T, TValue>(
+        this IQueryable<T> query,
+        bool? isPresent,
+        Expression<Func<T, TValue?>> selector)
+        where TValue : struct
+    {
+        if (isPresent == null)
+        {
+            return query;
+        }
+
+        var condition = isPresent.Value
+            ? Expression.NotEqual(selector.Body, Expression.Constant(null, typeof(TValue?)))
+            : Expression.Equal(selector.Body, Expression.Constant(null, typeof(TValue?)));
+        return query.Where(Expression.Lambda<Func<T, bool>>(condition, selector.Parameters));
     }
 
     public static IQueryable<T> ApplyStringNullableValueFilter<T>(
@@ -57,7 +78,7 @@ public static class QueryFilterExtensions
 
         var lowerValue = Expression.Call(fieldSelector.Body, StringToLowerMethod);
 
-        var condition = Expression.Call(lowerValue, method, Expression.Constant(value.ToLower(), typeof(string)));
+        var condition = Expression.Call(lowerValue, method, CaptureValue(value.ToLower()));
 
         return query.Where(Expression.Lambda<Func<T, bool>>(condition, fieldSelector.Parameters));
     }
@@ -83,8 +104,8 @@ public static class QueryFilterExtensions
             }
 
             var expression = range.IsStartInclusive
-                ? Expression.GreaterThanOrEqual(selector.Body, Expression.Constant(value, typeof(TValue?)))
-                : Expression.GreaterThan(selector.Body, Expression.Constant(value, typeof(TValue?)));
+                ? Expression.GreaterThanOrEqual(selector.Body, CaptureValue((TValue?)value))
+                : Expression.GreaterThan(selector.Body, CaptureValue((TValue?)value));
             query = query.Where(Expression.Lambda<Func<T, bool>>(expression, selector.Parameters));
         }
 
@@ -98,8 +119,8 @@ public static class QueryFilterExtensions
             }
 
             var expression = range.IsEndInclusive
-                ? Expression.LessThanOrEqual(selector.Body, Expression.Constant(value, typeof(TValue?)))
-                : Expression.LessThan(selector.Body, Expression.Constant(value, typeof(TValue?)));
+                ? Expression.LessThanOrEqual(selector.Body, CaptureValue((TValue?)value))
+                : Expression.LessThan(selector.Body, CaptureValue((TValue?)value));
             query = query.Where(Expression.Lambda<Func<T, bool>>(expression, selector.Parameters));
         }
 
@@ -122,8 +143,8 @@ public static class QueryFilterExtensions
         }
 
         Expression condition = values.Count() == 1
-            ? Expression.Equal(fieldSelector.Body, Expression.Constant(values.First(), typeof(string)))
-            : Expression.Call(EnumerableContainsMethod.MakeGenericMethod(typeof(string)), Expression.Constant(values),
+            ? Expression.Equal(fieldSelector.Body, CaptureValue(values.First()))
+            : Expression.Call(EnumerableContainsMethod.MakeGenericMethod(typeof(string)), CaptureValue(values),
                 Expression.Convert(fieldSelector.Body, typeof(string)));
 
         return query.Where(Expression.Lambda<Func<T, bool>>(condition, fieldSelector.Parameters));
@@ -146,8 +167,8 @@ public static class QueryFilterExtensions
         }
 
         Expression condition = values.Count() == 1
-            ? Expression.Equal(fieldSelector.Body, Expression.Constant(values.First(), typeof(TValue?)))
-            : Expression.Call(EnumerableContainsMethod.MakeGenericMethod(typeof(TValue)), Expression.Constant(values),
+            ? Expression.Equal(fieldSelector.Body, CaptureValue<TValue?>(values.First()))
+            : Expression.Call(EnumerableContainsMethod.MakeGenericMethod(typeof(TValue)), CaptureValue(values),
                 Expression.Convert(fieldSelector.Body, typeof(TValue)));
 
         return query.Where(Expression.Lambda<Func<T, bool>>(condition, fieldSelector.Parameters));
@@ -171,8 +192,8 @@ public static class QueryFilterExtensions
         }
 
         Expression innerCondition = values.Count() == 1
-            ? Expression.Equal(valueSelector.Body, Expression.Constant(values.First(), typeof(TValue?)))
-            : Expression.Call(EnumerableContainsMethod.MakeGenericMethod(typeof(TValue)), Expression.Constant(values),
+            ? Expression.Equal(valueSelector.Body, CaptureValue<TValue?>(values.First()))
+            : Expression.Call(EnumerableContainsMethod.MakeGenericMethod(typeof(TValue)), CaptureValue(values),
                 Expression.Convert(valueSelector.Body, typeof(TValue)));
 
         var innerLambda = Expression.Lambda<Func<TNavigation, bool>>(innerCondition, valueSelector.Parameters);
@@ -211,6 +232,14 @@ public static class QueryFilterExtensions
                 Expression.Equal(deletedAtSelector.Body, Expression.Constant(null, typeof(DateTimeOffset?)));
             return query.Where(Expression.Lambda<Func<T, bool>>(condition, deletedAtSelector.Parameters));
         }
+    }
+
+    // EF sends a captured value as a SQL parameter; a constant is written into the SQL, so every distinct filter value
+    // would compile and cache a query of its own.
+    private static Expression CaptureValue<TValue>(TValue value)
+    {
+        Expression<Func<TValue>> captured = () => value;
+        return captured.Body;
     }
 }
 
