@@ -396,19 +396,17 @@ public class ExecutingLogGeneratorTests
     public void LogExecuting_ReportsMCS1102_OnAReadBehindACallerPrefixTheProjectConfigures()
     {
         // Arrange
-        var compilation = GeneratorHarness.CreateCompilation([GeneratorHarness.Subject(SubjectSource(UseCaseNamed("PartnerGetChargeUseCase")))],
-            GeneratorHarness.DefaultReferences().Add(LoggingReference));
-        var buildProperties = new Dictionary<string, string> { ["build_property." + UseCaseCallerPrefixesSetting.PropertyName] = "Partner;Admin" };
-        var driver = CSharpGeneratorDriver.Create([new ExecutingLogGenerator().AsSourceGenerator()],
-            parseOptions: (CSharpParseOptions)compilation.SyntaxTrees.First().Options, optionsProvider: new TestAnalyzerConfigOptionsProvider(buildProperties));
+        var request = ExecutingLogRequest(UseCaseNamed("PartnerGetChargeUseCase")) with
+        {
+            BuildProperties = GlobalConfigBuildProperties.Read(UseCaseCallerPrefixesSetting.PropertyName + " = Partner,Admin"),
+        };
 
         // Act
-        var runResult = driver.RunGenerators(compilation).GetRunResult();
+        var generatorRunResult = GeneratorHarness.Run(request);
 
         // Assert
-        Assert.Empty(runResult.GeneratedTrees);
-        AssertSingleRefusal(runResult.Diagnostics.Select(GeneratorHarness.Describe).ToArray(), "MCS1102",
-            "'PartnerGetChargeUseCase' is named as a read-only use case");
+        Assert.Empty(generatorRunResult.GeneratedFiles);
+        AssertSingleRefusal(generatorRunResult.Diagnostics, "MCS1102", "'PartnerGetChargeUseCase' is named as a read-only use case");
     }
 
     [Fact]

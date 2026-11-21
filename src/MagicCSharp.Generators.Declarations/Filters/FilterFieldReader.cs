@@ -58,6 +58,8 @@ public static class FilterFieldReader
             Name = name,
             Shape = shape,
             ValueTypeName = TypeReferenceReader.Read(valueType.WithNullableAnnotation(NullableAnnotation.NotAnnotated)).FullyQualifiedName,
+            IsStringValue = valueType.SpecialType == SpecialType.System_String,
+            IsBooleanValue = valueType.SpecialType == SpecialType.System_Boolean,
         };
     }
 

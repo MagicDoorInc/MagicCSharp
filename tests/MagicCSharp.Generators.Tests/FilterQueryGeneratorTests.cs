@@ -385,6 +385,46 @@ public class FilterQueryGeneratorTests
     }
 
     [Fact]
+    public void FilterQuery_TreatsAListOfAnotherValueTypeAsACustomField()
+    {
+        // Arrange: 'Ids' fits the list rule by name, but 'Id' is a long, not an int.
+        const string source = Usings + ShipmentTypes + """
+                                                       public class ShipmentFilter
+                                                       {
+                                                           public List<int>? Ids { get; init; }
+                                                       }
+                                                       """ + ShipmentsRepository;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.StartsWith("MCS1301 ", diagnostic);
+        Assert.Contains("'ShipmentFilter.Ids' matches no property of 'Shipment' by the filter name rules", diagnostic);
+    }
+
+    [Fact]
+    public void FilterQuery_TreatsARangeOfAnotherValueTypeAsACustomField()
+    {
+        // Arrange: 'Created' fits the range rule by name, but 'Created' is a DateTimeOffset, not a DateTime.
+        const string source = Usings + ShipmentTypes + """
+                                                       public class ShipmentFilter
+                                                       {
+                                                           public ComparableRange<DateTime>? Created { get; init; }
+                                                       }
+                                                       """ + ShipmentsRepository;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.StartsWith("MCS1301 ", diagnostic);
+        Assert.Contains("'ShipmentFilter.Created' matches no property of 'Shipment' by the filter name rules", diagnostic);
+    }
+
+    [Fact]
     public void FilterQuery_ReportsMCS1301_WhenApplyCustomFilterDoesNotReadAFieldAddedLater()
     {
         // Arrange: 'Reference' was added after ApplyCustomFilter was written for 'TrackingCodeContains'.
@@ -563,25 +603,27 @@ public class FilterQueryGeneratorTests
     [Fact]
     public void FilterQuery_GeneratesNothing_ForANonPartialRepository()
     {
-        // Arrange
-        const string source = Usings + ShipmentTypes + ShipmentFilterWithIds + ControlRepository + """
-
-                                                                                                   public class ShipmentsRepository(RepositoryServices<ShippingContext> repositoryServices)
-                                                                                                       : BaseIdRepository<ShippingContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices)
-                                                                                                   {
-                                                                                                       protected override IQueryable<ShipmentDal> ApplyFilter(IQueryable<ShipmentDal> query, ShipmentFilter filter)
-                                                                                                       {
-                                                                                                           return query;
-                                                                                                       }
-                                                                                                   }
-                                                                                                   """;
+        // Arrange: the repository leaves ApplyFilter unwritten, so only 'partial' decides; it does not compile for want of ApplyFilter.
+        var source = Usings + ShipmentTypes + ShipmentFilterWithIds + ControlRepository + RepositoryWithoutApplyFilter("public class");
 
         // Act
-        var generatorRunResult = RunClean(source);
+        var generatedHintNames = GeneratedHintNames(source);
 
         // Assert
-        var generatedFile = Assert.Single(generatorRunResult.GeneratedFiles);
-        Assert.Equal(ControlRepositoryHintName, generatedFile.Path);
+        Assert.Equal([ControlRepositoryHintName], generatedHintNames);
+    }
+
+    [Fact]
+    public void FilterQuery_GeneratesApplyFilter_ForThePartialRepositoryTheNonPartialTestLeavesOut()
+    {
+        // Arrange: the same repository as the non-partial case, declared partial.
+        var source = Usings + ShipmentTypes + ShipmentFilterWithIds + ControlRepository + RepositoryWithoutApplyFilter("public partial class");
+
+        // Act
+        var generatedHintNames = RunClean(source).GeneratedFiles.Select(generatedFile => generatedFile.Path).Order().ToArray();
+
+        // Assert
+        Assert.Equal([ControlRepositoryHintName, RepositoryHintName], generatedHintNames);
     }
 
     [Fact]
@@ -719,6 +761,16 @@ public class FilterQueryGeneratorTests
         return template.Replace("DAL_WEIGHT_COLUMN", dalWeightColumn);
     }
 
+    // The shipment repository, which leaves ApplyFilter to the generator when it is partial.
+    private static string RepositoryWithoutApplyFilter(string classDeclaration)
+    {
+        return $"""
+
+                {classDeclaration} ShipmentsRepository(RepositoryServices<ShippingContext> repositoryServices)
+                    : BaseIdRepository<ShippingContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices);
+                """;
+    }
+
     // The generated ApplyFilter of the shipment repository over a filter with the one given field.
     private static string GeneratedApplyFilter(string filterField)
     {
@@ -748,6 +800,16 @@ public class FilterQueryGeneratorTests
         var generatorRunResult = GeneratorHarness.Run(Request(source));
         Assert.Empty(generatorRunResult.Diagnostics);
         return generatorRunResult;
+    }
+
+    // The files the generator writes, without asking the compilation to compile.
+    private static string[] GeneratedHintNames(string source)
+    {
+        var generatorRunRequest = Request(source);
+        var compilation = GeneratorHarness.CreateCompilation(generatorRunRequest.SourceFiles,
+            GeneratorHarness.DefaultReferences().AddRange(DataReferences));
+        var runResult = GeneratorHarness.CreateDriver(generatorRunRequest, false).RunGenerators(compilation);
+        return runResult.GetRunResult().Results.SelectMany(result => result.GeneratedSources).Select(generatedSource => generatedSource.HintName).Order().ToArray();
     }
 
     // The generator's diagnostics alone. A refused repository is left without ApplyFilter and does not compile, so

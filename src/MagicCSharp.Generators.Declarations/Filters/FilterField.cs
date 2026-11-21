@@ -13,4 +13,10 @@ public sealed record FilterField
     ///     <see cref="FilterFieldShape.Custom" />.
     /// </summary>
     public required string? ValueTypeName { get; init; }
+
+    /// <summary>The value type is <c>string</c>; false for a custom field.</summary>
+    public bool IsStringValue { get; init; }
+
+    /// <summary>The value type is <c>bool</c>; false for a custom field.</summary>
+    public bool IsBooleanValue { get; init; }
 }

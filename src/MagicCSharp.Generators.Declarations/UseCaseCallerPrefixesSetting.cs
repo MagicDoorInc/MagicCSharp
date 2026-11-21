@@ -4,8 +4,9 @@ namespace MagicCSharp.Generators.Declarations;
 
 /// <summary>
 ///     The caller prefixes a codebase puts before a use case's verb besides <c>External</c> and <c>Internal</c>: the
-///     MSBuild property <c>MagicCSharpUseCaseCallerPrefixes</c>, a <c>;</c>-separated list such as
-///     <c>Partner;Admin</c>. With them, <c>PartnerGetInvoiceUseCase</c> counts as read-only like
+///     MSBuild property <c>MagicCSharpUseCaseCallerPrefixes</c>, a comma-separated list such as
+///     <c>Partner,Admin</c> (a semicolon would start a comment in the editorconfig MSBuild passes the property through, so
+///     <c>Partner;Admin</c> would arrive as <c>Partner</c>). With them, <c>PartnerGetInvoiceUseCase</c> counts as read-only like
 ///     <c>GetInvoiceUseCase</c>.
 /// </summary>
 public static class UseCaseCallerPrefixesSetting
@@ -19,7 +20,7 @@ public static class UseCaseCallerPrefixesSetting
             return EquatableArray<string>.Empty;
         }
 
-        var callerPrefixes = configuredPrefixes.Split(';', ',')
+        var callerPrefixes = configuredPrefixes.Split(',')
             .Select(callerPrefix => callerPrefix.Trim())
             .Where(callerPrefix => callerPrefix.Length > 0);
         return new EquatableArray<string>(callerPrefixes);

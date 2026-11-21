@@ -85,7 +85,7 @@ public static class FilterRulePlanner
 
     private static FilterFieldRule? MatchNullablePresence(FilterField field, Dictionary<string, MappableProperty> properties)
     {
-        var isPresenceShaped = field.ValueTypeName == "bool" && field.Name.Length > PresencePrefix.Length &&
+        var isPresenceShaped = field.IsBooleanValue && field.Name.Length > PresencePrefix.Length &&
                                field.Name.StartsWith(PresencePrefix, StringComparison.Ordinal) && !properties.ContainsKey(field.Name);
         if (!isPresenceShaped)
         {
@@ -104,6 +104,7 @@ public static class FilterRulePlanner
             PropertyName = propertyName,
             Kind = FilterRuleKind.NullablePresence,
             ValueTypeName = property.TypeName.TrimEnd('?'),
+            IsStringList = false,
         };
     }
 
@@ -134,6 +135,7 @@ public static class FilterRulePlanner
             PropertyName = propertyName,
             Kind = kind,
             ValueTypeName = valueTypeName,
+            IsStringList = kind == FilterRuleKind.List && field.IsStringValue,
         };
     }
 

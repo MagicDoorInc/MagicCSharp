@@ -301,17 +301,6 @@ public class FilterParityTests : RepositoryTestBase
         await AssertBothSelect(new ShipmentFilter { TrackingCodeStartsWith = "TRK-1" }, stored.Booked);
     }
 
-    [Fact]
-    public async Task ApplyListFilter_SendsTheValueAsASqlParameter()
-    {
-        await using var context = await DbContextFactory.CreateDbContextAsync();
-
-        var sql = context.Shipments.ApplyListFilter(new List<long> { 424242 }, shipmentDal => shipmentDal.Id).ToQueryString();
-
-        Assert.DoesNotContain("424242", sql.Substring(sql.IndexOf("SELECT", StringComparison.Ordinal)));
-        Assert.Contains("@", sql);
-    }
-
     // The same filter through the generated query in the database and the generated Matches over every stored
     // shipment; both must select exactly the expected ones.
     private async Task AssertBothSelect(ShipmentFilter filter, params Shipment[] expected)

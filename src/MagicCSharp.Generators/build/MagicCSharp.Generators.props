@@ -10,7 +10,8 @@
   </ItemGroup>
 
   <!--
-    MagicCSharpUseCaseCallerPrefixes: caller prefixes besides External and Internal, ';'-separated (Partner;Admin), so
+    MagicCSharpUseCaseCallerPrefixes: caller prefixes besides External and Internal, comma-separated (Partner,Admin; not
+    ';', which starts a comment in the editorconfig the property reaches the generator through), so
     [LogExecuting] on PartnerGetInvoiceUseCase is refused as read-only like GetInvoiceUseCase.
   -->
   <ItemGroup>

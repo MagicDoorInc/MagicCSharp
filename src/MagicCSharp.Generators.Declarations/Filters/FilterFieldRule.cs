@@ -15,4 +15,10 @@ public sealed record FilterFieldRule
     ///     for <see cref="FilterRuleKind.NullablePresence" /> the property's underlying type.
     /// </summary>
     public required string ValueTypeName { get; init; }
+
+    /// <summary>
+    ///     A list of strings. The helper for it has no value type argument, unlike the list helper over structs, so both
+    ///     writers call it without one.
+    /// </summary>
+    public required bool IsStringList { get; init; }
 }

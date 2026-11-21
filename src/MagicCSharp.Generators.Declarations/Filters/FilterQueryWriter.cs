@@ -55,7 +55,7 @@ public static class FilterQueryWriter
     // and the lambda converts the column to the helper's nullable form.
     private static string HelperCall(FilterFieldRule filterFieldRule, string dalTypeName)
     {
-        var typeArguments = filterFieldRule.Kind == FilterRuleKind.List && filterFieldRule.ValueTypeName == "string"
+        var typeArguments = filterFieldRule.IsStringList
             ? dalTypeName
             : dalTypeName + ", " + filterFieldRule.ValueTypeName;
         return FilterTypeNames.QueryFilterExtensions + ".Apply" + filterFieldRule.Kind + "Filter<" + typeArguments + ">(query, filter." + filterFieldRule.FieldName +

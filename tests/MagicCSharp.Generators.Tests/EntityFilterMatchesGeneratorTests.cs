@@ -193,6 +193,46 @@ public class EntityFilterMatchesGeneratorTests
     }
 
     [Fact]
+    public void FilterMatches_TreatsAListOfAnotherValueTypeAsACustomField()
+    {
+        // Arrange: 'Ids' fits the list rule by name, but 'Id' is a long, not an int.
+        const string source = Usings + ShipmentTypes + """
+                                                       public partial class ShipmentFilter : IEntityFilter<Shipment>
+                                                       {
+                                                           public List<int>? Ids { get; init; }
+                                                       }
+                                                       """;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.StartsWith("MCS1304 ", diagnostic);
+        Assert.Contains("'ShipmentFilter.Ids' matches no property of 'Shipment' by the filter name rules", diagnostic);
+    }
+
+    [Fact]
+    public void FilterMatches_TreatsARangeOfAnotherValueTypeAsACustomField()
+    {
+        // Arrange: 'Created' fits the range rule by name, but 'Created' is a DateTimeOffset, not a DateTime.
+        const string source = Usings + ShipmentTypes + """
+                                                       public partial class ShipmentFilter : IEntityFilter<Shipment>
+                                                       {
+                                                           public ComparableRange<DateTime>? Created { get; init; }
+                                                       }
+                                                       """;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.StartsWith("MCS1304 ", diagnostic);
+        Assert.Contains("'ShipmentFilter.Created' matches no property of 'Shipment' by the filter name rules", diagnostic);
+    }
+
+    [Fact]
     public void FilterMatches_ReportsMCS1304_WhenMatchesCustomFilterDoesNotReadAFieldAddedLater()
     {
         // Arrange: 'NoteContains' was added after MatchesCustomFilter was written for 'TrackingCodeContains'.

@@ -50,7 +50,7 @@ public static class EntityFilterMatchesWriter
 
     private static string MatchingCall(FilterFieldRule filterFieldRule)
     {
-        var typeArguments = filterFieldRule.Kind == FilterRuleKind.List && filterFieldRule.ValueTypeName == "string" ? "" : "<" + filterFieldRule.ValueTypeName + ">";
+        var typeArguments = filterFieldRule.IsStringList ? "" : "<" + filterFieldRule.ValueTypeName + ">";
         return FilterTypeNames.FilterMatching + ".Matches" + filterFieldRule.Kind + "Filter" + typeArguments + "(" + filterFieldRule.FieldName + ", entity." + filterFieldRule.PropertyName + ")";
     }
 }
