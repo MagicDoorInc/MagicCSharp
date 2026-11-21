@@ -24,6 +24,9 @@ general industry practice.
 - **Domain code depends on ports**: repository interfaces, `IEventDispatcher`, `TimeProvider`. Never a
   `DbContext`, a bus client or `DateTime.Now`.
 - **Persist first, then dispatch.** An event says something already happened.
+- **Let the compiler write what restates a declaration**: use case interfaces, DAL mapping, filter queries,
+  clients, fakes. Write by hand only the member that does something else — see
+  [`.ai-knowledge/generated-code.md`](.ai-knowledge/generated-code.md). Never edit or commit generated code.
 - **The build enforces the house style.** `MagicCSharp.Analyzers` turns it into compile errors (`MCS0001`…),
   and `mcs validate` checks what the compiler cannot. A red build is a convention broken, not a nuisance.
 

@@ -118,6 +118,69 @@ public class ImplementationRegistrationModuleTests
     }
 
     [Fact]
+    public void Registers_the_replacement_for_the_interface_and_the_replaced_class_as_itself()
+    {
+        var services = new ServiceCollection();
+        services.AddMagicUseCases(ThisAssemblyOnly);
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var describe = scope.ServiceProvider.GetRequiredService<IDescribeUseCase>();
+
+        Assert.Equal("replacement around described", describe.Execute());
+    }
+
+    [Fact]
+    public void A_scoped_use_case_gets_one_replacement_per_scope()
+    {
+        var services = new ServiceCollection();
+        services.AddMagicUseCases(ThisAssemblyOnly);
+
+        using var provider = services.BuildServiceProvider();
+        using var first = provider.CreateScope();
+        using var second = provider.CreateScope();
+
+        var fromFirst = first.ServiceProvider.GetRequiredService<IDescribeUseCase>();
+        var againFromFirst = first.ServiceProvider.GetRequiredService<IDescribeUseCase>();
+        var fromSecond = second.ServiceProvider.GetRequiredService<IDescribeUseCase>();
+
+        Assert.IsType<ReplacementDescribeUseCase>(fromFirst);
+        Assert.Same(fromFirst, againFromFirst);
+        Assert.NotSame(fromFirst, fromSecond);
+    }
+
+    [Fact]
+    public void A_singleton_use_case_shares_one_replacement()
+    {
+        var services = new ServiceCollection();
+        services.AddMagicUseCases(ThisAssemblyOnly);
+
+        using var provider = services.BuildServiceProvider();
+        using var first = provider.CreateScope();
+        using var second = provider.CreateScope();
+
+        var fromFirst = first.ServiceProvider.GetRequiredService<ISingletonDescribeUseCase>();
+        var fromSecond = second.ServiceProvider.GetRequiredService<ISingletonDescribeUseCase>();
+
+        Assert.IsType<ReplacementSingletonDescribeUseCase>(fromFirst);
+        Assert.Same(fromFirst, fromSecond);
+    }
+
+    [Fact]
+    public void Lazy_resolves_to_the_replacement()
+    {
+        var services = new ServiceCollection();
+        services.AddMagicUseCases(ThisAssemblyOnly);
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        var describe = scope.ServiceProvider.GetRequiredService<Lazy<IDescribeUseCase>>().Value;
+
+        Assert.Equal("replacement around described", describe.Execute());
+    }
+
+    [Fact]
     public void AddImplementationsOfBase_collects_the_whole_catalog_under_the_base_type()
     {
         var services = new ServiceCollection();
@@ -175,6 +238,51 @@ public class ImplementationRegistrationModuleTests
     public class ConstructionCounter
     {
         public int Count { get; set; }
+    }
+
+    public interface IDescribeUseCase : IMagicUseCase
+    {
+        string Execute();
+    }
+
+    public class DescribeUseCase : IDescribeUseCase
+    {
+        public string Execute()
+        {
+            return "described";
+        }
+    }
+
+    [RegisteredInPlaceOf(typeof(DescribeUseCase))]
+    public class ReplacementDescribeUseCase(DescribeUseCase describe) : IDescribeUseCase
+    {
+        public string Execute()
+        {
+            return "replacement around " + describe.Execute();
+        }
+    }
+
+    public interface ISingletonDescribeUseCase : IMagicUseCase
+    {
+        string Execute();
+    }
+
+    [MagicUseCase(ServiceLifetime.Singleton)]
+    public class SingletonDescribeUseCase : ISingletonDescribeUseCase
+    {
+        public string Execute()
+        {
+            return "described once";
+        }
+    }
+
+    [RegisteredInPlaceOf(typeof(SingletonDescribeUseCase))]
+    public class ReplacementSingletonDescribeUseCase(SingletonDescribeUseCase singletonDescribe) : ISingletonDescribeUseCase
+    {
+        public string Execute()
+        {
+            return "replacement around " + singletonDescribe.Execute();
+        }
     }
 
     public abstract class Rule;

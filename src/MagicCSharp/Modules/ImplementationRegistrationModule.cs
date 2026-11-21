@@ -18,13 +18,35 @@ public static class ImplementationRegistrationModule
 {
     /// <summary>
     ///     Registers every concrete implementation of every interface that extends <typeparamref name="TInterface" />,
+    ///     under that sub-interface. See <see cref="AddImplementationsOf(IServiceCollection, Type, ImplementationRegistrationOptions?)" />.
+    /// </summary>
+    public static IServiceCollection AddImplementationsOf<TInterface>(
+        this IServiceCollection services,
+        ImplementationRegistrationOptions? options = null)
+    {
+        return services.AddImplementationsOf(typeof(TInterface), options);
+    }
+
+    /// <summary>
+    ///     Registers every concrete implementation of every interface that extends <paramref name="markerType" />,
     ///     under that sub-interface.
+    ///     <para>
+    ///         An open generic marker such as <c>typeof(IRepository&lt;,,,&gt;)</c> matches every closed form of it, and
+    ///         registers only non-generic sub-interfaces: <c>IChargesRepository : IRepository&lt;Charge, …&gt;</c> is one,
+    ///         a further generic contract such as <c>IPaginatedRepository&lt;,&gt;</c> is not.
+    ///     </para>
+    ///     <para>
+    ///         A class marked <see cref="RegisteredInPlaceOfAttribute" /> takes another's place: it is registered for
+    ///         that class's interfaces, and that class as itself, both with that class's lifetime. Without such a
+    ///         class, nothing about the registrations changes.
+    ///     </para>
     ///     <para>
     ///         Everything the application references is scanned, whether or not .NET has loaded it yet — see
     ///         <see cref="ApplicationAssemblies" /> for why that distinction matters.
     ///     </para>
     /// </summary>
     /// <param name="services">The service collection to register into.</param>
+    /// <param name="markerType">The interface the registered interfaces extend; closed, or an open generic.</param>
     /// <param name="options">
     ///     Lifetime, lazy registration, assembly filter and whether several implementations are allowed. Omit it for
     ///     transient, one implementation per interface, every application assembly.
@@ -33,16 +55,18 @@ public static class ImplementationRegistrationModule
     ///     An interface extends the marker but has no concrete implementation, or has several while
     ///     <see cref="ImplementationRegistrationOptions.AllowMultipleImplementations" /> is false.
     /// </exception>
-    public static IServiceCollection AddImplementationsOf<TInterface>(
+    public static IServiceCollection AddImplementationsOf(
         this IServiceCollection services,
+        Type markerType,
         ImplementationRegistrationOptions? options = null)
     {
         options ??= new ImplementationRegistrationOptions();
-        var markerType = typeof(TInterface);
         var types = LoadTypes(options.AssemblyFilter);
 
-        // One pass over every type, bucketing implementations by the sub-interface they satisfy.
+        // One pass over every type, bucketing implementations by the sub-interface they satisfy. A class that takes
+        // another's place is set aside, so the interface it shares with that class does not count it twice.
         var implementationsByInterface = new Dictionary<Type, List<Type>>();
+        var replacementsByImplementation = new Dictionary<Type, Type>();
         foreach (var type in types)
         {
             if (!IsConcreteClass(type))
@@ -50,9 +74,16 @@ public static class ImplementationRegistrationModule
                 continue;
             }
 
+            var registeredInPlaceOf = type.GetCustomAttribute<RegisteredInPlaceOfAttribute>(false);
+            if (registeredInPlaceOf != null)
+            {
+                replacementsByImplementation[registeredInPlaceOf.ImplementationType] = type;
+                continue;
+            }
+
             foreach (var interfaceType in type.GetInterfaces())
             {
-                if (interfaceType == markerType || !markerType.IsAssignableFrom(interfaceType))
+                if (!ExtendsMarker(interfaceType, markerType))
                 {
                     continue;
                 }
@@ -69,7 +100,7 @@ public static class ImplementationRegistrationModule
 
         // An interface that extends the marker but resolves to nothing is a wiring mistake that would
         // otherwise surface as a resolution failure on the first request that needs it.
-        var declaredInterfaces = types.Where(type => type.IsInterface && markerType.IsAssignableFrom(type) && type != markerType);
+        var declaredInterfaces = types.Where(type => type.IsInterface && ExtendsMarker(type, markerType));
         foreach (var declaredInterface in declaredInterfaces)
         {
             if (!implementationsByInterface.ContainsKey(declaredInterface))
@@ -94,7 +125,14 @@ public static class ImplementationRegistrationModule
             foreach (var implementationType in implementations)
             {
                 var resolved = options.LifetimeSelector?.Invoke(implementationType) ?? options.Lifetime;
-                services.Add(new ServiceDescriptor(interfaceType, implementationType, resolved));
+                if (replacementsByImplementation.TryGetValue(implementationType, out var replacementType))
+                {
+                    AddRegistration(services, new ServiceDescriptor(interfaceType, replacementType, resolved), options);
+                    services.TryAdd(new ServiceDescriptor(implementationType, implementationType, resolved));
+                    continue;
+                }
+
+                AddRegistration(services, new ServiceDescriptor(interfaceType, implementationType, resolved), options);
             }
 
             if (options.ShouldRegisterLazy)
@@ -133,6 +171,28 @@ public static class ImplementationRegistrationModule
         }
 
         return services;
+    }
+
+    private static bool ExtendsMarker(Type interfaceType, Type markerType)
+    {
+        if (!markerType.IsGenericTypeDefinition)
+        {
+            return interfaceType != markerType && markerType.IsAssignableFrom(interfaceType);
+        }
+
+        return !interfaceType.IsGenericType &&
+               interfaceType.GetInterfaces().Any(extended => extended.IsGenericType && extended.GetGenericTypeDefinition() == markerType);
+    }
+
+    private static void AddRegistration(IServiceCollection services, ServiceDescriptor serviceDescriptor, ImplementationRegistrationOptions options)
+    {
+        if (options.ShouldKeepExistingRegistrations)
+        {
+            services.TryAdd(serviceDescriptor);
+            return;
+        }
+
+        services.Add(serviceDescriptor);
     }
 
     private static bool IsConcreteClass(Type type)

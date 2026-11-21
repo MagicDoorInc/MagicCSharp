@@ -14,6 +14,15 @@
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
+
+  <!--
+    The source generators, in every project. They write nothing until a class asks: [GenerateInterface] on a use
+    case, a partial DAL or filter, [MagicClient] on an interface. What each one writes:
+    https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Generators/README.md
+  -->
+  <ItemGroup>
+    <PackageReference Include="MagicCSharp.Generators" PrivateAssets="all" />
+  </ItemGroup>
 {{- if build_rules }}
 
   <!--

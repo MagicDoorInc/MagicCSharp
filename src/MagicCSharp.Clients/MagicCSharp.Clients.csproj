@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!-- NuGet Package Metadata -->
+        <PackageId>MagicCSharp.Clients</PackageId>
+        <Description>Typed HTTP clients for calling another service, written by the compiler: mark an interface [MagicClient("route")] and each method [ClientGet], [ClientPost], [ClientPut], [ClientPatch] or [ClientDelete], and MagicCSharp.Generators writes the client class and its registration. Ships a default client base and registration; a codebase with its own declares them once with [assembly: MagicClientConvention].</Description>
+        <PackageTags>http-client;source-generator;service-to-service;clean-architecture</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.1"/>
+        <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+</Project>

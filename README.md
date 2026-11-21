@@ -68,6 +68,8 @@ CLAUDE.md                                  @AGENTS.md, so Claude Code reads the 
   events-and-messaging.md
   background-services.md
   api-and-controller-conventions.md
+  service-clients.md
+  generated-code.md                        what the compiler writes, and when to write it yourself
   time-and-dates.md
   testing-conventions.md
   coding-style.md
@@ -79,7 +81,7 @@ Now open the repository in Claude Code, Codex, Cursor or Copilot. The agent read
 It says that business logic goes in use cases, that domain code depends on ports, and that `mcs` creates
 projects and entities. A change is done when `dotnet build`, `dotnet test` and `mcs validate` pass.
 
-Or add the packages to an app you already have. There are fourteen, under one version number, and each
+Or add the packages to an app you already have. There are seventeen, under one version number, and each
 stands alone; the layout and `mcs` are optional.
 
 ```bash
@@ -273,6 +275,8 @@ The same things make a person's pull request reviewable.
 | Publish and handle events | [MagicCSharp.Events](src/MagicCSharp.Events/) · [.Events.Kafka](src/MagicCSharp.Events.Kafka/) · [.Events.SQS](src/MagicCSharp.Events.SQS/) |
 | Run work on a schedule | [MagicCSharp.Scheduling](src/MagicCSharp.Scheduling/) |
 | Test with fakes, time and a real database | [MagicCSharp.Testing](src/MagicCSharp.Testing/) · [.Testing.Database](src/MagicCSharp.Testing.Database/) |
+| Let the compiler write interfaces, mappings, filters and clients | [MagicCSharp.Generators](src/MagicCSharp.Generators/) |
+| Call another service over HTTP | [MagicCSharp.Clients](src/MagicCSharp.Clients/) · [.Testing.Clients](src/MagicCSharp.Testing.Clients/) |
 | Enforce the house style | [MagicCSharp.Analyzers](src/MagicCSharp.Analyzers/) |
 | Scaffold and lay out a repository | [mcs](src/MagicCSharp.Cli/) · [The layout guide](docs/repository-layout.md) · [Template overrides](docs/template-overrides.md) |
 | Deploy only the apps a change touched | [The CI/CD guide](docs/ci-cd.md) · `mcs affected` |
@@ -382,6 +386,12 @@ public class OrdersEfRepository(
 You get create, read by key or filter, four flavours of update, delete, counts and pages — each opening its
 own context, each translating to SQL. `GetOrThrow` raises the domain's `NotFoundException` so an endpoint
 that fetches by id needs no null branch.
+
+Most of that repository, and of the DAL behind it, is copying a property to the one of the same name. With
+`MagicCSharp.Generators` the compiler writes it: a `partial` DAL with only its columns gets its mapping, and a
+`partial` repository on `RepositoryServices` gets an `ApplyFilter` read from the filter's field names, and the base's
+default `CreateDal` builds the row through the DAL's generated `From`
+([the generated shape](src/MagicCSharp.Data.EntityFramework/README.md#generated-dal-mapping)).
 
 `OrderDal` is the row: the `[Table]` and `[Column]` attributes, the EF types, the mapping to and from
 `Order`. It lives in the data project, and `Order` does not know it exists — the arrow points from storage
@@ -520,9 +530,19 @@ public class GetOrderUseCase(IOrdersRepository ordersRepository) : IGetOrderUseC
 The body carries the same request id as the `X-Request-ID` header, so an id quoted in a bug report finds the
 request in the logs.
 
+## The compiler writes the repetitive parts
+
+`MagicCSharp.Generators` writes, on every build, the code that only restates what you already declared: a use case's
+interface from its `Execute` methods, a DAL's mapping from its columns, a repository's filter query and a fake's
+in-memory `Matches` from the filter's field names, an HTTP client from an interface's routes, a test fake that throws
+until scripted, the `Executing:` log line of a use case that asks for it. You write the part only you know; the IDE
+shows the rest, and nothing generated is committed. Every generator is opt-in per class, leaves alone what you write
+by hand, and fails the build naming the member when it cannot write something.
+[What each writes, and when to write it yourself →](src/MagicCSharp.Generators/)
+
 ## The packages
 
-Fourteen, split so you take only what you use. `MagicCSharp.App` bundles the four a web service needs, for
+Seventeen, split so you take only what you use. `MagicCSharp.App` bundles the four a web service needs, for
 when you would rather not choose.
 
 | Package | Add it when you want | Brings with it |
@@ -537,8 +557,11 @@ when you would rather not choose.
 | **[MagicCSharp.Events](src/MagicCSharp.Events/)** | Event dispatch and handler discovery | System.Text.Json |
 | **[MagicCSharp.Events.Kafka](src/MagicCSharp.Events.Kafka/)** | Kafka transport | Confluent.Kafka |
 | **[MagicCSharp.Events.SQS](src/MagicCSharp.Events.SQS/)** | SQS transport | AWSSDK.SQS |
-| **[MagicCSharp.Testing](src/MagicCSharp.Testing/)** | `FakeTimeProvider`, `FakeKeyGen`, `SyncEventDispatcher`, in-memory locks | DistributedLock, Microsoft's TimeProvider.Testing |
-| **[MagicCSharp.Testing.Database](src/MagicCSharp.Testing.Database/)** | Repository tests against real PostgreSQL | Testcontainers, xUnit |
+| **[MagicCSharp.Testing](src/MagicCSharp.Testing/)** | `FakeTimeProvider`, `FakeKeyGen`, `SyncEventDispatcher`, in-memory locks and repositories, `TestServices`, fake bases | DistributedLock, Microsoft's TimeProvider.Testing |
+| **[MagicCSharp.Testing.Database](src/MagicCSharp.Testing.Database/)** | Repository tests against real PostgreSQL, the migration upgrade check | Testcontainers, xUnit |
+| **[MagicCSharp.Clients](src/MagicCSharp.Clients/)** | Typed HTTP clients the compiler writes from an interface | Microsoft.Extensions.Http |
+| **[MagicCSharp.Testing.Clients](src/MagicCSharp.Testing.Clients/)** | A server test that every client route is served | the ASP.NET shared framework |
+| **[MagicCSharp.Generators](src/MagicCSharp.Generators/)** | Interfaces, DAL mapping, filters, clients and fakes written by the compiler | nothing — a development dependency, added by `mcs init` |
 | **[MagicCSharp.Analyzers](src/MagicCSharp.Analyzers/)** | The code-style conventions as compile errors | nothing — a development dependency, added by `mcs init` |
 | **[MagicCSharp.Cli](src/MagicCSharp.Cli/)** | The `mcs` tool | installed globally, not referenced |
 

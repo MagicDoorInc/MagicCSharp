@@ -19,6 +19,72 @@ JSON conventions the framework's own types need. `UseMagicApp` resolves every re
 miswired dependency fails the deploy rather than the first request — then builds the pipeline in the order
 those pieces need: request id, error handling, controllers.
 
+## A startup class
+
+The same two calls, with the host's lines in one place you override instead of copy:
+
+```csharp
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        MagicApp.Run<BoilersStartup>(args);
+    }
+}
+
+public class BoilersStartup : MagicAppStartup
+{
+    protected override void AddAppServices(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddSingleton<BoilerRegistry>();
+    }
+
+    protected override void UseAppPipeline(WebApplication app)
+    {
+        app.MapGet("/boilers/{boilerId}", (long boilerId) =>
+        {
+            throw new NotFoundException("Boiler");
+        });
+    }
+}
+```
+
+`MagicApp.Run` builds the app, logs `Application started in {ElapsedMilliseconds}ms`, and runs it. A start-up failure
+goes to `OnFatal` (standard error by default; an `AggregateException`'s inner one) and is rethrown, so the process
+exits non-zero. `MagicApp.Build<TStartup>(args)` returns the app ready to run, for a test or a host of your own.
+
+| Override | Default | |
+|---|---|---|
+| `AddAppServices` | (you write it) | the app's repositories, clients and modules |
+| `UseAppPipeline` | nothing | the app's own endpoints and middleware, after the framework's |
+| `Options` | `new MagicAppOptions()` | set it in the constructor, as [below](#changing-the-defaults) |
+| `AddFrameworkServices` | `builder.AddMagicApp(Options)` | a codebase with its own hosting, once, in a base its apps share; call `base` after registering Kafka or SQS |
+| `UseFrameworkPipeline` | `app.UseMagicApp(builder, Options)` | the same |
+| `OnStarted` | the start-up log line | your own |
+| `OnFatal` | standard error | your own logging |
+
+**When to write `Main` by hand:** a host that is not a web application (a worker, a console tool), or one whose
+start-up the steps above cannot express. The two calls at the top of this page are the same thing, unwrapped.
+
+## The assembly loader
+
+`AddMagicApp` loads the application's assemblies itself before it scans for use cases and handlers, so a service
+on it needs nothing more. A host whose discovery only looks at the assemblies already loaded — a codebase's own
+scan — needs each referenced project loaded first. With [MagicCSharp.Generators](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Generators/README.md),
+set one property in the host project:
+
+```xml
+<PropertyGroup>
+  <MagicCSharpGenerateAssemblyLoader>true</MagicCSharpGenerateAssemblyLoader>
+</PropertyGroup>
+```
+
+The compiler writes `{RootNamespace}.AssemblyLoader`, a module initializer that loads every project the host
+references, transitive ones included, before `Main`; a project added later is in it on the next build. Package
+references are not loaded. Calling `AssemblyLoader.Load()` again, from a test fixture, is harmless. A project that
+already declares `AssemblyLoader` fails the build (MCS1609): delete the hand-written one, or leave the property off to
+keep it.
+
 ## What it brings in
 
 `MagicCSharp`, `MagicCSharp.AspNetCore`, `MagicCSharp.Events`, `MagicCSharp.Scheduling`.

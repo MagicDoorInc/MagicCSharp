@@ -1,0 +1,18 @@
+namespace MagicCSharp.UseCases;
+
+/// <summary>
+///     Asks for a use case's <c>Executing:</c> trace line to be written for it. MagicCSharp.Generators writes a
+///     decorator for the use case's interface that logs <c>Executing: name={name}, …</c> with every argument, at
+///     trace level and under the use case's own logger category, then calls the use case; use case discovery
+///     registers that decorator for the interface in the class's place. Delete the hand-written line when you add
+///     this.
+///     <para>
+///         The build refuses a read-only use case (Get, List, Search, Find, Is, Can, Count) and a parameter that
+///         looks like a secret (a password, secret, token or key, a stream or a byte array) unless that parameter is
+///         marked <see cref="NotLoggedAttribute" />. Cancellation tokens are never logged.
+///     </para>
+/// </summary>
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+public sealed class LogExecutingAttribute : Attribute
+{
+}

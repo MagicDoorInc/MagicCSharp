@@ -34,7 +34,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       # The CHANGELOG claims a repository scaffolded from empty builds and serves a request. This is that
-      # claim, run on every change, because it spans the CLI, the templates and all fourteen packages and
+      # claim, run on every change, because it spans the CLI, the templates and all seventeen packages and
       # nothing else catches it breaking.
       - name: Pack everything to a local feed
         run: |

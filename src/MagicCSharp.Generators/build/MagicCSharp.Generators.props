@@ -1,0 +1,40 @@
+<Project>
+
+  <!--
+    Lets the generators read the MSBuild property MagicCSharpUseCaseMarkerInterface: the full name of the interface
+    every generated use case interface extends. Unset, it is MagicCSharp.UseCases.IMagicUseCase. A codebase with its
+    own marker interface sets it once, in its Directory.Build.props.
+  -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="MagicCSharpUseCaseMarkerInterface"/>
+  </ItemGroup>
+
+  <!--
+    MagicCSharpUseCaseCallerPrefixes: caller prefixes besides External and Internal, comma-separated (Partner,Admin; not
+    ';', which starts a comment in the editorconfig the property reaches the generator through), so
+    [LogExecuting] on PartnerGetInvoiceUseCase is refused as read-only like GetInvoiceUseCase.
+  -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="MagicCSharpUseCaseCallerPrefixes"/>
+  </ItemGroup>
+
+  <!--
+    MagicCSharpGenerateAssemblyLoader: true in a host project writes {RootNamespace}.AssemblyLoader, which loads every
+    referenced project before Main. MagicCSharpReferencedProjectAssemblies is filled by MagicCSharp.Generators.targets
+    from the resolved project references; nobody sets it by hand.
+  -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="MagicCSharpGenerateAssemblyLoader"/>
+    <CompilerVisibleProperty Include="MagicCSharpReferencedProjectAssemblies"/>
+  </ItemGroup>
+
+  <!--
+    MagicCSharpDesignTimeContextFactoryBase: the metadata name of the class generated design-time factories derive from
+    (a generic class with one type parameter and a constructor taking the database name first). Unset, it is
+    MagicCSharp.Data.Postgres.MagicDbContextFactory`1.
+  -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="MagicCSharpDesignTimeContextFactoryBase"/>
+  </ItemGroup>
+
+</Project>

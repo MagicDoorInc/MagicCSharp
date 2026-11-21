@@ -1,0 +1,21 @@
+<Project>
+
+  <!--
+    Hands the assembly loader generator the projects this one references, transitive ones included, once references
+    are resolved and before the compiler's editorconfig is written. Only project references: a package can be a
+    compile-time reference with nothing to load at run time. Runs only in a project that asked for the loader.
+    Comma-separated: the compiler reads these values from an editorconfig, where ';' starts a comment.
+  -->
+  <Target Name="MagicCSharpListReferencedProjectAssemblies"
+          BeforeTargets="GenerateMSBuildEditorConfigFileCore"
+          DependsOnTargets="ResolveAssemblyReferences"
+          Condition="'$(MagicCSharpGenerateAssemblyLoader)' == 'true'">
+    <ItemGroup>
+      <_MagicCSharpReferencedProjectAssembly Include="@(ReferencePath->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference')->'%(Filename)')"/>
+    </ItemGroup>
+    <PropertyGroup>
+      <MagicCSharpReferencedProjectAssemblies>@(_MagicCSharpReferencedProjectAssembly, ',')</MagicCSharpReferencedProjectAssemblies>
+    </PropertyGroup>
+  </Target>
+
+</Project>

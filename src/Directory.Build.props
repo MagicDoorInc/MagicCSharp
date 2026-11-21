@@ -3,14 +3,14 @@
   <!--
     Shared package metadata for every shipped library. Scoped to src/ so tests and examples are unaffected.
 
-    One place for the things that were previously repeated in fourteen .csproj files and drifted: three of
+    One place for the things that were previously repeated in each package's .csproj and drifted: three of
     them still carried RepositoryUrl=github.com/yourusername/magiccsharp, and the author name disagreed
     between packages.
   -->
   <PropertyGroup>
     <!-- One version for every package. publish-all.sh rewrites this line alone, rather than sed-ing
-         fourteen .csproj files and leaving them to drift. -->
-    <Version>1.0.3</Version>
+         every .csproj file and leaving them to drift. -->
+    <Version>1.1.0</Version>
 
     <Authors>MagicCSharp Contributors</Authors>
     <Company>MagicCSharp</Company>

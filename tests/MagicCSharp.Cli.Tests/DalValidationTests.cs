@@ -63,6 +63,50 @@ public class DalValidationTests
         Assert.Equal("DAL column is non-nullable but not marked [Required]", violation.Rule);
     }
 
+    [Fact]
+    public void Required_is_accepted_in_a_partial_Dal_whose_From_is_generated()
+    {
+        var violations = Validate(PartialDal("public required long LeaseId { get; set; }", ownMethods: ""));
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void Required_is_reported_in_a_partial_Dal_whose_own_Apply_sets_it()
+    {
+        var violations = Validate(PartialDal(
+            "public required decimal Amount { get; set; }",
+            ownMethods: """
+                        public override void Apply(ChargeEdit edit)
+                        {
+                            Amount = edit.Amount;
+                        }
+                        """));
+
+        var violation = Assert.Single(violations);
+        Assert.Equal("Amount is 'required' and Apply() assigns it", violation.Message);
+    }
+
+    [Fact]
+    public void Required_is_reported_in_a_partial_Dal_whose_own_From_leaves_it_out()
+    {
+        var violations = Validate(PartialDal(
+            "public required long LeaseId { get; set; }",
+            ownMethods: """
+                        public static ChargeDal From(ChargeEdit edit, long id)
+                        {
+                            var dal = new ChargeDal
+                            {
+                                Id = id,
+                            };
+                            return dal;
+                        }
+                        """));
+
+        var violation = Assert.Single(violations);
+        Assert.Equal("LeaseId is 'required' and From() does not assign it", violation.Message);
+    }
+
     private static List<Violation> Validate(string source)
     {
         var sourceFile = new SourceFile { Path = "ChargeDal.cs", Lines = source.Split('\n') };
@@ -93,6 +137,21 @@ public class DalValidationTests
                          dal.Apply(edit);
                          return dal;
                      }
+                 }
+                 """;
+    }
+
+    /// <summary>A DAL the generator maps: <c>partial</c>, with only the methods it writes by hand.</summary>
+    private static string PartialDal(string property, string ownMethods)
+    {
+        return $$"""
+                 public partial class ChargeDal : BaseIdDal<Charge, ChargeEdit>
+                 {
+                     [Required]
+                     [Column("column")]
+                     {{property}}
+
+                     {{ownMethods}}
                  }
                  """;
     }

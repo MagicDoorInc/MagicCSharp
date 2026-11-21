@@ -67,6 +67,30 @@ plugin registered in production is registered here too.
 
 Run without Docker by filtering: `dotnet test --filter "Category!=Integration"`.
 
+A repository whose constructor takes `RepositoryServices<TContext>` is built from the same three plus `KeyGen`:
+`new RepositoryServices<MagicShopContext>(DbContextFactory, KeyGen, TimeProvider, NullLoggerFactory.Instance)`.
+
+## Migrations upgrade from the last release
+
+A migration that builds an empty schema can still fail on the database production has. One test per context
+checks the upgrade:
+
+```csharp
+[Trait("Category", "Database")]
+public class BoilersMigrationTests(ITestOutputHelper output) : MigrationTestBase<BoilersDbContext>(output);
+```
+
+`MigrationsUpgradeToLatest` creates a fresh database named by the context's `[MigrationsDatabase]`, restores
+`Migrations/{name}_baseline.dump` from the test's output folder when there is one (a `pg_dump` of the released
+schema), applies the migrations, and fails unless every migration in the code was applied — and again after a second
+migrate that must find nothing pending. The database is dropped afterwards. `pg_restore`'s output is withheld, as a
+dump can hold data.
+
+`MigrationTestBase` uses xUnit v2, like `TestRepositoryBase`. A suite on another test framework calls the check itself,
+`MigrationUpgradeCheck.Verify<TContext>(container, options, cancellationToken)`, which throws
+`MigrationUpgradeException` and carries no test framework types. `MigrationUpgradeOptions` sets `BaselineDirectory`,
+`ConfigureNpgsql` (pgvector's `UseVector()`, say) and a `WriteLine` for progress.
+
 ## Related packages
 
 - [MagicCSharp.Testing](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Testing/README.md)

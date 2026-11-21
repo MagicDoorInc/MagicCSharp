@@ -3,6 +3,7 @@ using MagicCSharp.Data.Repositories;
 using MagicCSharp.Infrastructure;
 using MagicCSharp.Infrastructure.Entities;
 using MagicCSharp.Infrastructure.Exceptions;
+using MagicCSharp.Infrastructure.KeyGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -12,9 +13,13 @@ namespace MagicCSharp.Data.EntityFramework.Repositories;
 ///     Entity Framework implementation of <see cref="IRepository{TEntity,TKey,TEdit,TFilter}" /> for entities keyed
 ///     by a Snowflake id.
 ///     <para>
-///         A derived repository supplies three things: <see cref="CreateDal" /> to build a new row,
-///         <see cref="ApplyFilter" /> to turn a filter into a query, and — through the DAL's own <c>ToEntity</c> and
-///         <c>Apply</c> — the mapping between row and entity. Everything else is here.
+///         A derived repository supplies <see cref="ApplyFilter" /> to turn a filter into a query; the DAL's own
+///         <c>ToEntity</c>, <c>Apply</c> and <c>From</c> map between row and entity, and <see cref="CreateDal" />
+///         builds a new row through that <c>From</c> unless the repository overrides it. Everything else is here.
+///     </para>
+///     <para>
+///         Build it with one <see cref="RepositoryServices{TContext}" />; the constructor taking the context factory,
+///         clock and logger factory still works, but has no key service for the default <see cref="CreateDal" />.
 ///     </para>
 ///     <para>
 ///         Every method opens its own short-lived context from the factory rather than sharing one. That is what
@@ -27,13 +32,15 @@ namespace MagicCSharp.Data.EntityFramework.Repositories;
 /// <typeparam name="TEntity">The entity type.</typeparam>
 /// <typeparam name="TFilter">The query filter type.</typeparam>
 /// <typeparam name="TEdit">The type carrying the writable fields.</typeparam>
-public abstract class BaseIdRepository<TContext, TDal, TEntity, TFilter, TEdit> : IRepository<TEntity, long, TEdit, TFilter>
+public abstract class BaseIdRepository<TContext, TDal, TEntity, TFilter, TEdit> : IRepository<TEntity, long, TEdit, TFilter>, ITenantTableDestroyer
     where TDal : class, IDalTransform<TEntity, TEdit>, IDalId, IDal
     where TEntity : class, TEdit, IIdEntity
     where TContext : DbContext
 {
     protected readonly TimeProvider TimeProvider;
     protected readonly IDbContextFactory<TContext> ContextFactory;
+
+    private readonly IKeyGenService? keyGenService;
 
     protected BaseIdRepository(IDbContextFactory<TContext> contextFactory, TimeProvider timeProvider, ILoggerFactory loggerFactory)
     {
@@ -43,9 +50,33 @@ public abstract class BaseIdRepository<TContext, TDal, TEntity, TFilter, TEdit> 
     }
 
     /// <summary>
+    ///     Everything from one <see cref="RepositoryServices{TContext}" />, the key service included, so
+    ///     <see cref="CreateDal" /> can build new rows through the DAL's own <c>From</c>.
+    /// </summary>
+    protected BaseIdRepository(RepositoryServices<TContext> repositoryServices)
+        : this(repositoryServices.ContextFactory, repositoryServices.TimeProvider, repositoryServices.LoggerFactory)
+    {
+        keyGenService = repositoryServices.KeyGenService;
+    }
+
+    /// <summary>
     ///     Logger categorized to the concrete repository type, not to this base class.
     /// </summary>
     protected ILogger Log { get; }
+
+    /// <summary>
+    ///     The key service from <see cref="RepositoryServices{TContext}" />. A repository built through the older
+    ///     constructor has none, and throws here.
+    /// </summary>
+    protected IKeyGenService KeyGenService
+    {
+        get
+        {
+            return keyGenService ?? throw new InvalidOperationException(
+                $"{GetType().Name} was built without RepositoryServices, so it has no key service. Build it with " +
+                "RepositoryServices, or override CreateDal and give new rows their ids there.");
+        }
+    }
 
     public virtual async Task<int> Count(TFilter filter)
     {
@@ -308,10 +339,54 @@ public abstract class BaseIdRepository<TContext, TDal, TEntity, TFilter, TEdit> 
         return await query.ExecuteDeleteAsync();
     }
 
+    /// <summary>The context this repository's table lives in, for ordering tenant deletion.</summary>
+    Type ITenantTableDestroyer.DbContextType
+    {
+        get
+        {
+            return typeof(TContext);
+        }
+    }
+
+    /// <summary>The Dal of the table <see cref="DestroyTenant" /> empties, for ordering tenant deletion.</summary>
+    Type ITenantTableDestroyer.DalType
+    {
+        get
+        {
+            return typeof(TDal);
+        }
+    }
+
     /// <summary>
-    ///     Build a new row from an edit. Assign the id here, from <c>IKeyGenService.GetId()</c>.
+    ///     Deletes every row of the tenant through the DAL's tenant key (see <see cref="TenantRows" />), soft-deleted
+    ///     rows included, in one statement; the delete hooks do not run. A DAL without a tenant key belongs to no
+    ///     tenant, and nothing is deleted. Override to delete differently.
     /// </summary>
-    protected abstract TDal CreateDal(TEdit edit);
+    public virtual async Task<int> DestroyTenant(long tenantId)
+    {
+        var tenantKeyPropertyName = TenantRows.FindKeyPropertyName(typeof(TDal));
+        if (tenantKeyPropertyName == null)
+        {
+            return 0;
+        }
+
+        Log.LogTrace("DestroyTenant: tenantId={TenantId}", tenantId);
+
+        await using var context = await ContextFactory.CreateDbContextAsync();
+
+        return await TenantRows.WhereTenant(GetDbSet(context), tenantKeyPropertyName, tenantId).ExecuteDeleteAsync();
+    }
+
+    /// <summary>
+    ///     Build a new row from an edit. By default the DAL's own <c>From(edit, id)</c> builds it, with an id from
+    ///     <see cref="KeyGenService" />; override when the DAL has no <c>From</c> or the repository was built without
+    ///     <see cref="RepositoryServices{TContext}" />, and assign the id here.
+    /// </summary>
+    protected virtual TDal CreateDal(TEdit edit)
+    {
+        var id = KeyGenService.GetId();
+        return DalFromEdit<TDal, TEdit>.Create(edit, id);
+    }
 
     /// <summary>
     ///     Turn a filter into query predicates. Called for every read, and for

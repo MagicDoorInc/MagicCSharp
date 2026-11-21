@@ -59,6 +59,12 @@ up the whole pipeline around it.
 for every project, and its `.editorconfig` tells those rules that EF migrations are generated code. Pass
 `--no-build-rules` to leave both out.
 
+Every project also references
+[MagicCSharp.Generators](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Generators/README.md),
+with or without `--no-build-rules`: it is not a rule set, and it writes nothing until a class asks for it
+(`[GenerateInterface]` on a use case, a `partial` DAL, a `[MagicClient]` interface). The files `add-entity` writes
+are the hand-written shape; the generators' guide says how to let the compiler write their mapping and filter.
+
 It also writes the conventions down for AI coding agents — and for a person new to the code: an `AGENTS.md`,
 which every major coding agent reads, a `CLAUDE.md` that imports it for Claude Code,
 and an `.ai-knowledge/` folder of guides, one per topic (use cases, entities, events, background services,
@@ -72,7 +78,7 @@ ships better guides, `mcs update ai-files` brings them in; it overwrites the gui
 | `-p, --prefix` | namespace and solution-name root, e.g. `Acme` gives `Acme.Shop.slnx` |
 | `--package-version` | MagicCSharp version to pin; defaults to this tool's |
 | `--target-framework` | `net10.0` unless you say otherwise |
-| `--no-build-rules` | no MagicCSharp.Analyzers reference and no `.editorconfig` |
+| `--no-build-rules` | no MagicCSharp.Analyzers reference and no `.editorconfig`; MagicCSharp.Generators stays |
 | `--no-ai-knowledge` | no `AGENTS.md`, `CLAUDE.md` or `.ai-knowledge/` |
 
 ## Your own templates

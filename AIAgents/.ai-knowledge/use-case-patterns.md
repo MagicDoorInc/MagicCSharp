@@ -6,34 +6,37 @@ validation, state changes, persistence, events and calls to outside systems. Thi
 ## The shape
 
 ```csharp
-public interface IPayChargeUseCase : IMagicUseCase
-{
-    Task<Charge> Execute(long chargeId);
-}
-
-public class PayChargeUseCase(
+[GenerateInterface]
+[LogExecuting]
+public partial class PayChargeUseCase(
     IChargesRepository chargesRepository,
     TimeProvider timeProvider,
     IEventDispatcher eventDispatcher,
-    IDistributedLockProvider distributedLockProvider,
-    ILogger<PayChargeUseCase> logger) : IPayChargeUseCase
+    IDistributedLockProvider distributedLockProvider)
 {
+    /// <summary>Marks the charge paid and tells the tenant.</summary>
     public async Task<Charge> Execute(long chargeId)
     {
-        logger.LogTrace("Executing: chargeId={chargeId}", chargeId);
         // ...
     }
 }
 ```
 
+- `[GenerateInterface]` makes the compiler write `IPayChargeUseCase : IMagicUseCase` from the public `Execute`
+  methods and their doc comments; callers and tests use `IPayChargeUseCase` as usual. `[LogExecuting]` writes the
+  `Executing:` line ([Logging](#logging)). Both come from `MagicCSharp.Generators`; when to write the interface or
+  the line by hand instead is in `generated-code.md`.
+- In a repository that does not reference `MagicCSharp.Generators`, write the interface by hand, as its existing use
+  cases do: `public interface IPayChargeUseCase : IMagicUseCase { Task<Charge> Execute(long chargeId); }` and
+  `class PayChargeUseCase(...) : IPayChargeUseCase`.
 - The interface extends `IMagicUseCase`. `AddMagicCSharp()` finds it and registers it — **never register a use
   case by hand.**
 - The class is the interface's name without the `I`. The method is `Execute`, never `ExecuteAsync`.
 - Dependencies come through the primary constructor, used directly — no fields copying them.
 - **One operation per use case.** Two `Execute` overloads are fine when they are the same operation (by id and
   by entity); two different operations are two classes.
-- Interface, implementation, and its `Request`/`Result` records live in **one file**, named after the use case.
-  A record shared by several use cases moves to its own file.
+- The class, its `Request`/`Result` records and a hand-written interface live in **one file**, named after the use
+  case. A record shared by several use cases moves to its own file.
 
 ## Naming dependencies
 
@@ -113,9 +116,19 @@ Use cases never throw HTTP exceptions; those are for controllers that genuinely 
 
 ## Logging
 
-A use case that changes something takes `ILogger<T> logger` and starts with
-`logger.LogTrace("Executing: request={request}", request);`. A read-only one (Get/List/Search) does not log
-that line (`MCS0015`). Log warnings and errors when they are worth someone investigating.
+A use case that changes something logs an `Executing:` line with its arguments at trace level. Mark it
+`[LogExecuting]` and the compiler writes that line; do not write `logger.LogTrace("Executing: …")` as well (`MCS1103`).
+
+- A read-only one (Get, List, Search, Find, Is, Can, Count) does not log that line: `[LogExecuting]` refuses it
+  (`MCS1102`), and a hand-written line in a Get/List/Search use case fails `MCS0015`.
+- A parameter that looks like a secret (a password, secret, token or key, a stream, a byte array) fails the build
+  (`MCS1101`) until it carries `[NotLogged]`. Never mark a parameter `[NotLogged]` to silence the rule for a value that
+  is not secret.
+- Without the generators, or for a class `[LogExecuting]` refuses (several use case interfaces, generic, abstract,
+  a `ref`/`out`/`in` parameter), take `ILogger<T> logger` and start `Execute` with
+  `logger.LogTrace("Executing: request={request}", request);`.
+
+Log warnings and errors when they are worth someone investigating. Take `ILogger<T> logger` for those.
 
 ## Persist, then dispatch
 

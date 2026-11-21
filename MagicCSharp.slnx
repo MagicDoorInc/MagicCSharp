@@ -4,6 +4,7 @@
         <Project Path="src/MagicCSharp.Analyzers/MagicCSharp.Analyzers.csproj"/>
         <Project Path="src/MagicCSharp.App/MagicCSharp.App.csproj"/>
         <Project Path="src/MagicCSharp.AspNetCore/MagicCSharp.AspNetCore.csproj"/>
+        <Project Path="src/MagicCSharp.Clients/MagicCSharp.Clients.csproj"/>
         <Project Path="src/MagicCSharp.Cli/MagicCSharp.Cli.csproj"/>
         <Project Path="src/MagicCSharp.Data/MagicCSharp.Data.csproj"/>
         <Project Path="src/MagicCSharp.Data.EntityFramework/MagicCSharp.Data.EntityFramework.csproj"/>
@@ -11,8 +12,11 @@
         <Project Path="src/MagicCSharp.Events/MagicCSharp.Events.csproj"/>
         <Project Path="src/MagicCSharp.Events.Kafka/MagicCSharp.Events.Kafka.csproj"/>
         <Project Path="src/MagicCSharp.Events.SQS/MagicCSharp.Events.SQS.csproj"/>
+        <Project Path="src/MagicCSharp.Generators/MagicCSharp.Generators.csproj"/>
+        <Project Path="src/MagicCSharp.Generators.Declarations/MagicCSharp.Generators.Declarations.csproj"/>
         <Project Path="src/MagicCSharp.Scheduling/MagicCSharp.Scheduling.csproj"/>
         <Project Path="src/MagicCSharp.Testing/MagicCSharp.Testing.csproj"/>
+        <Project Path="src/MagicCSharp.Testing.Clients/MagicCSharp.Testing.Clients.csproj"/>
         <Project Path="src/MagicCSharp.Testing.Database/MagicCSharp.Testing.Database.csproj"/>
     </Folder>
     <Folder Name="/tests/">
@@ -21,6 +25,9 @@
         <Project Path="tests/MagicCSharp.Data.EntityFramework.Tests/MagicCSharp.Data.EntityFramework.Tests.csproj"/>
         <Project Path="tests/MagicCSharp.AspNetCore.Tests/MagicCSharp.AspNetCore.Tests.csproj"/>
         <Project Path="tests/MagicCSharp.Cli.Tests/MagicCSharp.Cli.Tests.csproj"/>
+        <Project Path="tests/MagicCSharp.Clients.Tests/MagicCSharp.Clients.Tests.csproj"/>
+        <Project Path="tests/MagicCSharp.Generators.Tests/MagicCSharp.Generators.Tests.csproj"/>
+        <Project Path="tests/MagicCSharp.Testing.Clients.Tests/MagicCSharp.Testing.Clients.Tests.csproj"/>
         <Project Path="tests/MagicCSharp.Tests/MagicCSharp.Tests.csproj"/>
     </Folder>
     <Properties Name="Configuration">

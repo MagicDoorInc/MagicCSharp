@@ -36,9 +36,12 @@ Pick by key shape, then by what the entity needs:
 | + soft delete | `BaseIdSoftDeleteRepository` | `BaseKeySoftDeleteRepository` |
 | + search | `BaseIdSearchRepository` | `BaseKeySearchRepository` |
 
-Each takes `(IDbContextFactory<TContext>, TimeProvider, ILoggerFactory)`. The soft-delete and search bases
-include pagination. A derived repository supplies `CreateDal` and `ApplyFilter`; everything else is
-inherited.
+Each takes `RepositoryServices<TContext>` — the context factory, `IKeyGenService`, `TimeProvider` and
+`ILoggerFactory` in one constructor parameter — or, as before, `(IDbContextFactory<TContext>, TimeProvider,
+ILoggerFactory)`. The soft-delete and search bases include pagination. A derived repository supplies `ApplyFilter`,
+and `CreateDal` when it is built the old way; everything else is inherited. With
+[MagicCSharp.Generators](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Generators/README.md)
+the compiler can write both, and the DAL's mapping ([below](#generated-dal-mapping)).
 
 ## A worked entity
 
@@ -139,11 +142,98 @@ so singleton is equally correct; scoped simply matches the use cases that depend
   then one file.
 - `[Required]` on every non-nullable column. Without it EF infers a nullable column and the database stops
   enforcing what the type says.
-- Do not use the `required` keyword on columns — `From()` and `Apply()` construct the row and cannot satisfy
-  it. The primary key on the base class is the one exception. `mcs validate` checks both of these.
+- Use the `required` keyword only on a column `From()` sets once and `Apply()` leaves alone — the key, a parent id
+  that never changes. `Apply()` cannot satisfy it for any other column. `mcs validate` checks both of these.
 - `[Column("snake_case")]`, `[Table("snake_case")]`, and `[Index]` on foreign keys and anything the filter
   narrows on.
 - `[StringLength(n)]` for `VARCHAR(n)`, `[Precision(p, s)]` for a decimal.
+
+## Generated DAL mapping
+
+Most of the DAL above is copying: `ToEntity`, `Apply` and `From` assign each property to the one of the same name.
+With [MagicCSharp.Generators](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Generators/README.md)
+referenced, make the DAL `partial` and write only its columns:
+
+```csharp
+[Table("shipments")]
+public partial class ShipmentDal : BaseIdDal<Shipment, ShipmentEdit>, IDalDeleted
+{
+    [Required]
+    [Column("tenant_id")]
+    public long TenantId { get; set; }
+
+    [Required]
+    [Column("status")]
+    public ShipmentStatus Status { get; set; }
+
+    [Column("carrier_id")]
+    public long? CarrierId { get; set; }
+
+    [Required]
+    [Column("tracking_code")]
+    public string TrackingCode { get; set; } = "";
+
+    [Column("delivered")]
+    public DateTimeOffset? Delivered { get; set; }
+
+    [Column("deleted")]
+    public DateTimeOffset? Deleted { get; set; }
+}
+```
+
+The compiler writes each method the DAL does not declare, matching properties by name and identical type, nullability
+included, inherited and `[NotMapped]` ones too:
+
+- `ToEntity()` sets every entity property from the DAL (MCS1201 names one with no column).
+- `Apply(edit)` sets every edit property, except a `required`, `[Key]`, `Id`/`Key` or tenant key column, which never
+  changes after the insert (MCS1202).
+- `static From(edit, id)` (or `From(edit, key)`) sets the id and exactly those set-once columns, then calls `Apply`
+  (MCS1203 names a `required` column the edit has nothing for). A `required` column here is one `From` sets once —
+  a parent id that never changes — and `mcs validate` accepts it in a `partial` DAL without its own `From`.
+
+An id DAL also gets `IDalFromEdit`, so the base's default `CreateDal` builds rows through `From` with an id from
+`IKeyGenService`. The repository then needs neither method:
+
+```csharp
+public partial class ShipmentsRepository(RepositoryServices<TestDbContext> repositoryServices)
+    : BaseIdSoftDeleteRepository<TestDbContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices)
+{
+}
+```
+
+`ApplyFilter` is generated from the filter's field names ([MagicCSharp.Data](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Data/README.md#generated-filters)).
+A repository built the old way, without `RepositoryServices`, has no `IKeyGenService` and keeps its own `CreateDal`;
+the default throws naming the DAL when it has no `From`.
+
+**When to write it by hand:** a column whose value converts — JSON, a value object, a computed column — needs the
+method that touches it written by hand; the generator still writes the other two. A `[NotMapped]` property of the
+entity's name and type can carry a conversion instead, and then nothing is hand-written. A key DAL's `CreateDal` stays
+yours, because keys are often natural. To leave the generated shape, write the three methods (copy them from the
+generated file) and drop `partial`.
+
+### Registration by convention
+
+```csharp
+services.AddPostgresDbContextFactory<MagicShopContext>(configuration);   // MagicCSharp.Data.Postgres
+services.AddRepositoriesFrom<MagicShopContext>();
+```
+
+`AddRepositoriesFrom<TContext>` scans the context's assembly and registers each repository class under every
+non-generic interface it implements that extends `IRepository<,,,>`, scoped unless you pass a lifetime, plus
+`RepositoryServices<TContext>` and the tenant deletion services. A line written by hand before it wins: an interface
+already registered is skipped. Two classes implementing one repository interface throw.
+It does not register the context factory.
+
+### The tenant key
+
+A multi-tenant schema names its tenant column once per DAL assembly:
+
+```csharp
+[assembly: TenantKey("TenantId")]
+```
+
+A DAL with a public `long` or `long?` property of that name is tenant-scoped: the generated `Apply` never changes
+it, and the repository's `DestroyTenant(tenantId)` deletes that tenant's rows ([below](#deleting-a-tenants-data)).
 
 ## What the base classes handle
 
@@ -162,6 +252,8 @@ call concurrently.
 | `ApplyOrder(query)` | newest first, by id | reads should come back in another order |
 | `GetNotFoundException(id)` | `NotFoundIdException(id, "Order")` | callers should be able to catch this entity's absence in particular |
 | `GetDbSet(context)` | `context.Set<OrderDal>()` | the DAL is not the context's default set for its type — rare |
+| `CreateDal(edit)` | the DAL's `From` with an id from `IKeyGenService` | a new row needs more than the edit and an id |
+| `DestroyTenant(tenantId)` | deletes the rows whose tenant key equals it, 0 without a tenant key | a tenant's rows are found another way |
 | `GetQueryNoTracking(context)` | `GetQuery` as no-tracking | almost never |
 
 Every method is `virtual`, so a repository that needs to do something unusual on `Create` can, while
@@ -267,12 +359,63 @@ does not throw on a developer's machine that CI never sees.
 ## Migrations
 
 `dotnet ef` builds the context outside your DI container, so it needs a design-time factory —
-`MagicDbContextFactory<TContext>` in `MagicCSharp.Data.Postgres` is one line. Then:
+`MagicDbContextFactory<TContext>` in `MagicCSharp.Data.Postgres` is one line. With
+[MagicCSharp.Generators](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Generators/README.md)
+it is none: name the database on the context, and the compiler writes `MagicShopContextFactory` deriving from
+`MagicDbContextFactory<MagicShopContext>`:
+
+```csharp
+[MigrationsDatabase("shop")]
+public class MagicShopContext(DbContextOptions<MagicShopContext> options) : MagicDbContext(options)
+```
+
+A context with its own `IDesignTimeDbContextFactory` in the project gets none, which is also how to leave the
+generated one: write the class. A codebase with its own factory base names it with the MSBuild property
+`MagicCSharpDesignTimeContextFactoryBase` (a generic class with one type parameter whose constructor takes the database
+name first). `MigrationsDatabaseAttribute.NameOf(typeof(MagicShopContext))` reads the name, which is how the migration
+check in [MagicCSharp.Testing.Database](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Testing.Database/README.md#migrations-upgrade-from-the-last-release)
+finds its database. Then:
 
 ```bash
 dotnet ef migrations add CreateOrders --project Apps/Shop/Data/Data.EntityFramework
 dotnet ef database update --project Apps/Shop/Data/Data.EntityFramework
 ```
+
+## Deleting a tenant's data
+
+Every id and key repository is an `ITenantScopedDestroyer` and an `ITenantTableDestroyer`: `DestroyTenant(tenantId)`
+hard-deletes that tenant's rows, soft-deleted ones too, in one statement, and the repository says which context and
+DAL it empties. `AddRepositoriesFrom` registers each under `ITenantScopedDestroyer`. Deleting a tenant is then one
+call over all of them:
+
+```csharp
+var tenantDeletionResult = await tenantDataDestroyer.DestroyTenant(tenantId, destroyers);
+```
+
+`TenantDataDestroyer` (registered by `AddTenantDeletion`, which `AddRepositoriesFrom` calls) runs the steps
+`TenantDeletionPlanner` orders, logs a step at trace level only when it deleted rows, logs the totals once at the end,
+and logs and skips a step that fails, so one table's problem does not leave every other table full. `TenantDeletionResult` has `TotalDeleted`, `SucceededCount` and
+`StepCount`.
+
+The order comes from the foreign keys in the context's EF model. Only a key whose delete behavior is `Restrict`,
+`NoAction` or `ClientNoAction` orders anything: its table is emptied before the table it points at, because the
+database would refuse the parent's delete while a child still points at it. A `Cascade`, `SetNull`, `ClientSetNull`
+or `ClientCascade` key orders nothing, because the database deletes or clears the children itself. Where no key
+decides, the order you gave stays; a child moves to just before its parent and nothing else moves. A key added later
+needs no edit here.
+
+A table whose rows outlive their tenant says so, with the reason, and is left alone:
+
+```csharp
+[Table("audit_entries")]
+[KeptOnTenantDeletion("The audit trail outlives the tenant it records")]
+public partial class AuditEntryDal : BaseIdDal<AuditEntry, AuditEntryEdit>
+```
+
+A blank reason fails the build (MCS1601). `TenantDeletionPlanner.PlanDeletion(destroyers)` returns the `Steps` in
+order and the `Kept` tables with their reasons, for a test that asserts which tables a tenant's deletion empties.
+It throws, naming the destroyer, for one that does not say which table it empties or names a DAL its context does
+not map, rather than guess where it goes.
 
 ## Testing it
 

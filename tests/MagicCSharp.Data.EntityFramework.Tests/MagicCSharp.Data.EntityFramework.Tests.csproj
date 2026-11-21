@@ -11,6 +11,9 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\MagicCSharp.Data.EntityFramework\MagicCSharp.Data.EntityFramework.csproj"/>
         <ProjectReference Include="..\..\src\MagicCSharp.Testing.Database\MagicCSharp.Testing.Database.csproj"/>
+        <!-- The generator writes the mapping of the partial NoteDal, as it does in a consumer's Data project. -->
+        <ProjectReference Include="..\..\src\MagicCSharp.Generators\MagicCSharp.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\src\MagicCSharp.Generators.Declarations\MagicCSharp.Generators.Declarations.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
     <ItemGroup>

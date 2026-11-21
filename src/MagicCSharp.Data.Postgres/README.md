@@ -44,6 +44,10 @@ public class MagicShopContextFactory() : MagicDbContextFactory<MagicShopContext>
 booting the whole host just to read a connection string. The argument is the default database name; host,
 port, user and password default to a local Postgres and are overridden by the same `DB_*` variables.
 
+With [MagicCSharp.Generators](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Generators/README.md),
+`[MigrationsDatabase("shop")]` on the context makes the compiler write exactly this class; delete the hand-written
+one. Write it by hand when it needs more than the database name (another default host or port, a `configureNpgsql`).
+
 ## The UTC interceptor
 
 Registered for you. It normalizes every `DateTimeOffset` command parameter to UTC.

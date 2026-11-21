@@ -3,7 +3,7 @@
 The conventions for this repository. Each guide owns one topic; when two seem to overlap, the one named for
 the topic wins. Read the guides the task below needs, not all of them.
 
-Examples in the guides come from the [property-management example](https://github.com/MagicDoorInc/MagicCSharp/tree/master/examples/PropertyManagement),
+Most examples in the guides come from the [property-management example](https://github.com/MagicDoorInc/MagicCSharp/tree/master/examples/PropertyManagement),
 a service built to these conventions — open it when a guide's example needs its surroundings.
 
 | You are about to… | Read |
@@ -14,6 +14,8 @@ a service built to these conventions — open it when a guide's example needs it
 | Add or change an entity, DAL, repository or filter | `entities-and-database.md` |
 | Publish an event or write a handler | `events-and-messaging.md` |
 | Add or change an endpoint or DTO | `api-and-controller-conventions.md` |
+| Call another service over HTTP, or fake that call in a test | `service-clients.md` |
+| Use a generator, write a generated member by hand, or fix an `MCS1xxx` build error | `generated-code.md` |
 | Add work that runs on a schedule | `background-services.md` |
 | Read the current time, or handle dates and time zones | `time-and-dates.md` |
 | Write tests | `testing-conventions.md` |

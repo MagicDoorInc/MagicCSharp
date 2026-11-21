@@ -19,6 +19,13 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- The generators run on this project as on a consumer's, so a [LogExecuting] use case here gets its real
+             decorator and the tests resolve it through use case discovery. -->
+        <ProjectReference Include="..\..\src\MagicCSharp.Generators\MagicCSharp.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\src\MagicCSharp.Generators.Declarations\MagicCSharp.Generators.Declarations.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.1"/>
         <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.1"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0"/>

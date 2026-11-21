@@ -1,0 +1,40 @@
+using Microsoft.CodeAnalysis;
+
+namespace MagicCSharp.Generators.Declarations.Dals;
+
+/// <summary>
+///     The Dal mapping diagnostics, <c>MCS12xx</c>. Each fires only on a partial Dal that lacks the method it is about,
+///     so the class is incomplete either way; the message says which property stands in the way.
+/// </summary>
+public static class DalMappingDiagnostics
+{
+    public static readonly DiagnosticDescriptor DalToEntityNotGenerated = new DiagnosticDescriptor("MCS1201",
+        "ToEntity cannot be generated for this Dal",
+        "'{0}.ToEntity' is not generated: '{1}.{2}' ({3}) {4}; give the Dal a public property '{2}' of type {3}, or write ToEntity by hand",
+        GeneratorDiagnostics.Category, DiagnosticSeverity.Error, true);
+
+    public static readonly DiagnosticDescriptor DalApplyNotGenerated = new DiagnosticDescriptor("MCS1202",
+        "Apply cannot be generated for this Dal",
+        "'{0}.Apply' is not generated: '{1}.{2}' ({3}) {4}; give the Dal a public settable property '{2}' of type {3}, or write Apply by hand",
+        GeneratorDiagnostics.Category, DiagnosticSeverity.Error, true);
+
+    public static readonly DiagnosticDescriptor DalFromNotGenerated = new DiagnosticDescriptor("MCS1203",
+        "From cannot be generated for this Dal",
+        "'{0}.From' is not generated: '{0}.{1}' ({2}) is set only when the row is created, and {3}; add '{1}' to '{4}', or write From by hand",
+        GeneratorDiagnostics.Category, DiagnosticSeverity.Error, true);
+
+    public static readonly DiagnosticDescriptor NestedDal = new DiagnosticDescriptor("MCS1204",
+        "A nested Dal gets no generated mapping",
+        "'{0}' is nested in another type; move it to the top level of its file, or write ToEntity, Apply and From by hand",
+        GeneratorDiagnostics.Category, DiagnosticSeverity.Error, true);
+
+    public static readonly DiagnosticDescriptor GenericDal = new DiagnosticDescriptor("MCS1205",
+        "A generic Dal gets no generated mapping",
+        "'{0}' is generic; write ToEntity, Apply and From by hand",
+        GeneratorDiagnostics.Category, DiagnosticSeverity.Error, true);
+
+    public static readonly DiagnosticDescriptor EntityWithoutParameterlessConstructor = new DiagnosticDescriptor("MCS1206",
+        "ToEntity cannot build an entity without a parameterless constructor",
+        "'{0}.ToEntity' is not generated: '{1}' has no accessible parameterless constructor to build it with; write ToEntity by hand",
+        GeneratorDiagnostics.Category, DiagnosticSeverity.Error, true);
+}

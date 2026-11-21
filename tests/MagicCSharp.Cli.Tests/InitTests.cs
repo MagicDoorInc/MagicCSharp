@@ -30,6 +30,30 @@ public class InitTests
         Assert.False(File.Exists(Path.Combine(temporaryRepository.Root, ".editorconfig")));
     }
 
+    [Fact]
+    public void A_new_repository_references_the_generators_at_the_pinned_version()
+    {
+        using var temporaryRepository = new TemporaryRepository();
+
+        InitCommand.WriteRepository(temporaryRepository.Root, new InitCommand.Settings { Prefix = "Acme", PackageVersion = "1.2.3" });
+
+        var buildProps = File.ReadAllText(Path.Combine(temporaryRepository.Root, "Directory.Build.props"));
+        var packagesProps = File.ReadAllText(Path.Combine(temporaryRepository.Root, "Directory.Packages.props"));
+        Assert.Contains("<PackageReference Include=\"MagicCSharp.Generators\" PrivateAssets=\"all\" />", buildProps);
+        Assert.Contains("<PackageVersion Include=\"MagicCSharp.Generators\" Version=\"1.2.3\" />", packagesProps);
+    }
+
+    [Fact]
+    public void No_build_rules_still_references_the_generators()
+    {
+        using var temporaryRepository = new TemporaryRepository();
+
+        InitCommand.WriteRepository(temporaryRepository.Root, new InitCommand.Settings { Prefix = "Acme", PackageVersion = "1.2.3", ShouldSkipBuildRules = true });
+
+        Assert.Contains("<PackageReference Include=\"MagicCSharp.Generators\" PrivateAssets=\"all\" />", File.ReadAllText(Path.Combine(temporaryRepository.Root, "Directory.Build.props")));
+        Assert.Contains("<PackageVersion Include=\"MagicCSharp.Generators\" Version=\"1.2.3\" />", File.ReadAllText(Path.Combine(temporaryRepository.Root, "Directory.Packages.props")));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

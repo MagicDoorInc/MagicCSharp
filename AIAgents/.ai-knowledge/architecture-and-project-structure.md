@@ -89,7 +89,8 @@ depending on them. A single new use case belongs in the domain whose data it cha
 ## Building blocks
 
 Features are made from a closed set of kinds: use cases, event handlers, entities (entity, edit, filter),
-repositories and DALs, controllers and DTOs, background services, DI modules, and small dependency-free static
-strategies. Do not invent a new kind — a `*Service`, `*Manager`, `*Helper` or `*Rules` class that collects
+repositories and DALs, controllers and DTOs, background services, client interfaces for calling another service
+(`service-clients.md`), DI modules, and small dependency-free static strategies. Several of these are partly written
+by the compiler (`generated-code.md`). Do not invent a new kind — a `*Service`, `*Manager`, `*Helper` or `*Rules` class that collects
 operations — without raising it first. Where a behaviour belongs is in `use-case-patterns.md` → Behaviour
 locality.

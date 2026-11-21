@@ -3,6 +3,7 @@ using MagicCSharp.Data.Repositories;
 using MagicCSharp.Infrastructure;
 using MagicCSharp.Infrastructure.Entities;
 using MagicCSharp.Infrastructure.Exceptions;
+using MagicCSharp.Infrastructure.KeyGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -19,13 +20,15 @@ namespace MagicCSharp.Data.EntityFramework.Repositories;
 /// <typeparam name="TEntity">The entity type.</typeparam>
 /// <typeparam name="TFilter">The query filter type.</typeparam>
 /// <typeparam name="TEdit">The type carrying the writable fields.</typeparam>
-public abstract class BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit> : IRepository<TEntity, string, TEdit, TFilter>
+public abstract class BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit> : IRepository<TEntity, string, TEdit, TFilter>, ITenantTableDestroyer
     where TDal : class, IDalTransform<TEntity, TEdit>, IDalKey, IDal
     where TEntity : class, TEdit, IKeyEntity
     where TContext : DbContext
 {
     protected readonly TimeProvider TimeProvider;
     protected readonly IDbContextFactory<TContext> ContextFactory;
+
+    private readonly IKeyGenService? keyGenService;
 
     protected BaseKeyRepository(IDbContextFactory<TContext> contextFactory, TimeProvider timeProvider, ILoggerFactory loggerFactory)
     {
@@ -34,10 +37,31 @@ public abstract class BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit>
         Log = loggerFactory.CreateLogger(GetType());
     }
 
+    /// <summary>Everything from one <see cref="RepositoryServices{TContext}" />, the key service included.</summary>
+    protected BaseKeyRepository(RepositoryServices<TContext> repositoryServices)
+        : this(repositoryServices.ContextFactory, repositoryServices.TimeProvider, repositoryServices.LoggerFactory)
+    {
+        keyGenService = repositoryServices.KeyGenService;
+    }
+
     /// <summary>
     ///     Logger categorized to the concrete repository type, not to this base class.
     /// </summary>
     protected ILogger Log { get; }
+
+    /// <summary>
+    ///     The key service from <see cref="RepositoryServices{TContext}" />, for <see cref="CreateDal" /> to draw a
+    ///     key from. A repository built through the older constructor has none, and throws here.
+    /// </summary>
+    protected IKeyGenService KeyGenService
+    {
+        get
+        {
+            return keyGenService ?? throw new InvalidOperationException(
+                $"{GetType().Name} was built without RepositoryServices, so it has no key service. Build it with " +
+                "RepositoryServices, or give new rows their keys in CreateDal without it.");
+        }
+    }
 
     public virtual async Task<int> Count(TFilter filter)
     {
@@ -294,8 +318,44 @@ public abstract class BaseKeyRepository<TContext, TDal, TEntity, TFilter, TEdit>
         return await query.ExecuteDeleteAsync();
     }
 
+    /// <summary>The context this repository's table lives in, for ordering tenant deletion.</summary>
+    Type ITenantTableDestroyer.DbContextType
+    {
+        get
+        {
+            return typeof(TContext);
+        }
+    }
+
+    /// <summary>The Dal of the table <see cref="DestroyTenant" /> empties, for ordering tenant deletion.</summary>
+    Type ITenantTableDestroyer.DalType
+    {
+        get
+        {
+            return typeof(TDal);
+        }
+    }
+
+    /// <inheritdoc cref="BaseIdRepository{TContext,TDal,TEntity,TFilter,TEdit}.DestroyTenant" />
+    public virtual async Task<int> DestroyTenant(long tenantId)
+    {
+        var tenantKeyPropertyName = TenantRows.FindKeyPropertyName(typeof(TDal));
+        if (tenantKeyPropertyName == null)
+        {
+            return 0;
+        }
+
+        Log.LogTrace("DestroyTenant: tenantId={TenantId}", tenantId);
+
+        await using var context = await ContextFactory.CreateDbContextAsync();
+
+        return await TenantRows.WhereTenant(GetDbSet(context), tenantKeyPropertyName, tenantId).ExecuteDeleteAsync();
+    }
+
     /// <summary>
-    ///     Build a new row from an edit. Assign the key here, from <c>IKeyGenService.GetKey()</c>.
+    ///     Build a new row from an edit. Assign the key here: a natural key from the edit, or one from
+    ///     <see cref="KeyGenService" /> (<c>KeyGenService.GetKey()</c>). There is no default, because which key a row
+    ///     gets is the repository's decision.
     /// </summary>
     protected abstract TDal CreateDal(TEdit edit);
 

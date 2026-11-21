@@ -57,6 +57,30 @@ Docker must be running. `dotnet test {{ prefix }}.All.slnx` runs everything.
 - **Assert on what the handlers did**, not only that an event was dispatched, when the reaction is the point.
   `SyncEventDispatcher.HasDispatchedEvent<T>(predicate)` is there when dispatching is itself the effect.
 
+## Without a database
+
+The default is the real database above. A test that is about a use case's decisions, not about storage, may use
+fakes instead — a domain library with no database, or a branch the database adds nothing to:
+
+- **Repositories:** derive from `InMemoryRepository<TEntity, TEdit, TFilter>` (or `InMemorySoftDeleteRepository`) in
+  `MagicCSharp.Testing` and implement the repository interface. It behaves like the EF base (newest first, a missing
+  id throws not-found, bulk calls write nothing on a miss) and filters through the filter's generated `Matches`, so
+  the filter must be `partial` and list `IEntityFilter<TEntity>`. Override one member when the fake must differ;
+  never copy the whole class.
+- **The use case:** build it with `TestServices` — `new TestServices(timeProvider).AddFake<IParcelsRepository>(parcelsRepository)`,
+  `AddRegistrations(services => services.AddMagicUseCases(...))`, then `Get<IShelveParcelUseCase>()` — so a new
+  dependency does not break every test that constructs it.
+- **Clients and other interfaces:** a `[GenerateFakeBase(typeof(IX))] abstract partial class`, and a fake deriving
+  from it that overrides only what its tests use (`service-clients.md`).
+
+## Migrations
+
+Each context with migrations has one test that they upgrade the released schema:
+`public class ShopMigrationTests(ITestOutputHelper output) : MigrationTestBase<MagicShopContext>(output);`, with the
+context carrying `[MigrationsDatabase("shop")]`. When a release has shipped, a `pg_dump` of its schema as
+`Migrations/{name}_baseline.dump` in the test project, copied to the output, makes the test upgrade what production
+has rather than an empty database.
+
 ## Scheduled work
 
 Every scheduled workflow gets a test through time:
