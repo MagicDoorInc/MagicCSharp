@@ -17,4 +17,23 @@
     <CompilerVisibleProperty Include="MagicCSharpUseCaseCallerPrefixes"/>
   </ItemGroup>
 
+  <!--
+    MagicCSharpGenerateAssemblyLoader: true in a host project writes {RootNamespace}.AssemblyLoader, which loads every
+    referenced project before Main. MagicCSharpReferencedProjectAssemblies is filled by MagicCSharp.Generators.targets
+    from the resolved project references; nobody sets it by hand.
+  -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="MagicCSharpGenerateAssemblyLoader"/>
+    <CompilerVisibleProperty Include="MagicCSharpReferencedProjectAssemblies"/>
+  </ItemGroup>
+
+  <!--
+    MagicCSharpDesignTimeContextFactoryBase: the metadata name of the class generated design-time factories derive from
+    (a generic class with one type parameter and a constructor taking the database name first). Unset, it is
+    MagicCSharp.Data.Postgres.MagicDbContextFactory`1.
+  -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="MagicCSharpDesignTimeContextFactoryBase"/>
+  </ItemGroup>
+
 </Project>

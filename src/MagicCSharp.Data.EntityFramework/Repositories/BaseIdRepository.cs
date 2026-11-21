@@ -32,7 +32,7 @@ namespace MagicCSharp.Data.EntityFramework.Repositories;
 /// <typeparam name="TEntity">The entity type.</typeparam>
 /// <typeparam name="TFilter">The query filter type.</typeparam>
 /// <typeparam name="TEdit">The type carrying the writable fields.</typeparam>
-public abstract class BaseIdRepository<TContext, TDal, TEntity, TFilter, TEdit> : IRepository<TEntity, long, TEdit, TFilter>, ITenantScopedDestroyer
+public abstract class BaseIdRepository<TContext, TDal, TEntity, TFilter, TEdit> : IRepository<TEntity, long, TEdit, TFilter>, ITenantTableDestroyer
     where TDal : class, IDalTransform<TEntity, TEdit>, IDalId, IDal
     where TEntity : class, TEdit, IIdEntity
     where TContext : DbContext
@@ -337,6 +337,24 @@ public abstract class BaseIdRepository<TContext, TDal, TEntity, TFilter, TEdit> 
         // Deletes in the database in one statement. The delete hooks do not run, because no row is
         // materialized — override this method if a filter delete needs them.
         return await query.ExecuteDeleteAsync();
+    }
+
+    /// <summary>The context this repository's table lives in, for ordering tenant deletion.</summary>
+    Type ITenantTableDestroyer.DbContextType
+    {
+        get
+        {
+            return typeof(TContext);
+        }
+    }
+
+    /// <summary>The Dal of the table <see cref="DestroyTenant" /> empties, for ordering tenant deletion.</summary>
+    Type ITenantTableDestroyer.DalType
+    {
+        get
+        {
+            return typeof(TDal);
+        }
     }
 
     /// <summary>

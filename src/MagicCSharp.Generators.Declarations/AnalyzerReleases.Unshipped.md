@@ -50,3 +50,12 @@ MCS1513 | MagicCSharp.Generators | Error | ClientGeneratorDiagnostics
 MCS1514 | MagicCSharp.Generators | Error | ClientGeneratorDiagnostics
 MCS1515 | MagicCSharp.Generators | Error | ClientGeneratorDiagnostics
 MCS1516 | MagicCSharp.Generators | Error | ClientGeneratorDiagnostics
+MCS1601 | MagicCSharp.Generators | Error | TenantDeletionDiagnostics
+MCS1602 | MagicCSharp.Generators | Error | ContextFactoryDiagnostics
+MCS1603 | MagicCSharp.Generators | Error | ContextFactoryDiagnostics
+MCS1604 | MagicCSharp.Generators | Error | ContextFactoryDiagnostics
+MCS1605 | MagicCSharp.Generators | Error | ContextFactoryDiagnostics
+MCS1606 | MagicCSharp.Generators | Error | ContextFactoryDiagnostics
+MCS1607 | MagicCSharp.Generators | Error | ContextFactoryDiagnostics
+MCS1608 | MagicCSharp.Generators | Error | ContextFactoryDiagnostics
+MCS1609 | MagicCSharp.Generators | Error | AssemblyLoaderDiagnostics

@@ -11,6 +11,7 @@
         <ProjectReference Include="..\..\src\MagicCSharp\MagicCSharp.csproj"/>
         <ProjectReference Include="..\..\src\MagicCSharp.Clients\MagicCSharp.Clients.csproj"/>
         <ProjectReference Include="..\..\src\MagicCSharp.Data.EntityFramework\MagicCSharp.Data.EntityFramework.csproj"/>
+        <ProjectReference Include="..\..\src\MagicCSharp.Data.Postgres\MagicCSharp.Data.Postgres.csproj"/>
         <ProjectReference Include="..\..\src\MagicCSharp.Testing\MagicCSharp.Testing.csproj"/>
         <ProjectReference Include="..\..\src\MagicCSharp.Generators\MagicCSharp.Generators.csproj"/>
         <ProjectReference Include="..\..\src\MagicCSharp.Generators.Declarations\MagicCSharp.Generators.Declarations.csproj"/>

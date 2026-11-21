@@ -86,6 +86,11 @@ public static class GeneratorHarness
             globalOptions["build_property." + UseCaseMarkerInterfaceSetting.PropertyName] = request.MarkerInterfaceSetting;
         }
 
+        foreach (var buildProperty in request.BuildProperties)
+        {
+            globalOptions["build_property." + buildProperty.Key] = buildProperty.Value;
+        }
+
         var generators = new IIncrementalGenerator[] { new GenerateInterfaceGenerator() }.Concat(request.OtherGenerators)
             .Select(GeneratorExtensions.AsSourceGenerator);
         return CSharpGeneratorDriver.Create(generators, parseOptions: ParseOptions, optionsProvider: new TestAnalyzerConfigOptionsProvider(globalOptions),

@@ -9,6 +9,9 @@ public record GeneratorRunRequest
     /// <summary>The MSBuild property MagicCSharpUseCaseMarkerInterface; null leaves it unset.</summary>
     public string? MarkerInterfaceSetting { get; init; }
 
+    /// <summary>Other MSBuild properties the project passes to generators, by name without <c>build_property.</c>.</summary>
+    public IReadOnlyDictionary<string, string> BuildProperties { get; init; } = new Dictionary<string, string>();
+
     /// <summary>Generators that run beside <see cref="GenerateInterfaceGenerator" />.</summary>
     public IIncrementalGenerator[] OtherGenerators { get; init; } = [];
 

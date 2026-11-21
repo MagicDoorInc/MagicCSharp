@@ -1,5 +1,6 @@
 using System.Reflection;
 using MagicCSharp.Data.EntityFramework.Repositories;
+using MagicCSharp.Data.EntityFramework.TenantDeletion;
 using MagicCSharp.Data.Repositories;
 using MagicCSharp.Modules;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,10 @@ public static class RepositoryRegistrationModule
     ///         — is also registered under it and under each non-generic interface extending it, once, even if a module
     ///         already registered it by hand, so the handler that deletes a tenant finds every table.
     ///     </para>
+    ///     <para>
+    ///         Also registers <see cref="TenantDeletionPlanner" /> and <see cref="TenantDataDestroyer" />, which order and
+    ///         run those destroyers when a tenant is deleted.
+    ///     </para>
     ///     <para>The context factory itself is registered by the provider package, not here.</para>
     /// </summary>
     /// <param name="services">The service collection to register into.</param>
@@ -44,6 +49,7 @@ public static class RepositoryRegistrationModule
             ShouldKeepExistingRegistrations = true,
         });
         AddTenantScopedDestroyers(services, repositoryAssembly, lifetime);
+        services.AddTenantDeletion();
 
         return services;
     }
