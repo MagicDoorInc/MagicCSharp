@@ -56,6 +56,35 @@ public class TenantDeletionPlannerTests
     }
 
     [Fact]
+    public void PlanDeletion_KeepsACascadeParentFirst_BecauseTheDatabaseDeletesItsChildren()
+    {
+        // Arrange: the photos' Cascade key to apartments would have put photos first.
+        var apartments = StatedTable<ApartmentDal>();
+        var photos = StatedTable<ApartmentPhotoDal>();
+
+        // Act
+        var tenantDeletionPlan = planner.PlanDeletion([apartments, photos]);
+
+        // Assert
+        Assert.Equal([apartments, photos], tenantDeletionPlan.Steps);
+    }
+
+    [Fact]
+    public void PlanDeletion_MovesOnlyTheRestrictLinksOfAMixedChain()
+    {
+        // Arrange: buildings <- apartments is Restrict; apartments <- photos is Cascade.
+        var buildings = StatedTable<BuildingDal>();
+        var photos = StatedTable<ApartmentPhotoDal>();
+        var apartments = StatedTable<ApartmentDal>();
+
+        // Act
+        var tenantDeletionPlan = planner.PlanDeletion([buildings, photos, apartments]);
+
+        // Assert: apartments go before buildings; photos, with no key that orders, stay after buildings as given.
+        Assert.Equal([apartments, buildings, photos], tenantDeletionPlan.Steps);
+    }
+
+    [Fact]
     public void PlanDeletion_ListsKeptTablesWithTheirReason_OutsideTheSteps()
     {
         // Arrange

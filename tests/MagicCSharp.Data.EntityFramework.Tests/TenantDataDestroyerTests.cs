@@ -45,6 +45,34 @@ public class TenantDataDestroyerTests : TestRepositoryBase<TenantDeletionDbConte
     }
 
     [Fact]
+    public async Task DestroyTenant_EmptiesCascadeChildrenToo_WhenTheirParentIsGivenFirst()
+    {
+        // Arrange
+        await AddBuildingWithApartments(DeletedTenantId, 2);
+        await AddPhotosOfEveryApartment(DeletedTenantId);
+        await AddBuildingWithApartments(OtherTenantId, 1);
+        await AddPhotosOfEveryApartment(OtherTenantId);
+
+        // Act: apartments are given before their photos, and the database deletes the photos with them.
+        var tenantDeletionResult = await TenantDataDestroyer().DestroyTenant(DeletedTenantId,
+        [
+            new ApartmentsRepository(RepositoryServices),
+            new ApartmentPhotosRepository(RepositoryServices),
+            new BuildingsRepository(RepositoryServices),
+        ]);
+
+        // Assert
+        Assert.Equal(3, tenantDeletionResult.SucceededCount);
+        Assert.Equal(3, tenantDeletionResult.TotalDeleted);
+        Assert.Equal(0, await CountRows<ApartmentPhotoDal>(DeletedTenantId));
+        Assert.Equal(0, await CountRows<ApartmentDal>(DeletedTenantId));
+        Assert.Equal(0, await CountRows<BuildingDal>(DeletedTenantId));
+        Assert.Equal(1, await CountRows<ApartmentPhotoDal>(OtherTenantId));
+        Assert.Equal(1, await CountRows<ApartmentDal>(OtherTenantId));
+        Assert.Equal(1, await CountRows<BuildingDal>(OtherTenantId));
+    }
+
+    [Fact]
     public async Task DestroyTenant_LeavesAKeptTablesRows_AndEmptiesTheWipedTable()
     {
         // Arrange
@@ -139,6 +167,21 @@ public class TenantDataDestroyerTests : TestRepositoryBase<TenantDeletionDbConte
                 TenantId = tenantId,
                 BuildingId = building.Id,
                 Number = apartmentNumber.ToString(),
+            });
+        }
+    }
+
+    private async Task AddPhotosOfEveryApartment(long tenantId)
+    {
+        await using var context = await DbContextFactory.CreateDbContextAsync();
+        var apartmentIds = await context.Apartments.Where(apartment => apartment.TenantId == tenantId).Select(apartment => apartment.Id).ToListAsync();
+        foreach (var apartmentId in apartmentIds)
+        {
+            await new ApartmentPhotosRepository(RepositoryServices).Create(new ApartmentPhotoEdit
+            {
+                TenantId = tenantId,
+                ApartmentId = apartmentId,
+                FileName = "kitchen.jpg",
             });
         }
     }

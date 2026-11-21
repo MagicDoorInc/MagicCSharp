@@ -10,12 +10,14 @@ namespace MagicCSharp.Data.EntityFramework.TenantDeletion;
 /// <summary>
 ///     Decides the order tenant deletion empties tables in, and which tables it leaves alone.
 ///     <para>
-///         A child row still pointing at its parent stops the parent's delete when the key is <c>Restrict</c> or
-///         <c>NoAction</c>, and a destroyer deletes in one statement that no client-side cascade sees. So every destroyer
-///         whose table holds a foreign key to another destroyer's table runs first, read from the context's EF model —
-///         a key added later needs no registration edit. Where no key decides, the order destroyers were given in
-///         stays: a child moves to just before its parent, nothing else moves. In a cycle of keys the destroyer given first runs
-///         after the others.
+///         A child row still pointing at its parent stops the parent's delete when the database refuses it, and a
+///         destroyer deletes in one statement that no client-side cascade sees. So only a key whose delete behavior
+///         is <c>Restrict</c>, <c>NoAction</c> or <c>ClientNoAction</c> orders anything: the destroyer of the table
+///         holding such a key runs before the destroyer of the table it points at. A <c>Cascade</c>, <c>SetNull</c>,
+///         <c>ClientSetNull</c> or <c>ClientCascade</c> key orders nothing, because the database deletes or clears
+///         the children itself. Keys are read from the context's EF model, so a key added later needs no registration
+///         edit. Where no key decides, the order destroyers were given in stays: a child moves to just before its
+///         parent, nothing else moves. In a cycle of ordering keys the destroyer given first runs after the others.
 ///     </para>
 ///     <para>
 ///         A destroyer whose Dal is <c>[KeptOnTenantDeletion]</c> is left out and listed with its reason. A destroyer
@@ -70,8 +72,8 @@ public sealed class TenantDeletionPlanner(IServiceProvider services)
 
     /// <summary>
     ///     Takes the tables in the order given, and puts each table's children (and theirs) just before it, so a table
-    ///     moves only when a key makes it. In a cycle of keys the table met first runs after the others; its key back
-    ///     to them is the one ignored.
+    ///     moves only when an ordering key makes it. In a cycle of ordering keys the table met first runs after the
+    ///     others; its key back to them is the one ignored.
     /// </summary>
     private static IReadOnlyList<ITenantScopedDestroyer> OrderChildrenFirst(List<TableToEmpty> tables)
     {
@@ -85,8 +87,9 @@ public sealed class TenantDeletionPlanner(IServiceProvider services)
     }
 
     /// <summary>
-    ///     Whether <paramref name="child" />'s table holds a foreign key to <paramref name="parent" />'s. Two destroyers
-    ///     of one table, and a table's key to itself, set no order.
+    ///     Whether <paramref name="child" />'s table holds a foreign key to <paramref name="parent" />'s that the database
+    ///     enforces on delete (<c>Restrict</c>, <c>NoAction</c>, <c>ClientNoAction</c>). Two destroyers of one table, and a
+    ///     table's key to itself, set no order.
     /// </summary>
     private static bool HasForeignKeyTo(TableToEmpty child, TableToEmpty parent)
     {
@@ -95,7 +98,13 @@ public sealed class TenantDeletionPlanner(IServiceProvider services)
             return false;
         }
 
-        return child.EntityType.GetForeignKeys().Any(foreignKey => IsSameTable(foreignKey.PrincipalEntityType, parent.EntityType));
+        return child.EntityType.GetForeignKeys().Any(foreignKey =>
+            IsSameTable(foreignKey.PrincipalEntityType, parent.EntityType) && StopsParentDeleteWhileChildrenExist(foreignKey));
+    }
+
+    private static bool StopsParentDeleteWhileChildrenExist(IForeignKey foreignKey)
+    {
+        return foreignKey.DeleteBehavior is DeleteBehavior.Restrict or DeleteBehavior.NoAction or DeleteBehavior.ClientNoAction;
     }
 
     /// <summary>The same entity type, or one of a hierarchy mapped to one table.</summary>

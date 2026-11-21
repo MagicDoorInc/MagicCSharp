@@ -1,9 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace MagicCSharp.Data.EntityFramework.Tests.Fixtures.TenantDeletion;
 
-/// <summary>One side of a pair of tables whose keys point at each other.</summary>
+/// <summary>One side of a pair of tables whose <c>Restrict</c> keys point at each other.</summary>
 [Table("left_halves")]
 public class LeftHalfDal
 {
@@ -15,5 +16,6 @@ public class LeftHalfDal
     public long? RightHalfId { get; set; }
 
     [ForeignKey(nameof(RightHalfId))]
+    [DeleteBehavior(DeleteBehavior.Restrict)]
     public RightHalfDal? RightHalf { get; set; }
 }

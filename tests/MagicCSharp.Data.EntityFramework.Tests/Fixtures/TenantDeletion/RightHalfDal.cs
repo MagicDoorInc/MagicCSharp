@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace MagicCSharp.Data.EntityFramework.Tests.Fixtures.TenantDeletion;
 
@@ -15,5 +16,6 @@ public class RightHalfDal
     public long? LeftHalfId { get; set; }
 
     [ForeignKey(nameof(LeftHalfId))]
+    [DeleteBehavior(DeleteBehavior.Restrict)]
     public LeftHalfDal? LeftHalf { get; set; }
 }
