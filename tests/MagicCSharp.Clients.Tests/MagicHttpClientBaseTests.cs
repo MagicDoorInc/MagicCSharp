@@ -48,7 +48,7 @@ public class MagicHttpClientBaseTests : IDisposable
         recordingHttpMessageHandler.AnswerStatus = HttpStatusCode.BadRequest;
 
         // Act
-        var magicHttpClientException = await Assert.ThrowsAsync<MagicHttpClientException>(() => probeClient.Get<string>("/api/leases?email=ana%40lee.test&companyId=42"));
+        var magicHttpClientException = await Assert.ThrowsAsync<MagicHttpClientException>(() => probeClient.Get<string>("/api/leases?email=ana%40lee.test&propertyId=42"));
 
         // Assert
         Assert.Equal("GET /api/leases answered 400 BadRequest.", magicHttpClientException.Message);

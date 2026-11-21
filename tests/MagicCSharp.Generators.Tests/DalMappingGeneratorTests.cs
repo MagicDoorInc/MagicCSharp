@@ -129,12 +129,10 @@ public class DalMappingGeneratorTests
     }
 
     [Fact]
-    public void DalMapping_SetsIdRequiredMembersAndTenantKeyOnlyInFrom()
+    public void DalMapping_SetsIdAndRequiredMembersOnlyInFrom()
     {
         // Arrange
         const string source = Usings + """
-                                       [assembly: TenantKey("CompanyId")]
-
                                        namespace Acme.Leasing.Data;
 
                                        public record ImportFileEdit
@@ -151,7 +149,7 @@ public class DalMappingGeneratorTests
 
                                        public partial class ImportFileDal : BaseIdDal<ImportFile, ImportFileEdit>
                                        {
-                                           public long CompanyId { get; set; }
+                                           public required long CompanyId { get; set; }
                                            public required long ImportId { get; set; }
                                            public long FileId { get; set; }
                                        }
@@ -178,7 +176,7 @@ public class DalMappingGeneratorTests
     }
 
     [Fact]
-    public void DalMapping_LeavesAHandWrittenToEntityAlone_AndWritesTheOthers()
+    public void DalMapping_LeavesAHandWrittenToEntityAlone_AndWritesApplyWithoutFrom()
     {
         // Arrange: the entity's DisplayName has no column, which only a hand-written ToEntity can fill.
         const string source = Usings + """
@@ -209,14 +207,15 @@ public class DalMappingGeneratorTests
         // Act
         var generatedText = RunClean(source).GeneratedText("Acme.Leasing.Data.TenantDal.DalMapping.g.cs");
 
-        // Assert
+        // Assert: a Dal that maps by hand asks for From only by listing IDalFromEdit.
         Assert.DoesNotContain("ToEntity", generatedText);
         Assert.Contains("public override void Apply(global::Acme.Leasing.Data.TenantEdit edit)", generatedText);
-        Assert.Contains("public static global::Acme.Leasing.Data.TenantDal From(global::Acme.Leasing.Data.TenantEdit edit, long id)", generatedText);
+        Assert.DoesNotContain("From(", generatedText);
+        Assert.DoesNotContain("IDalFromEdit", generatedText);
     }
 
     [Fact]
-    public void DalMapping_LeavesAHandWrittenApplyAlone_AndFromCallsIt()
+    public void DalMapping_LeavesAHandWrittenApplyAlone_AndFromCallsIt_WhenTheDalListsIDalFromEdit()
     {
         // Arrange: the edit's Status is a string the Dal stores as an enum, which only a hand-written Apply converts.
         const string source = Usings + """
@@ -238,7 +237,7 @@ public class DalMappingGeneratorTests
                                            public required long Id { get; init; }
                                        }
 
-                                       public partial class TicketDal : BaseIdDal<Ticket, TicketEdit>
+                                       public partial class TicketDal : BaseIdDal<Ticket, TicketEdit>, IDalFromEdit<TicketDal, TicketEdit>
                                        {
                                            public TicketStatus StoredStatus { get; set; }
 
@@ -402,6 +401,103 @@ public class DalMappingGeneratorTests
     }
 
     [Fact]
+    public void DalMapping_GeneratesNothing_ForAPartialDalThatMapsByHandWithoutFrom()
+    {
+        // Arrange: a partial Dal as 1.0.3 allowed, mapping by hand, its repository writing CreateDal. PropertyId has no
+        // edit property, so a generated From could not set it; the Dal asked for none, so nothing is reported.
+        const string source = Usings + NoteTypes + """
+                                                   public partial class NoteDal : BaseIdDal<Note, NoteEdit>
+                                                   {
+                                                       public required long PropertyId { get; set; }
+
+                                                       public string Text { get; set; } = "";
+
+                                                       public override Note ToEntity()
+                                                       {
+                                                           return new Note { Id = Id, Text = Text };
+                                                       }
+
+                                                       public override void Apply(NoteEdit edit)
+                                                       {
+                                                           Text = edit.Text;
+                                                       }
+                                                   }
+                                                   """;
+
+        // Act
+        var generatorRunResult = RunClean(source);
+
+        // Assert
+        Assert.Empty(generatorRunResult.GeneratedFiles);
+    }
+
+    [Fact]
+    public void DalMapping_GeneratesNothing_ForAPartialDalThatMapsByHandWithItsOwnFrom()
+    {
+        // Arrange: hand-written ToEntity, Apply and a public From; the Dal does not get IDalFromEdit added.
+        const string source = Usings + NoteTypes + """
+                                                   public partial class NoteDal : BaseIdDal<Note, NoteEdit>
+                                                   {
+                                                       public string Text { get; set; } = "";
+
+                                                       public override Note ToEntity()
+                                                       {
+                                                           return new Note { Id = Id, Text = Text };
+                                                       }
+
+                                                       public override void Apply(NoteEdit edit)
+                                                       {
+                                                           Text = edit.Text;
+                                                       }
+
+                                                       public static NoteDal From(NoteEdit edit, long id)
+                                                       {
+                                                           var noteDal = new NoteDal { Id = id };
+                                                           noteDal.Apply(edit);
+                                                           return noteDal;
+                                                       }
+                                                   }
+                                                   """;
+
+        // Act
+        var generatorRunResult = RunClean(source);
+
+        // Assert
+        Assert.Empty(generatorRunResult.GeneratedFiles);
+    }
+
+    [Fact]
+    public void DalMapping_ReportsNothing_ForANestedPartialDalThatMapsByHandWithoutFrom()
+    {
+        // Arrange: nested, which the generator cannot write into, but it has nothing to write.
+        const string source = Usings + NoteTypes + """
+                                                   public static class Storage
+                                                   {
+                                                       public partial class NoteDal : BaseIdDal<Note, NoteEdit>
+                                                       {
+                                                           public string Text { get; set; } = "";
+
+                                                           public override Note ToEntity()
+                                                           {
+                                                               return new Note { Id = Id, Text = Text };
+                                                           }
+
+                                                           public override void Apply(NoteEdit edit)
+                                                           {
+                                                               Text = edit.Text;
+                                                           }
+                                                       }
+                                                   }
+                                                   """;
+
+        // Act
+        var generatorRunResult = RunClean(source);
+
+        // Assert
+        Assert.Empty(generatorRunResult.GeneratedFiles);
+    }
+
+    [Fact]
     public void DalMapping_ReportsMCS1204_ForANestedPartialDal()
     {
         // Arrange
@@ -528,8 +624,6 @@ public class DalMappingGeneratorTests
         // Arrange: a consumer's own Dal contracts and base, as a codebase with its own data library has them; the
         // creator is a [NotMapped] property on that base, so it maps by name and type like any column.
         const string source = Usings + """
-                                       [assembly: TenantKey("CompanyId")]
-
                                        namespace Acme.Platform.Data
                                        {
                                            public record EntityCreator
@@ -594,7 +688,7 @@ public class DalMappingGeneratorTests
 
                                            public partial class ImportFileDal : BaseIdCreatorPlatformDal<ImportFile, ImportFileEdit>
                                            {
-                                               public long CompanyId { get; set; }
+                                               public required long CompanyId { get; set; }
 
                                                public long FileId { get; set; }
                                            }

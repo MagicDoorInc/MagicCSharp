@@ -85,6 +85,21 @@ public class InMemoryRepositoryParityTests : RepositoryTestBase
     }
 
     [Fact]
+    public async Task Update_SetOnceColumn_BothKeepTheStoredValue()
+    {
+        var stored = await StoreInBoth(AShipment(Tenant, "TRK-100"));
+        var movedShipmentEdit = AShipment(OtherTenant, "TRK-100") with { Status = ShipmentStatus.InTransit };
+
+        await Shipments.Update(stored.DatabaseShipment.Id, movedShipmentEdit);
+        await inMemoryShipmentsRepository.Update(stored.InMemoryShipment.Id, movedShipmentEdit);
+
+        var databaseShipment = await Shipments.Get(stored.DatabaseShipment.Id);
+        Assert.Equal(Tenant, databaseShipment?.TenantId);
+        Assert.Equal(ShipmentStatus.InTransit, databaseShipment?.Status);
+        Assert.Equal(WithoutId(databaseShipment), WithoutId(await inMemoryShipmentsRepository.Get(stored.InMemoryShipment.Id)));
+    }
+
+    [Fact]
     public async Task Update_Unchanged_BothKeepUpdated()
     {
         var stored = await StoreInBoth(AShipment(Tenant, "TRK-100"));
@@ -304,24 +319,6 @@ public class InMemoryRepositoryParityTests : RepositoryTestBase
         var databaseShipments = await Shipments.Get(new ShipmentFilter());
         Assert.Equal(new[] { "TRK-300", "TRK-100" }, databaseShipments.Where(shipment => shipment.Deleted == TimeProvider.GetUtcNow()).Select(shipment => shipment.TrackingCode));
         Assert.Null(databaseShipments.Single(shipment => shipment.TrackingCode == "TRK-200").Deleted);
-        Assert.Equal(databaseShipments.Select(WithoutId), (await inMemoryShipmentsRepository.Get(new ShipmentFilter())).Select(WithoutId));
-    }
-
-    [Fact]
-    public async Task DestroyTenant_SameRemainingRows()
-    {
-        var deleted = await StoreInBoth(AShipment(Tenant, "TRK-100"));
-        await Shipments.SoftDelete(deleted.DatabaseShipment.Id);
-        await inMemoryShipmentsRepository.SoftDelete(deleted.InMemoryShipment.Id);
-        await StoreInBoth(AShipment(Tenant, "TRK-200"));
-        await StoreInBoth(AShipment(OtherTenant, "TRK-300"));
-
-        var databaseDestroyedCount = await Shipments.DestroyTenant(Tenant);
-        var inMemoryDestroyedCount = await inMemoryShipmentsRepository.DestroyTenant(Tenant);
-
-        Assert.Equal(2, databaseDestroyedCount);
-        Assert.Equal(databaseDestroyedCount, inMemoryDestroyedCount);
-        var databaseShipments = await Shipments.Get(new ShipmentFilter());
         Assert.Equal(databaseShipments.Select(WithoutId), (await inMemoryShipmentsRepository.Get(new ShipmentFilter())).Select(WithoutId));
     }
 

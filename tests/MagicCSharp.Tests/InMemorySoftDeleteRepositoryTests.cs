@@ -77,20 +77,6 @@ public class InMemorySoftDeleteRepositoryTests
     }
 
     [Fact]
-    public async Task DestroyTenant_RemovesSoftDeletedRows()
-    {
-        var parcelsRepository = new ParcelsRepository(timeProvider);
-        var parcel = parcelsRepository.SeedStoredRow(ParcelEdit.Received("Blue box"));
-        await parcelsRepository.SoftDelete(parcel.Id);
-        var otherWarehouseParcel = parcelsRepository.SeedStoredRow(ParcelEdit.Received("Other warehouse") with { WarehouseId = ParcelEdit.OtherWarehouse });
-
-        var destroyedRowCount = await parcelsRepository.DestroyTenant(ParcelEdit.MainWarehouse);
-
-        Assert.Equal(1, destroyedRowCount);
-        Assert.Equal(new[] { otherWarehouseParcel }, parcelsRepository.StoredRowsByIdAscending);
-    }
-
-    [Fact]
     public async Task SoftDeleteSeveral_OverriddenSoftDelete_AppliesToEachKey()
     {
         var shippedParcelsKeptRepository = new ShippedParcelsKeptRepository(timeProvider);

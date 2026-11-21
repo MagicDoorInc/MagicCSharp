@@ -244,9 +244,10 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
     ///         <c>From()</c>'s initializer assigns the property and <c>Apply()</c> does not.
     ///     </para>
     ///     <para>
-    ///         A <c>partial</c> DAL without a <c>From()</c> of its own gets one from MagicCSharp.Generators, which sets
-    ///         exactly the <c>required</c> columns (and the key and tenant key) and leaves them out of the generated
-    ///         <c>Apply()</c>. There <c>required</c> is accepted unless a hand-written <c>Apply()</c> assigns it.
+    ///         A <c>partial</c> DAL without a <c>From()</c> of its own gets one from MagicCSharp.Generators when it lists
+    ///         <c>IDalFromEdit</c> or writes neither <c>ToEntity()</c> nor <c>Apply()</c>; the generated one sets exactly
+    ///         the <c>required</c> columns (and the key) and leaves them out of the generated <c>Apply()</c>. There
+    ///         <c>required</c> is accepted unless a hand-written <c>Apply()</c> assigns it.
     ///     </para>
     /// </summary>
     internal static IEnumerable<Violation> DalPropertiesAreRequired(IReadOnlyList<SourceFile> files)
@@ -257,14 +258,19 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
 
         var partialClass = new Regex(@"\bpartial\s+class\b");
         const string fromSignature = @"\bstatic\s+\w+\s+From\s*\(";
+        const string toEntitySignature = @"\b\w+\s+ToEntity\s*\(\s*\)";
+        const string applySignature = @"\bvoid\s+Apply\s*\(";
+        var dalFromEdit = new Regex(@"\bIDalFromEdit\s*<");
 
         foreach (var sourceFile in files.Where(sourceFile => sourceFile.Name.EndsWith("Dal.cs")))
         {
             var isInInterface = false;
             var setInFrom = AssignedIn(sourceFile, fromSignature);
-            var setInApply = AssignedIn(sourceFile, @"\bvoid\s+Apply\s*\(");
+            var setInApply = AssignedIn(sourceFile, applySignature);
             var isPartialDal = sourceFile.Lines.Any(line => partialClass.IsMatch(line) && !IsComment(line));
-            var isFromGenerated = isPartialDal && !Declares(sourceFile, fromSignature);
+            var hasOptedIntoFrom = sourceFile.Lines.Any(line => dalFromEdit.IsMatch(line) && !IsComment(line)) ||
+                                   (!Declares(sourceFile, toEntitySignature) && !Declares(sourceFile, applySignature));
+            var isFromGenerated = isPartialDal && hasOptedIntoFrom && !Declares(sourceFile, fromSignature);
 
             for (var index = 0; index < sourceFile.Lines.Length; index++)
             {

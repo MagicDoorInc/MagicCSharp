@@ -12,18 +12,6 @@ public static class DalFromEdit<TDal, TEdit>
 {
     private static readonly Func<TEdit, long, TDal>? FromEdit = FindFromEdit();
 
-    /// <summary>
-    ///     Whether <typeparamref name="TDal" /> implements <see cref="IDalFromEdit{TDal,TEdit}" />, so
-    ///     <see cref="Create" /> can build it.
-    /// </summary>
-    public static bool IsAvailable
-    {
-        get
-        {
-            return FromEdit != null;
-        }
-    }
-
     /// <summary>A new row from <typeparamref name="TDal" />'s own <c>From</c>.</summary>
     /// <param name="edit">The fields of the new row.</param>
     /// <param name="id">The id the row is created with.</param>
@@ -36,8 +24,8 @@ public static class DalFromEdit<TDal, TEdit>
         {
             throw new InvalidOperationException(
                 $"{typeof(TDal).Name} has no From({typeof(TEdit).Name} edit, long id) to build a new row with. Make it partial so " +
-                $"MagicCSharp.Generators writes one, implement IDalFromEdit<{typeof(TDal).Name}, {typeof(TEdit).Name}> by hand, " +
-                "or override CreateDal in its repository.");
+                $"MagicCSharp.Generators writes one (a DAL that writes ToEntity or Apply by hand also lists IDalFromEdit<{typeof(TDal).Name}, " +
+                $"{typeof(TEdit).Name}>), implement that interface by hand, or override CreateDal in its repository.");
         }
 
         return FromEdit(edit, id);

@@ -6,7 +6,7 @@ namespace MagicCSharp.Data.EntityFramework.Tests;
 
 /// <summary>
 ///     A repository built from one <see cref="RepositoryServices{TContext}" />, over a Dal whose mapping is generated:
-///     what it writes and reads back, and what deleting a tenant removes.
+///     what it writes and reads back.
 /// </summary>
 public class BundleRepositoryTests : RepositoryTestBase
 {
@@ -49,39 +49,6 @@ public class BundleRepositoryTests : RepositoryTestBase
         Assert.Equal("Boiler checked", updated.Text);
         Assert.Equal(7, updated.TenantId);
         Assert.Equal("7", await ScalarText($"SELECT tenant_id FROM notes WHERE id = {created.Id}"));
-    }
-
-    [Fact]
-    public async Task BundleRepository_DestroyTenant_DeletesOnlyThatTenantsRows_IncludingSoftDeleted()
-    {
-        // Arrange
-        await Notes.Create(ANote(7, "Boiler serviced"));
-        var softDeleted = await Notes.Create(ANote(7, "Gutter cleared"));
-        await Notes.SoftDelete(softDeleted.Id);
-        var otherTenantsNote = await Notes.Create(ANote(8, "Lock changed"));
-
-        // Act
-        var destroyedCount = await Notes.DestroyTenant(7);
-
-        // Assert
-        Assert.Equal(2, destroyedCount);
-        Assert.Equal("0", await ScalarText("SELECT count(*) FROM notes WHERE tenant_id = 7"));
-        var remaining = Assert.Single(await Notes.Get(new NoteFilter()));
-        Assert.Equal(otherTenantsNote.Id, remaining.Id);
-    }
-
-    [Fact]
-    public async Task BundleRepository_DestroyTenant_DeletesNothing_WhenTheDalHasNoTenantKey()
-    {
-        // Arrange: widgets have no TenantId column, so they belong to no tenant.
-        var widget = await Widgets.Create(AWidget());
-
-        // Act
-        var destroyedCount = await Widgets.DestroyTenant(widget.Id);
-
-        // Assert
-        Assert.Equal(0, destroyedCount);
-        Assert.NotNull(await Widgets.Get(widget.Id));
     }
 
     [Fact]

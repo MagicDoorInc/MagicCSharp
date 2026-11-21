@@ -39,8 +39,13 @@ public static class DalReader
         var ownApply = FindMappingMethod(dalClass, ApplyMethodName,
             method => method.Parameters.Length == 1 && SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, editType));
         var ownFrom = FindOwnFrom(dalClass, editType, primaryKind);
+        var isDalFromEditImplemented = FindInterface(dalClass, DataTypeNames.DalFromEdit) != null;
 
-        var isMissingAMethod = !ownToEntity.IsImplemented || !ownApply.IsImplemented || (primaryKind != DalPrimaryKind.None && ownFrom == null);
+        // A Dal that maps by hand, as every Dal did before the generators, gets no From unless it asks for one by
+        // listing IDalFromEdit; only a Dal that leaves both ToEntity and Apply to the generator gets one unasked.
+        var hasOptedIntoFrom = isDalFromEditImplemented || (!ownToEntity.IsImplemented && !ownApply.IsImplemented);
+        var isMissingAMethod = !ownToEntity.IsImplemented || !ownApply.IsImplemented ||
+                               (primaryKind != DalPrimaryKind.None && hasOptedIntoFrom && ownFrom == null);
         if (dal.IsNested || dal.TypeParameters.Count > 0)
         {
             if (!dal.IsPartial || !isMissingAMethod)
@@ -64,15 +69,15 @@ public static class DalReader
                 EntityProperties = MappablePropertyReader.Read(entityType),
                 EditProperties = MappablePropertyReader.Read(editType),
                 PrimaryKind = primaryKind,
-                TenantKeyPropertyName = FindTenantKeyPropertyName(dalClass),
                 HasOwnToEntity = ownToEntity.IsImplemented,
                 HasOwnApply = ownApply.IsImplemented,
+                HasOptedIntoFrom = hasOptedIntoFrom,
                 HasOwnFrom = ownFrom != null,
                 IsOwnFromPublic = ownFrom != null && ownFrom.DeclaredAccessibility == Accessibility.Public,
                 ShouldOverrideToEntity = ownToEntity.IsAbstractInBase,
                 ShouldOverrideApply = ownApply.IsAbstractInBase,
                 HasEntityParameterlessConstructor = HasAccessibleParameterlessConstructor(entityType, dalClass.ContainingAssembly),
-                CanAddDalFromEdit = primaryKind == DalPrimaryKind.Id && FindInterface(dalClass, DataTypeNames.DalFromEdit) == null &&
+                CanAddDalFromEdit = primaryKind == DalPrimaryKind.Id && hasOptedIntoFrom && !isDalFromEditImplemented &&
                                     dalTransform.OriginalDefinition.ContainingAssembly.GetTypeByMetadataName(DataTypeNames.DalFromEdit) != null,
             },
             Diagnostics = EquatableArray<DiagnosticInfo>.Empty,
@@ -144,42 +149,6 @@ public static class DalReader
             .FirstOrDefault(method => method.IsStatic && method.Parameters.Length == 2 &&
                                       SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, editType) &&
                                       method.Parameters[1].Type.SpecialType == primarySpecialType);
-    }
-
-    private static string? FindTenantKeyPropertyName(INamedTypeSymbol dalClass)
-    {
-        var tenantKey = dalClass.ContainingAssembly.GetAttributes()
-            .FirstOrDefault(attribute => attribute.AttributeClass != null && MetadataNameOf(attribute.AttributeClass) == DataTypeNames.TenantKeyAttribute);
-        if (tenantKey == null || tenantKey.ConstructorArguments.Length != 1)
-        {
-            return null;
-        }
-
-        var propertyName = tenantKey.ConstructorArguments[0].Value as string;
-        for (INamedTypeSymbol? declaringType = dalClass; declaringType != null; declaringType = declaringType.BaseType)
-        {
-            var tenantKeyProperty = declaringType.GetMembers(propertyName ?? "")
-                .OfType<IPropertySymbol>()
-                .FirstOrDefault(property => property.DeclaredAccessibility == Accessibility.Public && !property.IsStatic);
-            if (tenantKeyProperty != null)
-            {
-                return IsLongOrNullableLong(tenantKeyProperty.Type) ? tenantKeyProperty.Name : null;
-            }
-        }
-
-        return null;
-    }
-
-    private static bool IsLongOrNullableLong(ITypeSymbol type)
-    {
-        if (type.SpecialType == SpecialType.System_Int64)
-        {
-            return true;
-        }
-
-        var namedType = type as INamedTypeSymbol;
-        return namedType != null && namedType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
-               namedType.TypeArguments[0].SpecialType == SpecialType.System_Int64;
     }
 
     private static bool HasAccessibleParameterlessConstructor(ITypeSymbol entityType, IAssemblySymbol dalAssembly)

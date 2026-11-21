@@ -1,6 +1,4 @@
 using System.Reflection;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using MagicCSharp.AspNetCore;
 using MagicCSharp.Infrastructure;
 using MagicCSharp.Events;
@@ -91,7 +89,8 @@ public static class MagicAppSetup
     }
 
     /// <summary>
-    ///     Teaches the HTTP layer the two conversions the framework's own types need.
+    ///     Teaches the HTTP layer the two conversions the framework's own types need, from
+    ///     <see cref="MagicJsonConventions.AddConverters" />, the same ones the default client in MagicCSharp.Clients uses.
     ///     <para>
     ///         Enums go over the wire as their name, matching how <c>MagicDbContext</c> stores them. The
     ///         reasoning is the same in both places: inserting a member in the middle of an enum renumbers
@@ -113,27 +112,10 @@ public static class MagicAppSetup
     {
         // Controllers read Mvc.JsonOptions; minimal APIs read Http.Json.JsonOptions. They are separate
         // objects, and configuring one leaves the other on framework defaults.
-        services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(mvc => Apply(mvc.JsonSerializerOptions));
-        services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(http => Apply(http.SerializerOptions));
+        services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(mvc => MagicJsonConventions.AddConverters(mvc.JsonSerializerOptions));
+        services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(http => MagicJsonConventions.AddConverters(http.SerializerOptions));
 
         return services;
-    }
-
-    /// <summary>
-    ///     Adds each converter unless one of its type is already there, so calling this twice — or calling
-    ///     it after registering your own — does not stack duplicates or override a deliberate choice.
-    /// </summary>
-    private static void Apply(JsonSerializerOptions options)
-    {
-        if (!options.Converters.Any(converter => converter is JsonStringEnumConverter))
-        {
-            options.Converters.Add(new JsonStringEnumConverter());
-        }
-
-        if (!options.Converters.Any(converter => converter is OptionalConverterFactory))
-        {
-            options.Converters.Add(new OptionalConverterFactory());
-        }
     }
 
     /// <summary>

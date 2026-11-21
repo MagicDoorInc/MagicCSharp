@@ -2,8 +2,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 using MagicCSharp.Data.EntityFramework.Dals;
 using MagicCSharp.Infrastructure.Entities;
 
-[assembly: TenantKey("TenantId")]
-
 namespace MagicCSharp.Data.EntityFramework.Tests.Fixtures;
 
 /// <summary>A tenant's note: the entity whose Dal maps itself, through MagicCSharp.Generators.</summary>
@@ -29,14 +27,13 @@ public class NoteFilter
 
 /// <summary>
 ///     Only columns: <c>partial</c> is what makes the generator write <c>ToEntity</c>, <c>Apply</c> and <c>From</c>.
-///     <c>TenantId</c> is deliberately not <c>required</c>, so it is the assembly's <c>[TenantKey]</c> alone that keeps
-///     <c>Apply</c> from moving a note to another tenant.
+///     <c>TenantId</c> is <c>required</c>, so <c>From</c> sets it and <c>Apply</c> never moves a note to another tenant.
 /// </summary>
 [Table("notes")]
 public partial class NoteDal : BaseIdDal<Note, NoteEdit>, IDalDeleted
 {
     [Column("tenant_id")]
-    public long TenantId { get; set; }
+    public required long TenantId { get; set; }
 
     [Column("text")]
     public string Text { get; set; } = "";

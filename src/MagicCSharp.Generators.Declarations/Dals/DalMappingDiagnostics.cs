@@ -3,8 +3,10 @@ using Microsoft.CodeAnalysis;
 namespace MagicCSharp.Generators.Declarations.Dals;
 
 /// <summary>
-///     The Dal mapping diagnostics, <c>MCS12xx</c>. Each fires only on a partial Dal that lacks the method it is about,
-///     so the class is incomplete either way; the message says which property stands in the way.
+///     The Dal mapping diagnostics, <c>MCS12xx</c>, each on a partial Dal; the message says which property stands in
+///     the way. <c>MCS1201</c> and <c>MCS1202</c> fire only when the Dal lacks that method, so it is incomplete either
+///     way. <c>MCS1203</c> fires only when the Dal opted into <c>From</c> (it lists <c>IDalFromEdit</c>, or writes neither
+///     <c>ToEntity</c> nor <c>Apply</c>) and lacks one; a Dal that maps by hand without <c>IDalFromEdit</c> never gets it.
 /// </summary>
 public static class DalMappingDiagnostics
 {

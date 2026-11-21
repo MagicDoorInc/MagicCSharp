@@ -16,11 +16,7 @@ public static class DataTypeNames
 
     public const string DalFromEdit = "MagicCSharp.Data.EntityFramework.Dals.IDalFromEdit`2";
 
-    public const string TenantKeyAttribute = "MagicCSharp.Data.EntityFramework.Dals.TenantKeyAttribute";
-
     public const string Repository = "MagicCSharp.Data.Repositories.IRepository`4";
-
-    public const string TenantScopedDestroyer = "MagicCSharp.Data.Repositories.ITenantScopedDestroyer";
 
     public const string KeyAttribute = "System.ComponentModel.DataAnnotations.KeyAttribute";
 }

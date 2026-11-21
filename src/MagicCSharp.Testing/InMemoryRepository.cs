@@ -30,8 +30,7 @@ namespace MagicCSharp.Testing;
 /// <typeparam name="TEntity">The entity; needs a public <c>long Id</c> with a setter or <c>init</c>.</typeparam>
 /// <typeparam name="TEdit">The edit the entity derives from.</typeparam>
 /// <typeparam name="TFilter">The filter; lists <see cref="IEntityFilter{TEntity}" />, or the fake overrides <see cref="Matches" />.</typeparam>
-public class InMemoryRepository<TEntity, TEdit, TFilter> : IRepository<TEntity, long, TEdit, TFilter>, IPaginatedRepository<TEntity, TFilter>,
-    ITenantScopedDestroyer
+public class InMemoryRepository<TEntity, TEdit, TFilter> : IRepository<TEntity, long, TEdit, TFilter>, IPaginatedRepository<TEntity, TFilter>
     where TEntity : class, TEdit, IMagicEntity
 {
     private readonly Dictionary<long, TEntity> storedRows = [];
@@ -58,11 +57,12 @@ public class InMemoryRepository<TEntity, TEdit, TFilter> : IRepository<TEntity, 
     protected TimeProvider TimeProvider { get; }
 
     /// <summary>
-    ///     The entity's tenant column, a public <c>long</c> or <c>long?</c>. <see cref="DestroyTenant" /> removes the
-    ///     rows whose value equals the tenant, and an update never changes it. Null, or a name the entity doesn't have
-    ///     as a <c>long</c>, means the rows belong to no tenant: <see cref="DestroyTenant" /> removes nothing.
+    ///     The edit properties an update never changes: the columns the database repository sets once, when the row is
+    ///     created, and its Dal's <c>Apply</c> leaves alone — for a generated <c>Apply</c>, the Dal's <c>required</c>
+    ///     and <c>[Key]</c> properties. A new row still takes them from the edit. Empty by default, so an update copies
+    ///     every edit property; list the set-once columns here so the fake keeps them as the database does.
     /// </summary>
-    protected virtual string? TenantKeyPropertyName => null;
+    protected virtual IReadOnlyCollection<string> SetOncePropertyNames => [];
 
     public virtual Task<int> Count(TFilter filter)
     {
@@ -220,25 +220,6 @@ public class InMemoryRepository<TEntity, TEdit, TFilter> : IRepository<TEntity, 
         return Delete(matchingKeys);
     }
 
-    /// <summary>Hard-removes every row of the tenant, soft-deleted ones too, as the database repositories do.</summary>
-    /// <returns>The number of rows removed; 0 when <see cref="TenantKeyPropertyName" /> names no tenant column.</returns>
-    public virtual Task<int> DestroyTenant(long tenantId)
-    {
-        var tenantKeyReader = TenantKeyPropertyName == null ? null : EntityProperties<TEntity>.FindLongReader(TenantKeyPropertyName);
-        if (tenantKeyReader == null)
-        {
-            return Task.FromResult(0);
-        }
-
-        var tenantKeys = storedRows.Values.Where(entity => tenantKeyReader(entity) == tenantId).Select(EntityProperties<TEntity>.IdOf).ToList();
-        foreach (var key in tenantKeys)
-        {
-            storedRows.Remove(key);
-        }
-
-        return Task.FromResult(tenantKeys.Count);
-    }
-
     /// <summary>
     ///     Builds a new row: every property of the edit with a public setter or <c>init</c> copied by name, then
     ///     <c>Id</c>, <c>Created</c> and <c>Updated</c>. Entity properties the edit doesn't hold stay at their default;
@@ -248,7 +229,7 @@ public class InMemoryRepository<TEntity, TEdit, TFilter> : IRepository<TEntity, 
     protected virtual TEntity CreateEntity(TEdit edit, long id, DateTimeOffset created)
     {
         var entity = CreateEmptyEntity();
-        CopyEditProperties(edit, entity, null);
+        CopyEditProperties(edit, entity, []);
         EntityProperties<TEntity>.IdProperty!.SetValue(entity, id);
         EntityProperties<TEntity>.CreatedProperty!.SetValue(entity, created);
         EntityProperties<TEntity>.UpdatedProperty!.SetValue(entity, created);
@@ -257,13 +238,14 @@ public class InMemoryRepository<TEntity, TEdit, TFilter> : IRepository<TEntity, 
     }
 
     /// <summary>
-    ///     A copy of the stored row with every property of the edit copied onto it, except the tenant key, which never
-    ///     changes. Properties the edit doesn't hold keep their stored value. Never changes <paramref name="entity" />.
+    ///     A copy of the stored row with every property of the edit copied onto it, except those
+    ///     <see cref="SetOncePropertyNames" /> lists. Properties the edit doesn't hold keep their stored value. Never
+    ///     changes <paramref name="entity" />.
     /// </summary>
     protected virtual TEntity CopyWithEdit(TEntity entity, TEdit edit)
     {
         var editedEntity = EntityProperties<TEntity>.Clone(entity);
-        CopyEditProperties(edit, editedEntity, TenantKeyPropertyName);
+        CopyEditProperties(edit, editedEntity, SetOncePropertyNames);
 
         return editedEntity;
     }
@@ -346,11 +328,11 @@ public class InMemoryRepository<TEntity, TEdit, TFilter> : IRepository<TEntity, 
         return Activator.CreateInstance<TEntity>();
     }
 
-    private static void CopyEditProperties(TEdit edit, TEntity entity, string? skippedPropertyName)
+    private static void CopyEditProperties(TEdit edit, TEntity entity, IReadOnlyCollection<string> skippedPropertyNames)
     {
         foreach (var editProperty in EditProperties.Writable)
         {
-            if (editProperty.Name == skippedPropertyName)
+            if (skippedPropertyNames.Contains(editProperty.Name))
             {
                 continue;
             }

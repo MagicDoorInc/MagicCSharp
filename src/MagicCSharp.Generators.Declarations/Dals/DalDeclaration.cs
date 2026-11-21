@@ -20,14 +20,17 @@ public sealed record DalDeclaration
 
     public required DalPrimaryKind PrimaryKind { get; init; }
 
-    /// <summary>The Dal property named by the assembly's <c>[assembly: TenantKey]</c>, when the Dal has it as a <c>long</c>; else null.</summary>
-    public required string? TenantKeyPropertyName { get; init; }
-
     /// <summary>The Dal declares <c>ToEntity()</c>, or inherits one that is not abstract.</summary>
     public required bool HasOwnToEntity { get; init; }
 
     /// <summary>The Dal declares <c>Apply(TEdit)</c>, or inherits one that is not abstract.</summary>
     public required bool HasOwnApply { get; init; }
+
+    /// <summary>
+    ///     The Dal asks for a generated <c>From</c>: it lists <c>IDalFromEdit</c>, or writes neither <c>ToEntity</c> nor
+    ///     <c>Apply</c> by hand. A Dal that maps by hand without <c>IDalFromEdit</c> gets no <c>From</c>.
+    /// </summary>
+    public required bool HasOptedIntoFrom { get; init; }
 
     /// <summary>The Dal declares a static <c>From(TEdit, long)</c> (id Dals) or <c>From(TEdit, string)</c> (key Dals).</summary>
     public required bool HasOwnFrom { get; init; }
@@ -44,6 +47,9 @@ public sealed record DalDeclaration
     /// <summary>The entity can be built with <c>new TEntity { … }</c>.</summary>
     public required bool HasEntityParameterlessConstructor { get; init; }
 
-    /// <summary>An id Dal that does not implement <c>IDalFromEdit</c> yet, in a compilation where that interface exists.</summary>
+    /// <summary>
+    ///     An id Dal that has opted into <c>From</c> but does not implement <c>IDalFromEdit</c> yet, in a compilation where
+    ///     that interface exists.
+    /// </summary>
     public required bool CanAddDalFromEdit { get; init; }
 }

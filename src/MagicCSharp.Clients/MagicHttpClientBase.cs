@@ -4,13 +4,16 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Text.Json;
+using MagicCSharp.Infrastructure;
 
 namespace MagicCSharp.Clients;
 
 /// <summary>
 ///     The base of a generated client when no <see cref="MagicClientConventionAttribute" /> names another: JSON over
 ///     the named <see cref="HttpClient" /> that <see cref="MagicHttpClientRegistration.AddMagicHttpClient{TInterface,TClient}" />
-///     configures for the concrete client type.
+///     configures for the concrete client type. Bodies are read and written with
+///     <see cref="MagicJsonConventions.HttpClientOptions" />, the conventions a MagicApp server uses: enums by name,
+///     <see cref="Optional{T}" /> left out when it holds no value.
 /// </summary>
 public abstract class MagicHttpClientBase(IHttpClientFactory httpClientFactory)
 {
@@ -24,7 +27,7 @@ public abstract class MagicHttpClientBase(IHttpClientFactory httpClientFactory)
             return EmptyAnswer<TResponse>(method, path);
         }
 
-        return JsonSerializer.Deserialize<TResponse>(content, JsonSerializerOptions.Web)!;
+        return JsonSerializer.Deserialize<TResponse>(content, MagicJsonConventions.HttpClientOptions)!;
     }
 
     /// <summary>Sends the request and ignores any answer.</summary>
@@ -61,7 +64,7 @@ public abstract class MagicHttpClientBase(IHttpClientFactory httpClientFactory)
         using var httpRequestMessage = new HttpRequestMessage(method, path);
         if (body != null)
         {
-            httpRequestMessage.Content = JsonContent.Create(body, body.GetType(), options: JsonSerializerOptions.Web);
+            httpRequestMessage.Content = JsonContent.Create(body, body.GetType(), options: MagicJsonConventions.HttpClientOptions);
         }
 
         var httpClient = httpClientFactory.CreateClient(MagicHttpClientRegistration.HttpClientName(GetType()));

@@ -34,8 +34,12 @@ public static class MagicHttpClientRegistration
         return services;
     }
 
-    // The full name, so two clients with the same short name in different namespaces each keep their own base address.
-    internal static string HttpClientName(Type clientType)
+    /// <summary>
+    ///     The name of the <see cref="HttpClient" /> registered for <paramref name="clientType" />: its full name, so two
+    ///     clients with the same short name in different namespaces each keep their own base address. Configure that
+    ///     client further by it, e.g. <c>services.AddHttpClient(MagicHttpClientRegistration.HttpClientName(typeof(LeasesClient))).AddHttpMessageHandler&lt;AuthenticationHandler&gt;()</c>.
+    /// </summary>
+    public static string HttpClientName(Type clientType)
     {
         return clientType.FullName ?? clientType.Name;
     }

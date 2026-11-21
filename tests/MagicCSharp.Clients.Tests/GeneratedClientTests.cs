@@ -52,7 +52,7 @@ public class GeneratedClientTests : IDisposable
 
         // Assert
         var recordedRequest = Assert.Single(recordingHttpMessageHandler.Requests);
-        Assert.Equal("/api/leases/7?companyId=42", recordedRequest.PathAndQuery);
+        Assert.Equal("/api/leases/7?propertyId=42", recordedRequest.PathAndQuery);
     }
 
     [Fact]
