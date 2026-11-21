@@ -1,3 +1,4 @@
+using MagicCSharp.Infrastructure.Entities;
 using MagicCSharp.Infrastructure.Exceptions;
 using MagicCSharp.Testing;
 using Microsoft.Extensions.Time.Testing;
@@ -87,5 +88,58 @@ public class InMemorySoftDeleteRepositoryTests
 
         Assert.Equal(1, destroyedRowCount);
         Assert.Equal(new[] { otherWarehouseParcel }, parcelsRepository.StoredRowsByIdAscending);
+    }
+
+    [Fact]
+    public async Task SoftDeleteSeveral_OverriddenSoftDelete_AppliesToEachKey()
+    {
+        var shippedParcelsKeptRepository = new ShippedParcelsKeptRepository(timeProvider);
+        var receivedParcel = shippedParcelsKeptRepository.SeedStoredRow(ParcelEdit.Received("Received"));
+        var shippedParcel = shippedParcelsKeptRepository.SeedStoredRow(ParcelEdit.Received("Shipped") with { Status = ParcelStatus.Shipped });
+        timeProvider.Advance(TimeSpan.FromHours(1));
+
+        await shippedParcelsKeptRepository.SoftDelete([receivedParcel.Id, shippedParcel.Id]);
+
+        var expectedParcels = new[] { receivedParcel with { Deleted = Start.AddHours(1), Updated = Start.AddHours(1) }, shippedParcel };
+        Assert.Equal(expectedParcels, shippedParcelsKeptRepository.StoredRowsByIdAscending);
+    }
+
+    [Fact]
+    public async Task SoftDeleteByFilter_OverriddenSoftDelete_AppliesToEachMatch()
+    {
+        var shippedParcelsKeptRepository = new ShippedParcelsKeptRepository(timeProvider);
+        var receivedParcel = shippedParcelsKeptRepository.SeedStoredRow(ParcelEdit.Received("Received"));
+        var shippedParcel = shippedParcelsKeptRepository.SeedStoredRow(ParcelEdit.Received("Shipped") with { Status = ParcelStatus.Shipped });
+        timeProvider.Advance(TimeSpan.FromHours(1));
+
+        await shippedParcelsKeptRepository.SoftDelete(new ParcelFilter());
+
+        var expectedParcels = new[] { receivedParcel with { Deleted = Start.AddHours(1), Updated = Start.AddHours(1) }, shippedParcel };
+        Assert.Equal(expectedParcels, shippedParcelsKeptRepository.StoredRowsByIdAscending);
+    }
+
+    [Fact]
+    public void Constructor_EntityWithoutWritableDeleted_ThrowsNamingEntityAndColumn()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() => new InMemorySoftDeleteRepository<StickerWithoutWritableDeleted, StickerWithoutWritableDeletedEdit, ParcelFilter>(timeProvider));
+
+        Assert.Contains(nameof(StickerWithoutWritableDeleted), exception.Message);
+        Assert.Contains("Deleted", exception.Message);
+    }
+
+    // ── Fixtures ─────────────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>A sticker whose <c>Deleted</c> has a getter only, so a soft delete has nowhere to write.</summary>
+    public record StickerWithoutWritableDeleted : StickerWithoutWritableDeletedEdit, IMagicEntity, IDeletedEntity
+    {
+        public required long Id { get; init; }
+        public required DateTimeOffset Created { get; init; }
+        public required DateTimeOffset Updated { get; init; }
+        public DateTimeOffset? Deleted { get; }
+    }
+
+    public record StickerWithoutWritableDeletedEdit
+    {
+        public required string Text { get; init; }
     }
 }

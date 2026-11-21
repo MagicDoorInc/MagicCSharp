@@ -127,6 +127,187 @@ public class InMemoryRepositoryParityTests : RepositoryTestBase
     }
 
     [Fact]
+    public async Task UpdateSeveral_SameChangedRowCountAndStamps()
+    {
+        var changing = await StoreInBoth(AShipment(Tenant, "TRK-100"));
+        var unchanged = await StoreInBoth(AShipment(Tenant, "TRK-200"));
+        var created = TimeProvider.GetUtcNow();
+        TimeProvider.Advance(TimeSpan.FromHours(1));
+        var changedEdit = AShipment(Tenant, "TRK-100") with { Status = ShipmentStatus.InTransit };
+
+        var databaseChangedCount = await Shipments.Update(new Dictionary<long, ShipmentEdit>
+        {
+            [changing.DatabaseShipment.Id] = changedEdit,
+            [unchanged.DatabaseShipment.Id] = AShipment(Tenant, "TRK-200"),
+        });
+        var inMemoryChangedCount = await inMemoryShipmentsRepository.Update(new Dictionary<long, ShipmentEdit>
+        {
+            [changing.InMemoryShipment.Id] = changedEdit,
+            [unchanged.InMemoryShipment.Id] = AShipment(Tenant, "TRK-200"),
+        });
+
+        Assert.Equal(1, databaseChangedCount);
+        Assert.Equal(databaseChangedCount, inMemoryChangedCount);
+        var databaseShipments = await Shipments.Get(new ShipmentFilter());
+        Assert.Equal(TimeProvider.GetUtcNow(), databaseShipments.Single(shipment => shipment.TrackingCode == "TRK-100").Updated);
+        Assert.Equal(created, databaseShipments.Single(shipment => shipment.TrackingCode == "TRK-200").Updated);
+        Assert.Equal(databaseShipments.Select(WithoutId), (await inMemoryShipmentsRepository.Get(new ShipmentFilter())).Select(WithoutId));
+    }
+
+    [Fact]
+    public async Task UpdateSeveralEntities_SameChangedRowCountAndStamps()
+    {
+        var changing = await StoreInBoth(AShipment(Tenant, "TRK-100"));
+        var unchanged = await StoreInBoth(AShipment(Tenant, "TRK-200"));
+        var created = TimeProvider.GetUtcNow();
+        TimeProvider.Advance(TimeSpan.FromHours(1));
+
+        var databaseChangedCount = await Shipments.Update([changing.DatabaseShipment with { Status = ShipmentStatus.InTransit }, unchanged.DatabaseShipment]);
+        var inMemoryChangedCount = await inMemoryShipmentsRepository.Update([changing.InMemoryShipment with { Status = ShipmentStatus.InTransit }, unchanged.InMemoryShipment]);
+
+        Assert.Equal(1, databaseChangedCount);
+        Assert.Equal(databaseChangedCount, inMemoryChangedCount);
+        var databaseShipments = await Shipments.Get(new ShipmentFilter());
+        Assert.Equal(TimeProvider.GetUtcNow(), databaseShipments.Single(shipment => shipment.TrackingCode == "TRK-100").Updated);
+        Assert.Equal(created, databaseShipments.Single(shipment => shipment.TrackingCode == "TRK-200").Updated);
+        Assert.Equal(databaseShipments.Select(WithoutId), (await inMemoryShipmentsRepository.Get(new ShipmentFilter())).Select(WithoutId));
+    }
+
+    [Fact]
+    public async Task UpdateSeveral_OneMissing_BothThrowNotFoundAndWriteNothing()
+    {
+        var stored = await StoreInBoth(AShipment(Tenant, "TRK-100"));
+        var changedEdit = AShipment(Tenant, "TRK-100") with { Status = ShipmentStatus.InTransit };
+
+        await Assert.ThrowsAsync<NotFoundIdException>(() => Shipments.Update(new Dictionary<long, ShipmentEdit>
+        {
+            [stored.DatabaseShipment.Id] = changedEdit,
+            [424242] = changedEdit,
+        }));
+        await Assert.ThrowsAsync<NotFoundIdException>(() => inMemoryShipmentsRepository.Update(new Dictionary<long, ShipmentEdit>
+        {
+            [stored.InMemoryShipment.Id] = changedEdit,
+            [424242] = changedEdit,
+        }));
+
+        var databaseShipments = await Shipments.Get(new ShipmentFilter());
+        Assert.Equal(ShipmentStatus.Booked, Assert.Single(databaseShipments).Status);
+        Assert.Equal(databaseShipments.Select(WithoutId), (await inMemoryShipmentsRepository.Get(new ShipmentFilter())).Select(WithoutId));
+    }
+
+    [Fact]
+    public async Task UpdateSeveralEntities_OneMissing_BothThrowNotFoundAndWriteNothing()
+    {
+        var stored = await StoreInBoth(AShipment(Tenant, "TRK-100"));
+
+        await Assert.ThrowsAsync<NotFoundIdException>(() => Shipments.Update([stored.DatabaseShipment with { Status = ShipmentStatus.InTransit }, stored.DatabaseShipment with { Id = 424242 }]));
+        await Assert.ThrowsAsync<NotFoundIdException>(() => inMemoryShipmentsRepository.Update([stored.InMemoryShipment with { Status = ShipmentStatus.InTransit }, stored.InMemoryShipment with { Id = 424242 }]));
+
+        var databaseShipments = await Shipments.Get(new ShipmentFilter());
+        Assert.Equal(ShipmentStatus.Booked, Assert.Single(databaseShipments).Status);
+        Assert.Equal(databaseShipments.Select(WithoutId), (await inMemoryShipmentsRepository.Get(new ShipmentFilter())).Select(WithoutId));
+    }
+
+    [Fact]
+    public async Task DeleteSeveral_SameCountAndRemainingRows()
+    {
+        var first = await StoreInBoth(AShipment(Tenant, "TRK-100"));
+        await StoreInBoth(AShipment(Tenant, "TRK-200"));
+        var third = await StoreInBoth(AShipment(Tenant, "TRK-300"));
+
+        var databaseDeletedCount = await Shipments.Delete([first.DatabaseShipment.Id, third.DatabaseShipment.Id]);
+        var inMemoryDeletedCount = await inMemoryShipmentsRepository.Delete([first.InMemoryShipment.Id, third.InMemoryShipment.Id]);
+
+        Assert.Equal(2, databaseDeletedCount);
+        Assert.Equal(databaseDeletedCount, inMemoryDeletedCount);
+        var databaseShipments = await Shipments.Get(new ShipmentFilter());
+        Assert.Equal(new[] { "TRK-200" }, databaseShipments.Select(shipment => shipment.TrackingCode));
+        Assert.Equal(databaseShipments.Select(WithoutId), (await inMemoryShipmentsRepository.Get(new ShipmentFilter())).Select(WithoutId));
+    }
+
+    [Fact]
+    public async Task DeleteSeveral_OneMissing_BothThrowNotFoundAndDeleteNothing()
+    {
+        var stored = await StoreInBoth(AShipment(Tenant, "TRK-100"));
+
+        await Assert.ThrowsAsync<NotFoundIdException>(() => Shipments.Delete([stored.DatabaseShipment.Id, 424242]));
+        await Assert.ThrowsAsync<NotFoundIdException>(() => inMemoryShipmentsRepository.Delete([stored.InMemoryShipment.Id, 424242]));
+
+        var databaseShipments = await Shipments.Get(new ShipmentFilter());
+        Assert.Single(databaseShipments);
+        Assert.Equal(databaseShipments.Select(WithoutId), (await inMemoryShipmentsRepository.Get(new ShipmentFilter())).Select(WithoutId));
+    }
+
+    [Fact]
+    public async Task DeleteByFilter_SameCountAndRemainingRows()
+    {
+        await StoreInBoth(AShipment(Tenant, "TRK-100"));
+        await StoreInBoth(AShipment(OtherTenant, "TRK-200"));
+        await StoreInBoth(AShipment(Tenant, "TRK-300"));
+        var tenantShipmentFilter = new ShipmentFilter { TenantId = Tenant };
+
+        var databaseDeletedCount = await Shipments.Delete(tenantShipmentFilter);
+        var inMemoryDeletedCount = await inMemoryShipmentsRepository.Delete(tenantShipmentFilter);
+
+        Assert.Equal(2, databaseDeletedCount);
+        Assert.Equal(databaseDeletedCount, inMemoryDeletedCount);
+        var databaseShipments = await Shipments.Get(new ShipmentFilter());
+        Assert.Equal(new[] { "TRK-200" }, databaseShipments.Select(shipment => shipment.TrackingCode));
+        Assert.Equal(databaseShipments.Select(WithoutId), (await inMemoryShipmentsRepository.Get(new ShipmentFilter())).Select(WithoutId));
+    }
+
+    [Fact]
+    public async Task SoftDeleteSeveral_SameCountAndStamps()
+    {
+        var first = await StoreInBoth(AShipment(Tenant, "TRK-100"));
+        await StoreInBoth(AShipment(Tenant, "TRK-200"));
+        TimeProvider.Advance(TimeSpan.FromHours(1));
+
+        var databaseDeletedCount = await Shipments.SoftDelete([first.DatabaseShipment.Id]);
+        var inMemoryDeletedCount = await inMemoryShipmentsRepository.SoftDelete([first.InMemoryShipment.Id]);
+
+        Assert.Equal(1, databaseDeletedCount);
+        Assert.Equal(databaseDeletedCount, inMemoryDeletedCount);
+        var databaseShipments = await Shipments.Get(new ShipmentFilter());
+        Assert.Equal(TimeProvider.GetUtcNow(), databaseShipments.Single(shipment => shipment.TrackingCode == "TRK-100").Deleted);
+        Assert.Null(databaseShipments.Single(shipment => shipment.TrackingCode == "TRK-200").Deleted);
+        Assert.Equal(databaseShipments.Select(WithoutId), (await inMemoryShipmentsRepository.Get(new ShipmentFilter())).Select(WithoutId));
+    }
+
+    [Fact]
+    public async Task SoftDeleteSeveral_OneMissing_BothThrowNotFoundAndDeleteNothing()
+    {
+        var stored = await StoreInBoth(AShipment(Tenant, "TRK-100"));
+
+        await Assert.ThrowsAsync<NotFoundIdException>(() => Shipments.SoftDelete([stored.DatabaseShipment.Id, 424242]));
+        await Assert.ThrowsAsync<NotFoundIdException>(() => inMemoryShipmentsRepository.SoftDelete([stored.InMemoryShipment.Id, 424242]));
+
+        var databaseShipments = await Shipments.Get(new ShipmentFilter());
+        Assert.Null(Assert.Single(databaseShipments).Deleted);
+        Assert.Equal(databaseShipments.Select(WithoutId), (await inMemoryShipmentsRepository.Get(new ShipmentFilter())).Select(WithoutId));
+    }
+
+    [Fact]
+    public async Task SoftDeleteByFilter_SameCountAndStamps()
+    {
+        await StoreInBoth(AShipment(Tenant, "TRK-100"));
+        await StoreInBoth(AShipment(OtherTenant, "TRK-200"));
+        await StoreInBoth(AShipment(Tenant, "TRK-300"));
+        TimeProvider.Advance(TimeSpan.FromHours(1));
+        var tenantShipmentFilter = new ShipmentFilter { TenantId = Tenant };
+
+        var databaseDeletedCount = await Shipments.SoftDelete(tenantShipmentFilter);
+        var inMemoryDeletedCount = await inMemoryShipmentsRepository.SoftDelete(tenantShipmentFilter);
+
+        Assert.Equal(2, databaseDeletedCount);
+        Assert.Equal(databaseDeletedCount, inMemoryDeletedCount);
+        var databaseShipments = await Shipments.Get(new ShipmentFilter());
+        Assert.Equal(new[] { "TRK-300", "TRK-100" }, databaseShipments.Where(shipment => shipment.Deleted == TimeProvider.GetUtcNow()).Select(shipment => shipment.TrackingCode));
+        Assert.Null(databaseShipments.Single(shipment => shipment.TrackingCode == "TRK-200").Deleted);
+        Assert.Equal(databaseShipments.Select(WithoutId), (await inMemoryShipmentsRepository.Get(new ShipmentFilter())).Select(WithoutId));
+    }
+
+    [Fact]
     public async Task DestroyTenant_SameRemainingRows()
     {
         var deleted = await StoreInBoth(AShipment(Tenant, "TRK-100"));

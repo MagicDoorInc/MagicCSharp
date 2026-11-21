@@ -264,6 +264,92 @@ public class InMemoryRepositoryTests
     }
 
     [Fact]
+    public async Task UpdateEntities_CountsChangedRows()
+    {
+        var parcelsRepository = new ParcelsRepository(timeProvider);
+        var changingParcel = await parcelsRepository.Create(ParcelEdit.Received("Changing"));
+        var unchangedParcel = await parcelsRepository.Create(ParcelEdit.Received("Unchanged"));
+        timeProvider.Advance(TimeSpan.FromHours(1));
+
+        var changedRowCount = await parcelsRepository.Update([changingParcel with { Status = ParcelStatus.Shelved }, unchangedParcel]);
+
+        Assert.Equal(1, changedRowCount);
+        Assert.Equal(new[] { changingParcel with { Status = ParcelStatus.Shelved, Updated = Start.AddHours(1) }, unchangedParcel }, parcelsRepository.StoredRowsByIdAscending);
+    }
+
+    [Fact]
+    public async Task UpdateEntities_OneMissing_WritesNothing()
+    {
+        var parcelsRepository = new ParcelsRepository(timeProvider);
+        var parcel = await parcelsRepository.Create(ParcelEdit.Received("Blue box"));
+
+        var exception = await Assert.ThrowsAsync<NotFoundIdException>(() => parcelsRepository.Update([parcel with { Status = ParcelStatus.Shelved }, parcel with { Id = 99 }]));
+
+        Assert.Equal(99, exception.Id);
+        Assert.Equal(new[] { parcel }, parcelsRepository.StoredRowsByIdAscending);
+    }
+
+    [Fact]
+    public async Task CreateSeveral_OverriddenCreate_AppliesToEachEdit()
+    {
+        var relabellingParcelsRepository = new RelabellingParcelsRepository(timeProvider);
+
+        await relabellingParcelsRepository.Create([ParcelEdit.Received("First"), ParcelEdit.Received("Second")]);
+
+        Assert.Equal(new[] { "First (relabelled)", "Second (relabelled)" }, relabellingParcelsRepository.StoredRowsByIdAscending.Select(parcel => parcel.Label));
+    }
+
+    [Fact]
+    public async Task UpdateSeveral_OverriddenUpdate_AppliesToEachEdit()
+    {
+        var relabellingParcelsRepository = new RelabellingParcelsRepository(timeProvider);
+        var parcel = relabellingParcelsRepository.SeedStoredRow(ParcelEdit.Received("Blue box"));
+
+        var changedRowCount = await relabellingParcelsRepository.Update(new Dictionary<long, ParcelEdit> { [parcel.Id] = ParcelEdit.Received("Blue box") });
+
+        Assert.Equal(1, changedRowCount);
+        Assert.Equal("Blue box (relabelled)", (await relabellingParcelsRepository.Get(parcel.Id))?.Label);
+    }
+
+    [Fact]
+    public async Task UpdateEntities_OverriddenUpdate_AppliesToEachEntity()
+    {
+        var relabellingParcelsRepository = new RelabellingParcelsRepository(timeProvider);
+        var parcel = relabellingParcelsRepository.SeedStoredRow(ParcelEdit.Received("Blue box"));
+
+        var changedRowCount = await relabellingParcelsRepository.Update([parcel]);
+
+        Assert.Equal(1, changedRowCount);
+        Assert.Equal("Blue box (relabelled)", (await relabellingParcelsRepository.Get(parcel.Id))?.Label);
+    }
+
+    [Fact]
+    public async Task DeleteSeveral_OverriddenDelete_AppliesToEachKey()
+    {
+        var shippedParcelsKeptRepository = new ShippedParcelsKeptRepository(timeProvider);
+        var receivedParcel = shippedParcelsKeptRepository.SeedStoredRow(ParcelEdit.Received("Received"));
+        var shippedParcel = shippedParcelsKeptRepository.SeedStoredRow(ParcelEdit.Received("Shipped") with { Status = ParcelStatus.Shipped });
+
+        var deletedRowCount = await shippedParcelsKeptRepository.Delete([receivedParcel.Id, shippedParcel.Id]);
+
+        Assert.Equal(1, deletedRowCount);
+        Assert.Equal(new[] { shippedParcel }, shippedParcelsKeptRepository.StoredRowsByIdAscending);
+    }
+
+    [Fact]
+    public async Task DeleteByFilter_OverriddenDelete_AppliesToEachMatch()
+    {
+        var shippedParcelsKeptRepository = new ShippedParcelsKeptRepository(timeProvider);
+        shippedParcelsKeptRepository.SeedStoredRow(ParcelEdit.Received("Received"));
+        var shippedParcel = shippedParcelsKeptRepository.SeedStoredRow(ParcelEdit.Received("Shipped") with { Status = ParcelStatus.Shipped });
+
+        var deletedRowCount = await shippedParcelsKeptRepository.Delete(new ParcelFilter());
+
+        Assert.Equal(1, deletedRowCount);
+        Assert.Equal(new[] { shippedParcel }, shippedParcelsKeptRepository.StoredRowsByIdAscending);
+    }
+
+    [Fact]
     public async Task UpdateEntity_WritesEditFields()
     {
         var parcelsRepository = new ParcelsRepository(timeProvider);
@@ -392,6 +478,24 @@ public class InMemoryRepositoryTests
         Assert.Contains(nameof(Sticker), exception.Message);
     }
 
+    [Fact]
+    public void Constructor_EntityWithoutWritableCreated_ThrowsNamingEntityAndColumn()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() => new InMemoryRepository<StickerWithoutWritableCreated, StickerEdit, ParcelFilter>(timeProvider));
+
+        Assert.Contains(nameof(StickerWithoutWritableCreated), exception.Message);
+        Assert.Contains("Created", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_EntityWithoutWritableUpdated_ThrowsNamingEntityAndColumn()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() => new InMemoryRepository<StickerWithoutWritableUpdated, StickerEdit, ParcelFilter>(timeProvider));
+
+        Assert.Contains(nameof(StickerWithoutWritableUpdated), exception.Message);
+        Assert.Contains("Updated", exception.Message);
+    }
+
     // ── Fixtures ─────────────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>A filter that doesn't list <c>IEntityFilter</c>, so it has no generated <c>Matches</c>.</summary>
@@ -436,6 +540,20 @@ public class InMemoryRepositoryTests
         }
     }
 
+    /// <summary>Appends " (relabelled)" to the label of every parcel it creates or updates.</summary>
+    public class RelabellingParcelsRepository(TimeProvider timeProvider) : ParcelsRepository(timeProvider)
+    {
+        public override Task<Parcel> Create(ParcelEdit edit)
+        {
+            return base.Create(edit with { Label = edit.Label + " (relabelled)" });
+        }
+
+        public override Task<Parcel> Update(long key, ParcelEdit edit)
+        {
+            return base.Update(key, edit with { Label = edit.Label + " (relabelled)" });
+        }
+    }
+
     public class ShelfParcelsRepository(TimeProvider timeProvider) : ParcelsRepository(timeProvider)
     {
         protected override Exception CreateNotFoundException(long id)
@@ -464,6 +582,22 @@ public class InMemoryRepositoryTests
         public required string Id { get; init; }
         public required DateTimeOffset Created { get; init; }
         public required DateTimeOffset Updated { get; init; }
+    }
+
+    /// <summary>A sticker whose <c>Created</c> is only reachable through the interface, so no public setter or init carries it.</summary>
+    public record StickerWithoutWritableCreated : StickerEdit, IMagicEntity
+    {
+        public required long Id { get; init; }
+        DateTimeOffset IMagicEntity.Created { get; init; }
+        public required DateTimeOffset Updated { get; init; }
+    }
+
+    /// <summary>A sticker whose <c>Updated</c> is only reachable through the interface, so no public setter or init carries it.</summary>
+    public record StickerWithoutWritableUpdated : StickerEdit, IMagicEntity
+    {
+        public required long Id { get; init; }
+        public required DateTimeOffset Created { get; init; }
+        DateTimeOffset IMagicEntity.Updated { get; init; }
     }
 
     public record StickerEdit
