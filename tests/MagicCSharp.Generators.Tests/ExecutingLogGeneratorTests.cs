@@ -289,6 +289,30 @@ public class ExecutingLogGeneratorTests
     }
 
     [Fact]
+    public void LogExecuting_ReportsMCS1101_WhenOnlyTheInterfaceNamesTheParameterAsASecret()
+    {
+        // Act
+        var diagnostics = Refusals("""
+                                   public interface IPayChargeUseCase : IMagicUseCase
+                                   {
+                                       Task Execute(string token);
+                                   }
+
+                                   [LogExecuting]
+                                   public class PayChargeUseCase : IPayChargeUseCase
+                                   {
+                                       public Task Execute(string value)
+                                       {
+                                           return Task.CompletedTask;
+                                       }
+                                   }
+                                   """);
+
+        // Assert
+        AssertSingleRefusal(diagnostics, "MCS1101", "Parameter 'token' of 'PayChargeUseCase' looks like a secret");
+    }
+
+    [Fact]
     public void LogExecuting_ReportsMCS1102_OnAGetUseCase()
     {
         // Act

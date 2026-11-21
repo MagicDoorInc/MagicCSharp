@@ -5,8 +5,7 @@ internal sealed record ClientMethod
 {
     public required MethodDeclaration Method { get; init; }
 
-    /// <summary><c>Get</c>, <c>Post</c>, <c>Put</c>, <c>Patch</c> or <c>Delete</c>: the <c>HttpMethod</c> property to send with.</summary>
-    public required string HttpMethodProperty { get; init; }
+    public required ClientHttpMethod HttpMethod { get; init; }
 
     /// <summary>The client's route and the method's template, trimmed of slashes.</summary>
     public required string Path { get; init; }

@@ -18,8 +18,8 @@ public static class ClientServices
         serviceCollection.AddSingleton(new UnitLabelSettings { Prefix = "Unit " });
         serviceCollection.AddLeasesClient(configuration);
         serviceCollection.AddUnitsClient(configuration);
-        serviceCollection.AddHttpClient(nameof(LeasesClient)).ConfigurePrimaryHttpMessageHandler(() => recordingHttpMessageHandler);
-        serviceCollection.AddHttpClient(nameof(UnitsClient)).ConfigurePrimaryHttpMessageHandler(() => recordingHttpMessageHandler);
+        serviceCollection.AddHttpClient(typeof(LeasesClient).FullName!).ConfigurePrimaryHttpMessageHandler(() => recordingHttpMessageHandler);
+        serviceCollection.AddHttpClient(typeof(UnitsClient).FullName!).ConfigurePrimaryHttpMessageHandler(() => recordingHttpMessageHandler);
         return serviceCollection.BuildServiceProvider();
     }
 

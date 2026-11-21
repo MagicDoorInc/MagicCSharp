@@ -23,8 +23,7 @@ public static class ExecutingLogReader
             OwnExecutingLineLocation = FindOwnExecutingLine(useCaseClass, cancellationToken),
             ImplementedInterfaces = new EquatableArray<ImplementedInterfaceReading>(resolvedInterfaces.Select(implementedInterface =>
                 ReadImplementedInterface(useCaseClass, implementedInterface, cancellationToken))),
-            SecretParameters = new EquatableArray<SecretParameterReading>(LoggedMethods(useCaseClass, resolvedInterfaces)
-                .SelectMany(method => FindSecretParameters(method, cancellationToken))),
+            SecretParameters = new EquatableArray<SecretParameterReading>(FindSecretParameters(useCaseClass, resolvedInterfaces, cancellationToken)),
         };
     }
 
@@ -84,17 +83,29 @@ public static class ExecutingLogReader
         return publicExecuteMethods.Concat(implementations).Distinct<IMethodSymbol>(SymbolEqualityComparer.Default);
     }
 
-    private static IEnumerable<SecretParameterReading> FindSecretParameters(IMethodSymbol method, CancellationToken cancellationToken)
+    // A decorator logs the names its interface gives the parameters, and the class's own Execute logs its own; a
+    // secret under either name is found, once per name.
+    private static IEnumerable<SecretParameterReading> FindSecretParameters(INamedTypeSymbol useCaseClass, INamedTypeSymbol[] resolvedInterfaces,
+        CancellationToken cancellationToken)
     {
-        var methodDeclaration = MethodDeclarationReader.Read(method, cancellationToken);
-        for (var index = 0; index < method.Parameters.Length; index++)
+        var classMethodSecrets = LoggedMethods(useCaseClass, resolvedInterfaces)
+            .SelectMany(method => FindSecretParameters(method, MethodDeclarationReader.Read(method, cancellationToken)));
+        var interfaceSecrets = resolvedInterfaces.SelectMany(InterfaceMethods)
+            .Where(interfaceMethod => useCaseClass.FindImplementationForInterfaceMember(interfaceMethod) != null)
+            .SelectMany(interfaceMethod => FindSecretParameters(interfaceMethod, ReadAsImplemented(useCaseClass, interfaceMethod, cancellationToken)));
+        return classMethodSecrets.Concat(interfaceSecrets).Distinct();
+    }
+
+    private static IEnumerable<SecretParameterReading> FindSecretParameters(IMethodSymbol methodWithLoggedNames, MethodDeclaration loggedDeclaration)
+    {
+        for (var index = 0; index < methodWithLoggedNames.Parameters.Length; index++)
         {
-            if (LoggedParameters.IsLogged(methodDeclaration.Parameters[index]) && SecretParameters.LooksSecret(method.Parameters[index]))
+            if (LoggedParameters.IsLogged(loggedDeclaration.Parameters[index]) && SecretParameters.LooksSecret(methodWithLoggedNames.Parameters[index]))
             {
                 yield return new SecretParameterReading
                 {
-                    MethodLocation = methodDeclaration.Location,
-                    ParameterName = method.Parameters[index].Name,
+                    MethodLocation = loggedDeclaration.Location,
+                    ParameterName = methodWithLoggedNames.Parameters[index].Name,
                 };
             }
         }

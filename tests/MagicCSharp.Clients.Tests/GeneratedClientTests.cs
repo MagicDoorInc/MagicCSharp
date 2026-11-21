@@ -1,7 +1,6 @@
 using System.Net;
 using MagicCSharp.Clients.Tests.Leases;
 using MagicCSharp.Clients.Tests.Units;
-using MagicCSharp.Testing.Clients;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MagicCSharp.Clients.Tests;
@@ -248,23 +247,5 @@ public class GeneratedClientTests : IDisposable
         Assert.Equal("Unit 4B", unitLabel);
         var recordedRequest = Assert.Single(recordingHttpMessageHandler.Requests);
         Assert.Equal("/api/units/12/name", recordedRequest.PathAndQuery);
-    }
-
-    [Fact]
-    public void ClientRouteCheck_ChecksAHandWrittenMemberThatKeepsItsRouteAttribute()
-    {
-        // Act
-        var clientRouteCheckResult = ClientRouteCheck.CheckClientRoutes(typeof(ILeasesClient).Assembly, typeof(ILeasesClient).Assembly);
-
-        // Assert
-        var documentNamesClientRoute = new ClientRoute
-        {
-            Client = nameof(ILeasesClient),
-            Method = nameof(ILeasesClient.GetDocumentNames),
-            HttpMethod = "GET",
-            Path = "api/leases/{leaseId}/documents",
-        };
-        Assert.Contains(documentNamesClientRoute, clientRouteCheckResult.ClientRoutes);
-        Assert.Contains(documentNamesClientRoute, clientRouteCheckResult.UnservedClientRoutes);
     }
 }

@@ -56,4 +56,25 @@ public class ClientRegistrationTests
         Assert.Equal("MaintenanceClient has no base URL: set the configuration value its [MagicClient] UrlSetting names, or give it a DefaultUrl.",
             invalidOperationException.Message);
     }
+
+    [Fact]
+    public async Task Registration_GivesTwoClientsWithTheSameShortName_EachItsOwnBaseAddress()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>()).Build();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLeasesClient(configuration);
+        Archive.LeasesClientRegistration.AddLeasesClient(serviceCollection, configuration);
+        serviceCollection.AddHttpClient(typeof(Leases.LeasesClient).FullName!).ConfigurePrimaryHttpMessageHandler(() => recordingHttpMessageHandler);
+        serviceCollection.AddHttpClient(typeof(Archive.LeasesClient).FullName!).ConfigurePrimaryHttpMessageHandler(() => recordingHttpMessageHandler);
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        // Act
+        await serviceProvider.GetRequiredService<Leases.ILeasesClient>().GetLease(7, 42);
+        recordingHttpMessageHandler.AnswerBody = "3";
+        await serviceProvider.GetRequiredService<Archive.ILeasesClient>().GetArchivedLeaseCount();
+
+        // Assert
+        Assert.Equal(["leasing.test", "archive.test"], recordingHttpMessageHandler.Requests.Select(recordedRequest => recordedRequest.Host));
+    }
 }

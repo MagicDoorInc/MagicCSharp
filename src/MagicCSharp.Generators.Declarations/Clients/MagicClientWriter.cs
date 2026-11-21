@@ -84,7 +84,7 @@ internal static class MagicClientWriter
         var method = clientMethod.Method;
         sourceWriter.WriteLine("public async " + method.ReturnType.FullyQualifiedName + " " + method.Name + "(" + UseCaseInterfaceWriter.ParameterList(method) + ")");
         sourceWriter.OpenBlock();
-        var sendArguments = "global::System.Net.Http.HttpMethod." + clientMethod.HttpMethodProperty + ", " + PathExpression(clientMethod) + ", " +
+        var sendArguments = "global::System.Net.Http.HttpMethod." + clientMethod.HttpMethod + ", " + PathExpression(clientMethod) + ", " +
                             BodyExpression(clientMethod) + ", " + CancellationTokenExpression(clientMethod);
         if (clientMethod.ResultFullyQualifiedName == null)
         {
@@ -150,7 +150,7 @@ internal static class MagicClientWriter
             return bodyParameter.Name;
         }
 
-        var isWriteWithBody = clientMethod.HttpMethodProperty == "Post" || clientMethod.HttpMethodProperty == "Put" || clientMethod.HttpMethodProperty == "Patch";
+        var isWriteWithBody = clientMethod.HttpMethod == ClientHttpMethod.Post || clientMethod.HttpMethod == ClientHttpMethod.Put || clientMethod.HttpMethod == ClientHttpMethod.Patch;
         return isWriteWithBody ? "new object()" : "null";
     }
 

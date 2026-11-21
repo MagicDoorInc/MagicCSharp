@@ -26,11 +26,17 @@ public static class MagicHttpClientRegistration
         // Without a trailing slash a relative path replaces the base URL's last segment: http://host/api plus
         // orders would be http://host/orders.
         var baseUri = new Uri(baseUrl.TrimEnd('/') + "/");
-        services.AddHttpClient(typeof(TClient).Name, httpClient =>
+        services.AddHttpClient(HttpClientName(typeof(TClient)), httpClient =>
         {
             httpClient.BaseAddress = baseUri;
         });
         services.AddSingleton<TInterface, TClient>();
         return services;
+    }
+
+    // The full name, so two clients with the same short name in different namespaces each keep their own base address.
+    internal static string HttpClientName(Type clientType)
+    {
+        return clientType.FullName ?? clientType.Name;
     }
 }

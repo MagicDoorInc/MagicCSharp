@@ -64,7 +64,7 @@ public abstract class MagicHttpClientBase(IHttpClientFactory httpClientFactory)
             httpRequestMessage.Content = JsonContent.Create(body, body.GetType(), options: JsonSerializerOptions.Web);
         }
 
-        var httpClient = httpClientFactory.CreateClient(GetType().Name);
+        var httpClient = httpClientFactory.CreateClient(MagicHttpClientRegistration.HttpClientName(GetType()));
         var httpResponseMessage = await httpClient.SendAsync(httpRequestMessage, cancellationToken);
         if (httpResponseMessage.IsSuccessStatusCode)
         {
@@ -85,7 +85,7 @@ public abstract class MagicHttpClientBase(IHttpClientFactory httpClientFactory)
         var responseType = typeof(TResponse);
         if (responseType.IsValueType && Nullable.GetUnderlyingType(responseType) == null)
         {
-            throw new InvalidOperationException($"{method} {path} answered with no content, which is not a {responseType.Name}.");
+            throw new InvalidOperationException($"{method} {RequestPaths.WithoutQuery(path)} answered with no content, which is not a {responseType.Name}.");
         }
 
         return default!;
