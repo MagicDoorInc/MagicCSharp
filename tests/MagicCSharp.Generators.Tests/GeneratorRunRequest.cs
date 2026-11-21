@@ -1,0 +1,14 @@
+using Microsoft.CodeAnalysis;
+
+namespace MagicCSharp.Generators.Tests;
+
+public record GeneratorRunRequest
+{
+    public required TestSourceFile[] SourceFiles { get; init; }
+
+    /// <summary>The MSBuild property MagicCSharpUseCaseMarkerInterface; null leaves it unset.</summary>
+    public string? MarkerInterfaceSetting { get; init; }
+
+    /// <summary>Generators that run beside <see cref="GenerateInterfaceGenerator" />.</summary>
+    public IIncrementalGenerator[] OtherGenerators { get; init; } = [];
+}

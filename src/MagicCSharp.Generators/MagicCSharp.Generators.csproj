@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!-- The compiler loads generators into whatever runtime it runs on — .NET Framework inside Visual
+             Studio — so netstandard2.0 is the only target that loads everywhere. -->
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+
+        <!-- NuGet Package Metadata -->
+        <PackageId>MagicCSharp.Generators</PackageId>
+        <Description>Source generators for a MagicCSharp codebase: mark a use case class [GenerateInterface] and the compiler writes its interface from its public Execute methods, doc comments included, on every build. Generated code is never committed; the IDE shows it. Also ships MagicCSharp.Generators.Declarations, the declaration model other generators build on.</Description>
+        <PackageTags>source-generator;roslyn;use-case;clean-architecture;boilerplate</PackageTags>
+
+        <!-- A generator package, packed like MagicCSharp.Analyzers: the dlls go under analyzers/, nothing is
+             added to the consumer's compile references, and the consumer's reference is PrivateAssets=all. -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <DevelopmentDependency>true</DevelopmentDependency>
+        <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+        <IncludeSymbols>false</IncludeSymbols>
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- 4.8 is the .NET 8 SDK's compiler; a newer reference would be silently skipped (CS9057) by an older SDK. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\MagicCSharp.Generators.Declarations\MagicCSharp.Generators.Declarations.csproj" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Both assemblies sit in one analyzer folder: the compiler resolves the generators' dependency there,
+             and a generator elsewhere compiles against the declarations dll from this folder. -->
+        <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
+        <None Include="$(OutputPath)MagicCSharp.Generators.Declarations.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
+        <None Include="build/MagicCSharp.Generators.props" Pack="true" PackagePath="build"/>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+</Project>

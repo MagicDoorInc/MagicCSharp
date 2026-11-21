@@ -11,6 +11,8 @@
         <Project Path="src/MagicCSharp.Events/MagicCSharp.Events.csproj"/>
         <Project Path="src/MagicCSharp.Events.Kafka/MagicCSharp.Events.Kafka.csproj"/>
         <Project Path="src/MagicCSharp.Events.SQS/MagicCSharp.Events.SQS.csproj"/>
+        <Project Path="src/MagicCSharp.Generators/MagicCSharp.Generators.csproj"/>
+        <Project Path="src/MagicCSharp.Generators.Declarations/MagicCSharp.Generators.Declarations.csproj"/>
         <Project Path="src/MagicCSharp.Scheduling/MagicCSharp.Scheduling.csproj"/>
         <Project Path="src/MagicCSharp.Testing/MagicCSharp.Testing.csproj"/>
         <Project Path="src/MagicCSharp.Testing.Database/MagicCSharp.Testing.Database.csproj"/>
@@ -21,6 +23,7 @@
         <Project Path="tests/MagicCSharp.Data.EntityFramework.Tests/MagicCSharp.Data.EntityFramework.Tests.csproj"/>
         <Project Path="tests/MagicCSharp.AspNetCore.Tests/MagicCSharp.AspNetCore.Tests.csproj"/>
         <Project Path="tests/MagicCSharp.Cli.Tests/MagicCSharp.Cli.Tests.csproj"/>
+        <Project Path="tests/MagicCSharp.Generators.Tests/MagicCSharp.Generators.Tests.csproj"/>
         <Project Path="tests/MagicCSharp.Tests/MagicCSharp.Tests.csproj"/>
     </Folder>
     <Properties Name="Configuration">

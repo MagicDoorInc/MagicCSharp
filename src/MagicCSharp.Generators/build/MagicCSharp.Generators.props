@@ -1,0 +1,12 @@
+<Project>
+
+  <!--
+    Lets the generators read the MSBuild property MagicCSharpUseCaseMarkerInterface: the full name of the interface
+    every generated use case interface extends. Unset, it is MagicCSharp.UseCases.IMagicUseCase. A codebase with its
+    own marker interface sets it once, in its Directory.Build.props.
+  -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="MagicCSharpUseCaseMarkerInterface"/>
+  </ItemGroup>
+
+</Project>
