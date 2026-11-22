@@ -7,7 +7,7 @@ namespace MagicCSharp.Generators.Declarations.Filters;
 ///     <c>Matches</c> are both planned here, against the entity, so they always pick the same fields and the same rule.
 ///     <list type="bullet">
 ///         <item><c>List</c>: a list field named as the plural of a property whose type is the element or its nullable form (<c>Ids</c> → <c>Id</c>).</item>
-///         <item><c>NullableValue</c>: a nullable struct field named as a property of that type or its nullable form (<c>TenantId</c>).</item>
+///         <item><c>NullableValue</c>: a nullable struct field named as a property of that type or its nullable form (<c>CarrierId</c>).</item>
 ///         <item><c>NullablePresence</c>: a <c>bool? Is{X}</c> field, when the entity has no <c>Is{X}</c>, over a nullable struct property <c>{X}</c> (<c>IsDeleted</c> → <c>Deleted</c>).</item>
 ///         <item><c>ComparableRange</c>: a range field named <c>{X}</c> or <c>{X}Range</c> over a property <c>{X}</c> of the range's type or its nullable form.</item>
 ///     </list>

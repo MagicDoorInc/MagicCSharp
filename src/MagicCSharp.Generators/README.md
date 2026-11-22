@@ -26,8 +26,9 @@ Reference it with `PrivateAssets="all"`, in every project (a repository `mcs ini
 | `[GenerateDesignTimeFactory]` and `[MigrationsDatabase("name")]` on a `DbContext` | its design-time factory for `dotnet ef`, against that database | [Data.EntityFramework](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Data.EntityFramework/README.md#migrations) |
 
 Every generator runs only for a class that carries its attribute: making a class `partial`, or listing an interface such
-as `IEntityFilter<TEntity>`, asks for nothing on its own. A class that gets members written into it must be `partial`, or
-the build fails naming it; a `DbContext` need not be, because its design-time factory is a class of its own.
+as `IEntityFilter<TEntity>`, asks for nothing on its own. A DAL, repository or filter with its attribute must be
+`partial`, even one that writes every member itself, or the build fails naming it; a `DbContext` need not be, because
+its design-time factory is a class of its own.
 
 The attributes live in the runtime package of what they mark (`[GenerateInterface]` and `[GenerateMatches]` in
 `MagicCSharp`, `[GenerateDalMapping]`, `[GenerateFilterQuery]` and `[GenerateDesignTimeFactory]` in

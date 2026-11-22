@@ -3,7 +3,7 @@ using MagicCSharp.Generators.Declarations.Dals;
 namespace MagicCSharp.Generators.Declarations.Filters;
 
 /// <summary>
-///     A partial filter listing <c>IEntityFilter&lt;TEntity&gt;</c> without its own <c>Matches(TEntity)</c>: its fields,
+///     A <c>[GenerateMatches]</c> filter listing <c>IEntityFilter&lt;TEntity&gt;</c> without its own <c>Matches(TEntity)</c>: its fields,
 ///     the entity's properties, and its custom match method.
 /// </summary>
 public sealed record EntityFilterDeclaration

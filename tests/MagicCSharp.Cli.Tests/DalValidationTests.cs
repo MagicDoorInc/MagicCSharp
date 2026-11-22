@@ -81,6 +81,28 @@ public class DalValidationTests
     }
 
     [Fact]
+    public void Required_is_accepted_in_a_Dal_marked_with_the_attributes_full_name()
+    {
+        var violations = Validate(MarkedDal("public required long LeaseId { get; set; }", ownMethods: "",
+            attribute: "[Table(\"charges\"), GenerateDalMappingAttribute]"));
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void Required_is_reported_in_an_unmarked_partial_Dal_beside_a_marked_one_in_the_same_file()
+    {
+        var markedDal = MarkedDal("public required long LeaseId { get; set; }", ownMethods: "");
+        var unmarkedDal = MarkedDal("public required long UnitId { get; set; }", ownMethods: "", attribute: "")
+            .Replace("ChargeDal", "ChargeLineDal");
+
+        var violations = Validate(markedDal + "\n\n" + unmarkedDal);
+
+        var violation = Assert.Single(violations);
+        Assert.Equal("UnitId is 'required' and From() does not assign it", violation.Message);
+    }
+
+    [Fact]
     public void Required_is_reported_in_a_marked_Dal_that_maps_by_hand_without_From()
     {
         var violations = Validate(MarkedDal(

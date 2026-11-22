@@ -26,6 +26,11 @@ public static class DalReader
         }
 
         var dalTransform = FindInterface(dalClass, DataTypeNames.DalTransform);
+        if (dalTransform == null && TypeDeclarationReader.HasUnresolvedBaseOrInterface(dalClass))
+        {
+            return NoMappingToWrite;
+        }
+
         if (dalTransform == null || dalClass.TypeKind != TypeKind.Class || dalClass.IsAbstract || dalClass.IsStatic)
         {
             return Refused(DalMappingDiagnostics.NotADal, dalClass);

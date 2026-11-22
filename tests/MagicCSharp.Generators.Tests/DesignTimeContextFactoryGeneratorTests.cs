@@ -117,15 +117,52 @@ public class DesignTimeContextFactoryGeneratorTests
     [Fact]
     public void ContextFactory_IsNotGenerated_ForAContextWithOnlyMigrationsDatabase()
     {
-        // Act: partial and naming its database, but not marked.
+        // Act: names its database, but is not marked.
         var generatorRunResult = Run(Usings + """
                                               [MigrationsDatabase("leasing")]
-                                              public partial class MagicLeasingContext(DbContextOptions<MagicLeasingContext> options) : MagicDbContext(options);
+                                              public class MagicLeasingContext(DbContextOptions<MagicLeasingContext> options) : MagicDbContext(options);
                                               """);
 
         // Assert
         Assert.Empty(generatorRunResult.Diagnostics);
         Assert.Empty(generatorRunResult.GeneratedFiles);
+    }
+
+    [Fact]
+    public void ContextFactory_IsNotGenerated_ForAnotherAttributeOfTheSameName()
+    {
+        // Act: a codebase's own GenerateDesignTimeFactory attribute is not MagicCSharp's.
+        var generatorRunResult = Run(Usings + """
+                                              public static class Tools
+                                              {
+                                                  [AttributeUsage(AttributeTargets.Class)]
+                                                  public sealed class GenerateDesignTimeFactoryAttribute : Attribute
+                                                  {
+                                                  }
+                                              }
+
+                                              [MigrationsDatabase("leasing")]
+                                              [Tools.GenerateDesignTimeFactory]
+                                              public class MagicLeasingContext(DbContextOptions<MagicLeasingContext> options) : MagicDbContext(options);
+                                              """);
+
+        // Assert
+        Assert.Empty(generatorRunResult.Diagnostics);
+        Assert.Empty(generatorRunResult.GeneratedFiles);
+    }
+
+    [Fact]
+    public void ContextFactory_ReportsMCS1605_ForAMarkedRecord()
+    {
+        // Act: a record cannot derive from DbContext, so it cannot be the context the factory builds.
+        var diagnostic = SingleRefusal(Usings + """
+                                                [MigrationsDatabase("leasing")]
+                                                [GenerateDesignTimeFactory]
+                                                public record LeasingSettings(string Region);
+                                                """);
+
+        // Assert
+        Assert.StartsWith("MCS1605 Subject.cs:9 The design-time factory of 'LeasingSettings' is not generated", diagnostic);
     }
 
     [Fact]

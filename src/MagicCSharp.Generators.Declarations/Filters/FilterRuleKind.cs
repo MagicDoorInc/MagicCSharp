@@ -9,7 +9,7 @@ public enum FilterRuleKind
     /// <summary>The property's value is one of the listed values; <c>Ids</c> filters <c>Id</c>.</summary>
     List,
 
-    /// <summary>The property equals the field's value; <c>TenantId</c> filters <c>TenantId</c>.</summary>
+    /// <summary>The property equals the field's value; <c>CarrierId</c> filters <c>CarrierId</c>.</summary>
     NullableValue,
 
     /// <summary>The nullable property has a value, or has none; <c>IsDeleted</c> filters <c>Deleted</c>.</summary>

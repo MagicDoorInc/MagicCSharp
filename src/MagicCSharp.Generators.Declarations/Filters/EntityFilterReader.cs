@@ -21,6 +21,11 @@ public static class EntityFilterReader
 
         var entityFilter = filterClass.AllInterfaces.FirstOrDefault(implemented =>
             DalReader.MetadataNameOf(implemented.OriginalDefinition) == FilterTypeNames.EntityFilter);
+        if (entityFilter == null && TypeDeclarationReader.HasUnresolvedBaseOrInterface(filterClass))
+        {
+            return EntityFilterReadResult.NoMatchesToWrite;
+        }
+
         if (entityFilter == null || filterClass.TypeKind != TypeKind.Class || filterClass.IsStatic)
         {
             return Refused(FilterDiagnostics.NotAnEntityFilter, filterClass);

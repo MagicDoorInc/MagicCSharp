@@ -671,6 +671,71 @@ public class FilterQueryGeneratorTests
     }
 
     [Fact]
+    public void FilterQuery_ReportsMCS1310_ForAMarkedConcreteClassWithoutApplyFilter()
+    {
+        // Arrange: the attribute put on a report class beside the repository.
+        const string source = Usings + ShipmentTypes + ShipmentFilterWithIds + """
+
+                                                                               [GenerateFilterQuery]
+                                                                               public partial class ShipmentsReport
+                                                                               {
+                                                                                   public int Count { get; init; }
+                                                                               }
+                                                                               """;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.StartsWith("MCS1310 ", diagnostic);
+        Assert.Contains("'ShipmentsReport' has [GenerateFilterQuery] but is not a concrete class inheriting an abstract ApplyFilter", diagnostic);
+    }
+
+    [Fact]
+    public void FilterQuery_ReportsNothing_WhenTheRepositorysBaseDoesNotResolve()
+    {
+        // Arrange: the compiler reports the missing base; the generator cannot tell whether it declares ApplyFilter.
+        const string source = Usings + ShipmentTypes + ShipmentFilterWithIds + """
+
+                                                                               [GenerateFilterQuery]
+                                                                               public partial class ShipmentsRepository : MissingRepositoryBase
+                                                                               {
+                                                                               }
+                                                                               """;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
+    public void FilterQuery_GeneratesNothing_ForAnotherNamespacesAttributeOfTheSameName()
+    {
+        // Arrange: a codebase's own GenerateFilterQuery attribute is not MagicCSharp's.
+        const string toolsAttribute = """
+                                      public static class Tools
+                                      {
+                                          [AttributeUsage(AttributeTargets.Class)]
+                                          public sealed class GenerateFilterQueryAttribute : Attribute
+                                          {
+                                          }
+                                      }
+
+                                      """;
+        var source = Usings + ShipmentTypes + toolsAttribute + ShipmentFilterWithIds + ControlRepository +
+                     RepositoryWithoutApplyFilter("[Tools.GenerateFilterQuery]\npublic partial class");
+
+        // Act
+        var generatedHintNames = GeneratedHintNames(source);
+
+        // Assert
+        Assert.Equal([ControlRepositoryHintName], generatedHintNames);
+    }
+
+    [Fact]
     public void FilterQuery_WritesApplyFilter_ForARepositoryOnTheConsumersOwnBase()
     {
         // Arrange: a codebase with its own data library has its own repository base, shaped like MagicCSharp's.

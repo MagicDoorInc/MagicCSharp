@@ -19,7 +19,7 @@ public sealed class DesignTimeContextFactoryGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var contexts = context.SyntaxProvider.ForAttributeWithMetadataName(ContextFactoryReader.GenerateDesignTimeFactoryAttributeMetadataName,
-            (node, _) => node is ClassDeclarationSyntax,
+            (node, _) => node is ClassDeclarationSyntax || node is RecordDeclarationSyntax,
             (attributeContext, _) => ContextFactoryReader.ReadContext((INamedTypeSymbol)attributeContext.TargetSymbol));
 
         var contextsWithHandWrittenFactories = context.SyntaxProvider.CreateSyntaxProvider(IsClassWithBaseList, ReadFactoryContext)

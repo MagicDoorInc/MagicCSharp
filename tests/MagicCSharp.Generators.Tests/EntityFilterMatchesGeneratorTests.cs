@@ -408,6 +408,83 @@ public class EntityFilterMatchesGeneratorTests
         Assert.Contains("'ShipmentFilter' has [GenerateMatches] but is not a class implementing IEntityFilter<TEntity>", diagnostic);
     }
 
+    [Fact]
+    public void FilterMatches_GeneratesNothing_ForAnotherAttributeOfTheSameName()
+    {
+        // Arrange: a codebase's own GenerateMatches attribute is not MagicCSharp's.
+        const string source = Usings + ShipmentTypes + ControlFilter + """
+                                                                       public static class Tools
+                                                                       {
+                                                                           [AttributeUsage(AttributeTargets.Class)]
+                                                                           public sealed class GenerateMatchesAttribute : Attribute
+                                                                           {
+                                                                           }
+                                                                       }
+
+                                                                       [Tools.GenerateMatches]
+                                                                       public partial class ShipmentFilter : IEntityFilter<Shipment>
+                                                                       {
+                                                                           public List<long>? Ids { get; init; }
+                                                                       }
+                                                                       """;
+
+        // Act
+        var generatedHintNames = GeneratedHintNames(source);
+
+        // Assert
+        Assert.Equal([ControlFilterHintName], generatedHintNames);
+    }
+
+    [Fact]
+    public void FilterMatches_WritesMatches_WhenTheAttributeIsOnTheOtherPartOfATwoFileFilter()
+    {
+        // Arrange: the interface and fields on one part, the attribute on another file's part.
+        const string fieldsPart = Usings + ShipmentTypes + """
+                                                           public partial class ShipmentFilter : IEntityFilter<Shipment>
+                                                           {
+                                                               public List<long>? Ids { get; init; }
+                                                           }
+                                                           """;
+        const string attributePart = Usings + """
+                                              namespace Acme.Shipping;
+
+                                              [GenerateMatches]
+                                              public partial class ShipmentFilter
+                                              {
+                                              }
+                                              """;
+        var generatorRunRequest = Request(fieldsPart) with
+        {
+            SourceFiles = [GeneratorHarness.Subject(fieldsPart), new TestSourceFile { Path = "ShipmentFilterMatches.cs", Text = attributePart }],
+        };
+
+        // Act
+        var generatorRunResult = GeneratorHarness.Run(generatorRunRequest);
+
+        // Assert
+        Assert.Empty(generatorRunResult.Diagnostics);
+        Assert.Contains("partial class ShipmentFilter", generatorRunResult.GeneratedText(FilterHintName));
+    }
+
+    [Fact]
+    public void FilterMatches_ReportsNothing_WhenTheFiltersInterfaceDoesNotResolve()
+    {
+        // Arrange: the compiler reports the missing interface; the generator cannot tell whether it is IEntityFilter.
+        const string source = Usings + ShipmentTypes + """
+                                                       [GenerateMatches]
+                                                       public partial class ShipmentFilter : IMissingShipmentFilter
+                                                       {
+                                                           public List<long>? Ids { get; init; }
+                                                       }
+                                                       """;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        Assert.Empty(diagnostics);
+    }
+
     private static GeneratorRunRequest Request(string source)
     {
         return new GeneratorRunRequest

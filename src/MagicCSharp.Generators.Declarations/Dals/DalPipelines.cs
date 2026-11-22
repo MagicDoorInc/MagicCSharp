@@ -12,13 +12,14 @@ public static class DalPipelines
     /// </summary>
     public static IncrementalValuesProvider<DalReadResult> Dals(IncrementalGeneratorInitializationContext context)
     {
-        return context.SyntaxProvider.ForAttributeWithMetadataName(DataTypeNames.GenerateDalMappingAttribute, IsClass, ReadDal)
+        return context.SyntaxProvider.ForAttributeWithMetadataName(DataTypeNames.GenerateDalMappingAttribute, IsClassOrRecord, ReadDal)
             .Where(readResult => readResult.Declaration != null || readResult.Diagnostics.Count > 0);
     }
 
-    private static bool IsClass(SyntaxNode node, CancellationToken cancellationToken)
+    // A record is read too, so the attribute on one is written for or refused, never ignored.
+    private static bool IsClassOrRecord(SyntaxNode node, CancellationToken cancellationToken)
     {
-        return node is ClassDeclarationSyntax;
+        return node is ClassDeclarationSyntax || node is RecordDeclarationSyntax;
     }
 
     private static DalReadResult ReadDal(GeneratorAttributeSyntaxContext attributeContext, CancellationToken cancellationToken)

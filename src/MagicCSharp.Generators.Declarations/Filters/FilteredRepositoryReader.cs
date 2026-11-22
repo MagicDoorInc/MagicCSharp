@@ -27,6 +27,11 @@ public static class FilteredRepositoryReader
         }
 
         var applyFilter = FindNearestApplyFilter(repositoryClass);
+        if (applyFilter == null && TypeDeclarationReader.HasUnresolvedBaseOrInterface(repositoryClass))
+        {
+            return FilteredRepositoryReadResult.NoApplyFilterToWrite;
+        }
+
         if (applyFilter == null)
         {
             return Refused(FilterDiagnostics.NotAFilteredRepository, repositoryClass);

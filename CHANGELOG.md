@@ -25,10 +25,11 @@ the design-time factory; see **Upgrading** below.
 - **`[GenerateDesignTimeFactory]`** (MagicCSharp.Data.EntityFramework, `MagicCSharp.Data.EntityFramework`) asks for a
   context's design-time factory, which connects to the database the context's `[MigrationsDatabase]` names.
   `[MigrationsDatabase]` alone writes no factory; it still names the database for the migration check.
-- A DAL, repository or filter with its attribute must be `partial`; a context need not be, because its factory is a
-  class of its own. The per-member rules are unchanged: a member the class
-  writes itself is left alone, and a context with its own `IDesignTimeDbContextFactory` gets no generated one.
-- `mcs validate` accepts a `required` column as set by a generated `From` only in a `[GenerateDalMapping]` DAL.
+- A DAL, repository or filter with its attribute must be `partial`, even one that writes every member itself; a
+  context need not be, because its factory is a class of its own. The per-member rules are unchanged: a member the
+  class writes itself is left alone, and a context with its own `IDesignTimeDbContextFactory` gets no generated one.
+- `mcs validate` accepts a `required` column as set by a generated `From` only in a `partial` `[GenerateDalMapping]`
+  DAL, and reads each type in a DAL file on its own.
 
 ### Added
 
@@ -41,12 +42,15 @@ the design-time factory; see **Upgrading** below.
 
 ### Upgrading
 
-- **From 1.1.0 or 1.1.1:** add the attribute to each class whose code was generated, or the build fails for the
-  methods it no longer gets:
+- **From 1.1.0 or 1.1.1:** add the attribute to each class whose code was generated:
   - `[GenerateDalMapping]` on each `partial` DAL that leaves `ToEntity`, `Apply` or `From` to the generator;
   - `[GenerateFilterQuery]` on each `partial` repository without its own `ApplyFilter`;
   - `[GenerateMatches]` on each `partial` filter listing `IEntityFilter<TEntity>` without its own `Matches`;
   - `[GenerateDesignTimeFactory]` on each `[MigrationsDatabase]` context without a hand-written factory.
+
+  A DAL, repository or filter you miss fails the build, for the methods it no longer gets. A context you miss still
+  builds, but it has no design-time factory, so `dotnet ef` cannot build it without the host and falls back to booting
+  the application (or fails); search for `[MigrationsDatabase` to find every context.
 
 ---
 

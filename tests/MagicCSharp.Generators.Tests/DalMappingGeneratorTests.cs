@@ -672,6 +672,118 @@ public class DalMappingGeneratorTests
     }
 
     [Fact]
+    public void DalMapping_GeneratesNothing_ForAnotherNamespacesAttributeOfTheSameName()
+    {
+        // Arrange: a codebase's own GenerateDalMapping attribute is not MagicCSharp's.
+        const string source = Usings + """
+                                       namespace Acme.Tools
+                                       {
+                                           [AttributeUsage(AttributeTargets.Class)]
+                                           public sealed class GenerateDalMappingAttribute : Attribute
+                                           {
+                                           }
+                                       }
+
+                                       namespace Acme.Leasing.Data
+                                       {
+                                           public record NoteEdit
+                                           {
+                                               public required string Text { get; init; }
+                                           }
+
+                                           public record Note : NoteEdit
+                                           {
+                                               public required long Id { get; init; }
+                                           }
+
+                                           [Acme.Tools.GenerateDalMapping]
+                                           public partial class NoteDal : BaseIdDal<Note, NoteEdit>
+                                           {
+                                               public string Text { get; set; } = "";
+                                           }
+                                       }
+                                       """;
+
+        // Act
+        var generatedHintNames = GeneratedHintNames(source);
+
+        // Assert
+        Assert.Empty(generatedHintNames);
+    }
+
+    [Fact]
+    public void DalMapping_WritesTheMapping_WhenTheAttributeIsOnTheOtherPartOfATwoFileDal()
+    {
+        // Arrange: the base list on one part, the attribute and the columns on another file's part.
+        const string basePart = Usings + NoteTypes + """
+                                                     public partial class NoteDal : BaseIdDal<Note, NoteEdit>
+                                                     {
+                                                     }
+                                                     """;
+        const string columnsPart = Usings + """
+                                            namespace Acme.Leasing.Data;
+
+                                            [GenerateDalMapping]
+                                            public partial class NoteDal
+                                            {
+                                                public string Text { get; set; } = "";
+                                            }
+                                            """;
+        var generatorRunRequest = Request(basePart) with
+        {
+            SourceFiles = [GeneratorHarness.Subject(basePart), new TestSourceFile { Path = "NoteDalColumns.cs", Text = columnsPart }],
+        };
+
+        // Act
+        var generatorRunResult = GeneratorHarness.Run(generatorRunRequest);
+
+        // Assert
+        Assert.Empty(generatorRunResult.Diagnostics);
+        Assert.Contains("Text = edit.Text;", generatorRunResult.GeneratedText("Acme.Leasing.Data.NoteDal.DalMapping.g.cs"));
+    }
+
+    [Fact]
+    public void DalMapping_WritesTheMappingIntoARecord()
+    {
+        // Arrange: a record Dal implementing IDalTransform itself, since a record cannot derive from BaseIdDal.
+        const string source = Usings + NoteTypes + """
+                                                   [GenerateDalMapping]
+                                                   public partial record NoteDal : IDalTransform<Note, NoteEdit>
+                                                   {
+                                                       public long Id { get; set; }
+
+                                                       public string Text { get; set; } = "";
+                                                   }
+                                                   """;
+
+        // Act
+        var generatedText = RunClean(source).GeneratedText("Acme.Leasing.Data.NoteDal.DalMapping.g.cs");
+
+        // Assert
+        Assert.Contains("partial record NoteDal", generatedText);
+        Assert.Contains("public void Apply(global::Acme.Leasing.Data.NoteEdit edit)", generatedText);
+    }
+
+    [Fact]
+    public void DalMapping_ReportsNothing_WhenTheDalsBaseDoesNotResolve()
+    {
+        // Arrange: the compiler reports the missing base; the generator cannot tell whether this is a Dal.
+        const string source = Usings + NoteTypes + """
+                                                   [GenerateDalMapping]
+                                                   public partial class NoteDal : MissingDalBase
+                                                   {
+                                                       public string Text { get; set; } = "";
+                                                   }
+                                                   """;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
     public void DalMapping_MapsABackendShapedDal_ThroughInheritedPropertiesAndItsOwnIDalTransform()
     {
         // Arrange: a consumer's own Dal contracts and base, as a codebase with its own data library has them; the
