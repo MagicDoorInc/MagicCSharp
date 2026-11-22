@@ -5,8 +5,6 @@ namespace MagicCSharp.Generators.Declarations;
 /// <summary>Reads a <c>[GenerateInterface]</c> class into the interface it gets, or the reasons it gets none.</summary>
 public static class UseCaseReader
 {
-    private const string ExecuteMethodName = "Execute";
-
     // Stands in until the pipeline joins the class with the marker interface, which comes from the whole
     // compilation rather than the class.
     private static readonly TypeReference PendingMarkerInterface = TypeReferenceReader.Unresolved("");
@@ -40,22 +38,21 @@ public static class UseCaseReader
             return Refused(shapeProblems);
         }
 
-        var executeMethods = PublicInstanceExecuteMethods(useCaseClass);
-        var executeProblems = ExecuteProblems(classDeclaration, executeMethods);
-        if (executeProblems.Count > 0)
+        var interfaceMethods = InterfaceMethods(useCaseClass);
+        if (!interfaceMethods.Any(method => method.Name == UseCaseDeclaration.ExecuteMethodName))
         {
-            return Refused(executeProblems);
+            return Refused([Problem(GeneratorDiagnostics.NoPublicExecute, classDeclaration.Location, classDeclaration.Name)]);
         }
 
         return new UseCaseReadResult
         {
-            Declaration = BuildDeclaration(classDeclaration, interfaceName, executeMethods, cancellationToken),
+            Declaration = BuildDeclaration(classDeclaration, interfaceName, interfaceMethods, cancellationToken),
             IsSkipped = false,
             Diagnostics = EquatableArray<DiagnosticInfo>.Empty,
         };
     }
 
-    private static UseCaseDeclaration BuildDeclaration(TypeDeclaration classDeclaration, string interfaceName, IMethodSymbol[] executeMethods, CancellationToken cancellationToken)
+    private static UseCaseDeclaration BuildDeclaration(TypeDeclaration classDeclaration, string interfaceName, IMethodSymbol[] interfaceMethods, CancellationToken cancellationToken)
     {
         var namespacePrefix = classDeclaration.Namespace == "" ? "" : classDeclaration.Namespace + ".";
         return new UseCaseDeclaration
@@ -64,28 +61,35 @@ public static class UseCaseReader
             InterfaceName = interfaceName,
             InterfaceFullyQualifiedName = GlobalAlias.Prefix + namespacePrefix + interfaceName,
             MarkerInterface = PendingMarkerInterface,
-            ExecuteMethods = new EquatableArray<MethodDeclaration>(executeMethods.Select(method => MethodDeclarationReader.Read(method, cancellationToken))),
+            Methods = new EquatableArray<MethodDeclaration>(interfaceMethods.Select(method => MethodDeclarationReader.Read(method, cancellationToken))),
         };
     }
 
-    private static IMethodSymbol[] PublicInstanceExecuteMethods(INamedTypeSymbol useCaseClass)
+    // Every public instance method the class declares in any of its parts, except what belongs to another contract:
+    // an override belongs to the base class, an implementation of another interface's member (IDisposable.Dispose) to
+    // that interface, and a member the compiler writes (a record's Equals and Deconstruct) to the language.
+    private static IMethodSymbol[] InterfaceMethods(INamedTypeSymbol useCaseClass)
     {
-        return useCaseClass.GetMembers(ExecuteMethodName)
+        var otherInterfaceImplementations = OtherInterfaceImplementations(useCaseClass);
+        return useCaseClass.GetMembers()
             .OfType<IMethodSymbol>()
-            .Where(method => method.MethodKind == MethodKind.Ordinary && method.DeclaredAccessibility == Accessibility.Public && !method.IsStatic)
+            .Where(method => IsOwnPublicInstanceMethod(method) && !otherInterfaceImplementations.Contains(method))
             .ToArray();
     }
 
-    private static List<DiagnosticInfo> ExecuteProblems(TypeDeclaration classDeclaration, IMethodSymbol[] executeMethods)
+    private static bool IsOwnPublicInstanceMethod(IMethodSymbol method)
     {
-        if (executeMethods.Length == 0)
-        {
-            return [Problem(GeneratorDiagnostics.NoPublicExecute, classDeclaration.Location, classDeclaration.Name)];
-        }
+        return method.MethodKind == MethodKind.Ordinary && method.DeclaredAccessibility == Accessibility.Public && !method.IsStatic && !method.IsOverride &&
+               !method.IsImplicitlyDeclared;
+    }
 
-        return executeMethods.Where(method => method.IsGenericMethod)
-            .Select(method => Problem(GeneratorDiagnostics.GenericExecute, SourceLocation.From(method.Locations.FirstOrDefault()), classDeclaration.Name))
-            .ToList();
+    // The interfaces the class lists that the compiler resolves; its own generated interface is not yet among them.
+    private static HashSet<IMethodSymbol> OtherInterfaceImplementations(INamedTypeSymbol useCaseClass)
+    {
+        var implementations = useCaseClass.AllInterfaces.SelectMany(implementedInterface => implementedInterface.GetMembers())
+            .Select(useCaseClass.FindImplementationForInterfaceMember)
+            .OfType<IMethodSymbol>();
+        return new HashSet<IMethodSymbol>(implementations, SymbolEqualityComparer.Default);
     }
 
     internal static UseCaseReadResult WithMarkerInterface(UseCaseReadResult classReading, MarkerInterfaceLookup markerInterfaceLookup)

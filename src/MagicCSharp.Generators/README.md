@@ -15,8 +15,8 @@ Reference it with `PrivateAssets="all"`, in every project (a repository `mcs ini
 
 | You write | The compiler writes | Guide |
 |---|---|---|
-| `[GenerateInterface]` on a `partial` use case class | its interface `IX : IMagicUseCase`, from the public `Execute` methods, their doc comments and `[NotLogged]` marks | [Use cases](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp/README.md#generated-interfaces) |
-| `[LogExecuting]` on a use case | a decorator registered in its place that logs `Executing: name=value, …` at trace level, then calls it | [Use cases](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp/README.md#the-executing-line) |
+| `[GenerateInterface]` on a `partial` use case class | its interface `IX : IMagicUseCase`, from the class's public instance methods (`Execute` and any other), their doc comments, constraints and `[NotLogged]` marks | [Use cases](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp/README.md#generated-interfaces) |
+| `[LogExecuting]` on a use case | a decorator registered in its place that logs `Executing: name=value, …` at trace level before each `Execute`, then calls it; other methods pass straight through | [Use cases](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp/README.md#the-executing-line) |
 | `[GenerateDalMapping]` on a `partial` DAL with only its columns | `ToEntity`, `Apply` and `From`, matched by name and type | [Data.EntityFramework](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Data.EntityFramework/README.md#generated-dal-mapping) |
 | `[GenerateFilterQuery]` on a `partial` repository without `ApplyFilter` | `ApplyFilter`, one helper call per filter field | [Data](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Data/README.md#generated-filters) |
 | `[GenerateMatches]` on a `partial` filter listing `IEntityFilter<TEntity>` | `Matches(entity)`, the same rules in memory | [Data](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Data/README.md#generated-filters) |
@@ -83,16 +83,15 @@ Each refusal is a build error with its own id, naming what to change.
 | MCS1003 | It is nested in another type |
 | MCS1004 | It is generic |
 | MCS1005 | It is static |
-| MCS1006 | One of its `Execute` methods is generic |
 | MCS1007 | The use case marker interface is not an interface the project can see |
-| MCS1101 | A `[LogExecuting]` use case has a parameter that looks like a secret (password, secret, token or key, a stream, a byte array) without `[NotLogged]` |
+| MCS1101 | A `[LogExecuting]` use case has an `Execute` parameter that looks like a secret (password, secret, token or key, a stream, a byte array) without `[NotLogged]` |
 | MCS1102 | A `[LogExecuting]` use case is named as read-only (Get, List, Search, Find, Is, Can, Count) |
 | MCS1103 | A `[LogExecuting]` use case still writes its own `Executing:` line |
 | MCS1104 | A `[LogExecuting]` class implements no use case interface |
 | MCS1105 | It implements several |
 | MCS1106 | It is generic |
 | MCS1107 | It is abstract |
-| MCS1108 | It takes a `ref`, `out` or `in` parameter |
+| MCS1108 | Its `Execute` takes a `ref`, `out` or `in` parameter |
 | MCS1201 | `ToEntity` cannot be generated: an entity property has no DAL column of the same name and type |
 | MCS1202 | `Apply` cannot be generated: an edit property has no settable DAL column of the same name and type |
 | MCS1203 | `From` cannot be generated: a column set only at creation has no edit property to come from (only on a DAL that lists `IDalFromEdit` or writes neither `ToEntity` nor `Apply`) |
@@ -147,7 +146,7 @@ the source writers. A generator in another repository compiles against it from t
 
 The declarations are a building block with no compatibility promise: their types may change between any two
 versions, patch releases included. A generator built on them pins the exact version of `MagicCSharp.Generators`
-(`Version="[1.1.3]"`) and is rebuilt and checked against each new one.
+(`Version="[1.1.4]"`) and is rebuilt and checked against each new one.
 
 A generator never sees another's output, so one that needs a generated use case interface looks it up through
 `UseCasePipelines.GeneratedInterfaceIndex`. Its own diagnostics use its own ids, never `MCS`.

@@ -5,7 +5,8 @@ namespace MagicCSharp.Generators.Declarations;
 /// <summary>
 ///     Writes the decorator <c>[LogExecuting]</c> asks for: a <c>file</c>-scoped class, so no hand-written type can
 ///     collide with it and nothing can call it by name, that implements the use case's interface, logs the
-///     <c>Executing:</c> line under the use case's own logger category and calls the use case. It carries
+///     <c>Executing:</c> line under the use case's own logger category before each <c>Execute</c> and calls the use
+///     case; every other interface method is passed straight through. It carries
 ///     <c>[RegisteredInPlaceOf]</c>, so use case discovery registers it for the interface in the class's place.
 /// </summary>
 internal static class ExecutingLogDecoratorWriter
@@ -54,13 +55,31 @@ internal static class ExecutingLogDecoratorWriter
         };
     }
 
+    /// <summary>
+    ///     Whether the decorator writes the <c>Executing:</c> line before calling <paramref name="method" />: only on
+    ///     <c>Execute</c>, the call that runs the use case. Any other method (a read such as <c>GetByLease</c>) is
+    ///     passed through.
+    /// </summary>
+    public static bool IsLogged(MethodDeclaration method)
+    {
+        return method.Name == UseCaseDeclaration.ExecuteMethodName;
+    }
+
     private static void WriteMethod(SourceWriter sourceWriter, MethodDeclaration method, string useCaseFieldName)
     {
-        sourceWriter.WriteLine("public " + method.ReturnType.FullyQualifiedName + " " + method.Name + "(" + UseCaseInterfaceWriter.ParameterList(method) + ")");
+        var typeParameterList = UseCaseInterfaceWriter.TypeParameterList(method);
+        sourceWriter.WriteLine("public " + method.ReturnType.FullyQualifiedName + " " + method.Name + typeParameterList + "(" +
+                               UseCaseInterfaceWriter.ParameterList(method) + ")");
+        UseCaseInterfaceWriter.WriteConstraintClauses(sourceWriter, method, "");
         sourceWriter.OpenBlock();
-        ExecutingLogWriter.WriteLogCall(sourceWriter, "this.logger", method);
-        var arguments = string.Join(", ", method.Parameters.Select(parameter => UseCaseInterfaceWriter.EscapedName(parameter.Name)));
-        var call = "this." + useCaseFieldName + "." + method.Name + "(" + arguments + ");";
+        if (IsLogged(method))
+        {
+            ExecutingLogWriter.WriteLogCall(sourceWriter, "this.logger", method);
+        }
+
+        var arguments = string.Join(", ", method.Parameters.Select(parameter =>
+            UseCaseInterfaceWriter.RefKindPrefix(parameter.RefKind) + UseCaseInterfaceWriter.EscapedName(parameter.Name)));
+        var call = "this." + useCaseFieldName + "." + method.Name + typeParameterList + "(" + arguments + ");";
         sourceWriter.WriteLine(method.ReturnType.FullyQualifiedName == "void" ? call : "return " + call);
         sourceWriter.CloseBlock();
     }

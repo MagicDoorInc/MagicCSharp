@@ -13,6 +13,8 @@ public static class MethodDeclarationReader
             ReturnType = TypeReferenceReader.Read(method.ReturnType),
             Parameters = new EquatableArray<ParameterDeclaration>(method.Parameters.Select(ReadParameter)),
             TypeParameters = new EquatableArray<string>(method.TypeParameters.Select(typeParameter => typeParameter.Name)),
+            TypeParameterConstraintClauses = new EquatableArray<string>(method.TypeParameters.Select(TypeParameterConstraintReader.ReadClause)
+                .OfType<string>()),
             Accessibility = method.DeclaredAccessibility,
             IsStatic = method.IsStatic,
             IsOverride = method.IsOverride,

@@ -85,7 +85,7 @@ public static class ExecutingLogDecoratorPlanner
             {
                 FullyQualifiedName = generatedInterface.InterfaceFullyQualifiedName,
                 DisplayName = namespacePrefix + generatedInterface.InterfaceName,
-                Methods = generatedInterface.ExecuteMethods,
+                Methods = generatedInterface.Methods,
             });
         }
 
@@ -114,10 +114,13 @@ public static class ExecutingLogDecoratorPlanner
     private static IEnumerable<DiagnosticInfo> MethodProblems(ExecutingLogClassReading reading, DecoratedInterface decoratedInterface)
     {
         var useCaseClassName = reading.UseCaseClass.Name;
-        var byReferenceProblems = decoratedInterface.Methods.SelectMany(method => method.Parameters
+        // Only Execute writes the line, so only its parameters can leak a secret or be read before they are assigned;
+        // any other method is passed through as it is.
+        var loggedMethods = decoratedInterface.Methods.Where(ExecutingLogDecoratorWriter.IsLogged).ToArray();
+        var byReferenceProblems = loggedMethods.SelectMany(method => method.Parameters
             .Where(parameter => parameter.RefKind != RefKind.None)
             .Select(parameter => Problem(ExecutingLogDiagnostics.ByReferenceParameter, method.Location, parameter.Name, useCaseClassName)));
-        var decoratedMethodLocations = decoratedInterface.Methods.Select(method => method.Location).ToArray();
+        var decoratedMethodLocations = loggedMethods.Select(method => method.Location).ToArray();
         var secretProblems = reading.SecretParameters
             .Where(secretParameter => decoratedMethodLocations.Contains(secretParameter.MethodLocation))
             .Select(secretParameter => Problem(ExecutingLogDiagnostics.SecretParameter, secretParameter.MethodLocation, secretParameter.ParameterName,

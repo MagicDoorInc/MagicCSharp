@@ -22,9 +22,11 @@ public partial class PayChargeUseCase(
 }
 ```
 
-- `[GenerateInterface]` makes the compiler write `IPayChargeUseCase : IMagicUseCase` from the public `Execute`
-  methods, their doc comments and the `[NotLogged]` marks on their parameters; callers and tests use `IPayChargeUseCase` as usual. `[LogExecuting]` writes the
-  `Executing:` line ([Logging](#logging)). Both come from `MagicCSharp.Generators`; when to write the interface or
+- `[GenerateInterface]` makes the compiler write `IPayChargeUseCase : IMagicUseCase` from every public instance
+  method the class declares (`Execute`, and a read such as `GetByLease` when the use case has one), with doc comments,
+  constraints and the `[NotLogged]` marks on parameters; static methods, overrides and a method that implements
+  another interface the class lists (`IDisposable.Dispose`) stay off it. Callers and tests use `IPayChargeUseCase` as
+  usual. `[LogExecuting]` writes the `Executing:` line before each `Execute` ([Logging](#logging)). Both come from `MagicCSharp.Generators`; when to write the interface or
   the line by hand instead is in `generated-code.md`.
 - In a repository that does not reference `MagicCSharp.Generators`, write the interface by hand, as its existing use
   cases do: `public interface IPayChargeUseCase : IMagicUseCase { Task<Charge> Execute(long chargeId); }` and
@@ -121,11 +123,12 @@ A use case that changes something logs an `Executing:` line with its arguments a
 
 - A read-only one (Get, List, Search, Find, Is, Can, Count) does not log that line: `[LogExecuting]` refuses it
   (`MCS1102`), and a hand-written line in a Get/List/Search use case fails `MCS0015`.
-- A parameter that looks like a secret (a password, secret, token or key, a stream, a byte array) fails the build
-  (`MCS1101`) until it carries `[NotLogged]`. Never mark a parameter `[NotLogged]` to silence the rule for a value that
+- The line is written before each `Execute` call only; other methods on the interface pass straight through.
+- An `Execute` parameter that looks like a secret (a password, secret, token or key, a stream, a byte array) fails the
+  build (`MCS1101`) until it carries `[NotLogged]`. Never mark a parameter `[NotLogged]` to silence the rule for a value that
   is not secret.
 - Without the generators, or for a class `[LogExecuting]` refuses (several use case interfaces, generic, abstract,
-  a `ref`/`out`/`in` parameter), take `ILogger<T> logger` and start `Execute` with
+  a `ref`/`out`/`in` parameter on `Execute`), take `ILogger<T> logger` and start `Execute` with
   `logger.LogTrace("Executing: request={request}", request);`.
 
 Log warnings and errors when they are worth someone investigating. Take `ILogger<T> logger` for those.

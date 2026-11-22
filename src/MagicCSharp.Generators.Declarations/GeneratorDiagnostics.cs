@@ -38,11 +38,6 @@ public static class GeneratorDiagnostics
         "'{0}' is static, and a static class cannot implement an interface",
         Category, DiagnosticSeverity.Error, true);
 
-    public static readonly DiagnosticDescriptor GenericExecute = new DiagnosticDescriptor("MCS1006",
-        "A [GenerateInterface] class cannot have a generic Execute method",
-        "'{0}.Execute' is generic; write the interface of '{0}' by hand",
-        Category, DiagnosticSeverity.Error, true);
-
     public static readonly DiagnosticDescriptor MarkerInterfaceNotFound = new DiagnosticDescriptor("MCS1007",
         "The use case marker interface was not found",
         "'{0}' needs the use case marker interface '{1}', which is not an interface this project can see; reference the package that declares it, or set the MSBuild property MagicCSharpUseCaseMarkerInterface to your own",

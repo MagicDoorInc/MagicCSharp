@@ -11,6 +11,6 @@ public sealed record ExecutingLogClassReading
     /// <summary>Every interface the class implements that the compiler resolves; a generated one is not among them.</summary>
     public required EquatableArray<ImplementedInterfaceReading> ImplementedInterfaces { get; init; }
 
-    /// <summary>Logged parameters that look like secrets, across the class's public <c>Execute</c> methods and interface implementations.</summary>
+    /// <summary>Logged parameters that look like secrets, across the class's public <c>Execute</c> methods and its implementations of interface <c>Execute</c> methods.</summary>
     public required EquatableArray<SecretParameterReading> SecretParameters { get; init; }
 }

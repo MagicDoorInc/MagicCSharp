@@ -12,6 +12,12 @@ public sealed record MethodDeclaration
 
     public required EquatableArray<string> TypeParameters { get; init; }
 
+    /// <summary>
+    ///     One <c>where</c> clause per constrained type parameter, as C# to write back:
+    ///     <c>where TKey : notnull, global::System.IComparable&lt;TKey&gt;</c>. Empty when none is constrained.
+    /// </summary>
+    public EquatableArray<string> TypeParameterConstraintClauses { get; init; } = EquatableArray<string>.Empty;
+
     public required Accessibility Accessibility { get; init; }
 
     public required bool IsStatic { get; init; }

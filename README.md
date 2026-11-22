@@ -533,7 +533,7 @@ request in the logs.
 ## The compiler writes the repetitive parts
 
 `MagicCSharp.Generators` writes, on every build, the code that only restates what you already declared: a use case's
-interface from its `Execute` methods, a DAL's mapping from its columns, a repository's filter query and a fake's
+interface from its public methods, a DAL's mapping from its columns, a repository's filter query and a fake's
 in-memory `Matches` from the filter's field names, an HTTP client from an interface's routes, a test fake that throws
 until scripted, the `Executing:` log line of a use case that asks for it. You write the part only you know; the IDE
 shows the rest, and nothing generated is committed. Every generator is opt-in per class, leaves alone what you write

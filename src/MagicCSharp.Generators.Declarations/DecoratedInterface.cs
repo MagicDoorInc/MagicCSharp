@@ -1,6 +1,6 @@
 namespace MagicCSharp.Generators.Declarations;
 
-/// <summary>The use case interface a <c>[LogExecuting]</c> decorator implements, and the methods it logs.</summary>
+/// <summary>The use case interface a <c>[LogExecuting]</c> decorator implements, and every method it forwards.</summary>
 internal sealed record DecoratedInterface
 {
     /// <summary><c>global::</c>-qualified.</summary>

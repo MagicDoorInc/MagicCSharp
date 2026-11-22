@@ -5,8 +5,9 @@ namespace MagicCSharp.Generators;
 
 /// <summary>
 ///     Writes the interface of every <c>[GenerateInterface]</c> use case class: <c>I{Class}</c>, extending the use
-///     case marker interface, with the class's public <c>Execute</c> methods, their doc comments and the
-///     <c>[NotLogged]</c> marks on their parameters, and the part of the class that implements it.
+///     case marker interface, with the class's own public instance methods (<c>Execute</c> and any other), their doc
+///     comments, constraints and the <c>[NotLogged]</c> marks on their parameters, and the part of the class that
+///     implements it.
 /// </summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class GenerateInterfaceGenerator : IIncrementalGenerator

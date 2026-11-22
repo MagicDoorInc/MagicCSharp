@@ -12,8 +12,6 @@ public static class ExecutingLogReader
 {
     public const string LogExecutingAttributeMetadataName = "MagicCSharp.UseCases.LogExecutingAttribute";
 
-    private const string ExecuteMethodName = "Execute";
-
     public static ExecutingLogClassReading Read(INamedTypeSymbol useCaseClass, CancellationToken cancellationToken)
     {
         var resolvedInterfaces = useCaseClass.AllInterfaces.Where(implementedInterface => implementedInterface.TypeKind == TypeKind.Interface).ToArray();
@@ -71,30 +69,35 @@ public static class ExecutingLogReader
         };
     }
 
-    // The class's public Execute methods (the members of an interface [GenerateInterface] writes) and its
-    // implementations of the interfaces the compiler resolves.
+    // The class's public Execute methods (members of an interface [GenerateInterface] writes) and its implementations
+    // of the Execute methods of the interfaces the compiler resolves: the methods whose call writes the line.
     private static IEnumerable<IMethodSymbol> LoggedMethods(INamedTypeSymbol useCaseClass, INamedTypeSymbol[] resolvedInterfaces)
     {
-        var publicExecuteMethods = useCaseClass.GetMembers(ExecuteMethodName)
+        var publicExecuteMethods = useCaseClass.GetMembers(UseCaseDeclaration.ExecuteMethodName)
             .OfType<IMethodSymbol>()
             .Where(method => method.MethodKind == MethodKind.Ordinary && method.DeclaredAccessibility == Accessibility.Public && !method.IsStatic);
-        var implementations = resolvedInterfaces.SelectMany(InterfaceMethods)
+        var implementations = LoggedInterfaceMethods(resolvedInterfaces)
             .Select(interfaceMethod => useCaseClass.FindImplementationForInterfaceMember(interfaceMethod))
             .OfType<IMethodSymbol>();
         return publicExecuteMethods.Concat(implementations).Distinct<IMethodSymbol>(SymbolEqualityComparer.Default);
     }
 
     // A decorator logs the names its interface gives the parameters, and the class's own Execute logs its own; a
-    // secret under either name is found, once per name.
+    // secret under either name is found, once per name. Only Execute writes the line, so only its parameters count.
     private static IEnumerable<SecretParameterReading> FindSecretParameters(INamedTypeSymbol useCaseClass, INamedTypeSymbol[] resolvedInterfaces,
         CancellationToken cancellationToken)
     {
         var classMethodSecrets = LoggedMethods(useCaseClass, resolvedInterfaces)
             .SelectMany(method => FindSecretParameters(method, MethodDeclarationReader.Read(method, cancellationToken)));
-        var interfaceSecrets = resolvedInterfaces.SelectMany(InterfaceMethods)
+        var interfaceSecrets = LoggedInterfaceMethods(resolvedInterfaces)
             .Where(interfaceMethod => useCaseClass.FindImplementationForInterfaceMember(interfaceMethod) != null)
             .SelectMany(interfaceMethod => FindSecretParameters(interfaceMethod, ReadAsImplemented(useCaseClass, interfaceMethod, cancellationToken)));
         return classMethodSecrets.Concat(interfaceSecrets).Distinct();
+    }
+
+    private static IEnumerable<IMethodSymbol> LoggedInterfaceMethods(INamedTypeSymbol[] resolvedInterfaces)
+    {
+        return resolvedInterfaces.SelectMany(InterfaceMethods).Where(interfaceMethod => interfaceMethod.Name == UseCaseDeclaration.ExecuteMethodName);
     }
 
     private static IEnumerable<SecretParameterReading> FindSecretParameters(IMethodSymbol methodWithLoggedNames, MethodDeclaration loggedDeclaration)
