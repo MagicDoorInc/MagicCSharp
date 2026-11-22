@@ -82,8 +82,10 @@ public partial class GetChargesUseCase(IChargesRepository chargesRepository)
 ```
 
 Every build writes `IGetChargesUseCase : IMagicUseCase` with each public `Execute` method of the class, overloads
-included, signatures and doc comments copied, and makes the class implement it. Callers, registration and tests use
-`IGetChargesUseCase` exactly as if you had written it. Nothing else goes on the interface.
+included, signatures and doc comments copied, and makes the class implement it. A parameter marked `[NotLogged]` keeps
+the mark on the interface, so code that reads the interface leaves it out of its logs too; no other parameter attribute
+is copied. Callers, registration and tests use `IGetChargesUseCase` exactly as if you had written it. Nothing else goes
+on the interface.
 
 A codebase with its own marker interface names it once, in `Directory.Build.props`:
 

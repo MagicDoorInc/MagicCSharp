@@ -7,6 +7,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ---
 
+## 1.1.3 — 2026-11-22
+
+### Fixed
+
+- **`[GenerateInterface]` keeps `[NotLogged]` on the interface.** The generated interface's `Execute` parameters lost
+  their attributes, so a parameter marked `[NotLogged]` on the class was unmarked on `IX`, and code that reads the
+  interface rather than the class (a generator in another project that logs a use case's arguments) logged its
+  value. The mark is now copied. No other parameter attribute is: the rest (model binding, validation, caller-info,
+  `[EnumeratorCancellation]`) describe the class's implementation and mean nothing on an interface member, or change
+  what its callers compile to.
+- **`[LogExecuting]` honours `[NotLogged]` on a hand-written interface's parameter.** The decorator took the
+  parameter's attributes from the class's implementation only, so a value marked on the interface and not on the class
+  was written to the `Executing:` line. A mark on either now leaves it out. A parameter that looks like a secret must
+  still carry the mark on the class (`MCS1101`).
+
 ## 1.1.2 — 2026-11-21
 
 Every generator now runs only for a class that carries its own attribute. In 1.1.1 a class asked for the DAL mapping,

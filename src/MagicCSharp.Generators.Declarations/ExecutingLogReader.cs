@@ -47,8 +47,9 @@ public static class ExecutingLogReader
             .Where(method => method.MethodKind == MethodKind.Ordinary && method.IsAbstract && !method.IsStatic);
     }
 
-    // The decorator implements the interface, so it takes the interface's signature; [NotLogged] and the location
-    // that ties a secret to the method are on the class's implementation.
+    // The decorator implements the interface, so it takes the interface's signature; the location that ties a
+    // secret to the method is the class's implementation. A parameter carries the attributes of both, so [NotLogged]
+    // on either leaves it out of the line.
     private static MethodDeclaration ReadAsImplemented(INamedTypeSymbol useCaseClass, IMethodSymbol interfaceMethod, CancellationToken cancellationToken)
     {
         var interfaceMethodDeclaration = MethodDeclarationReader.Read(interfaceMethod, cancellationToken);
@@ -61,7 +62,7 @@ public static class ExecutingLogReader
         var implementationDeclaration = MethodDeclarationReader.Read(implementation, cancellationToken);
         var parameters = interfaceMethodDeclaration.Parameters.Select((parameter, index) => parameter with
         {
-            Attributes = implementationDeclaration.Parameters[index].Attributes,
+            Attributes = new EquatableArray<AttributeDeclaration>(implementationDeclaration.Parameters[index].Attributes.Concat(parameter.Attributes)),
         });
         return interfaceMethodDeclaration with
         {

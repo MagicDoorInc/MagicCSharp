@@ -21,7 +21,7 @@ public static class UseCaseInterfaceWriter
 
             var executeMethod = declaration.ExecuteMethods[index];
             sourceWriter.WriteDocumentation(executeMethod.Documentation);
-            sourceWriter.WriteLine(executeMethod.ReturnType.FullyQualifiedName + " " + executeMethod.Name + "(" + ParameterList(executeMethod) + ");");
+            sourceWriter.WriteLine(executeMethod.ReturnType.FullyQualifiedName + " " + executeMethod.Name + "(" + InterfaceParameterList(executeMethod) + ");");
         }
 
         sourceWriter.CloseBlock();
@@ -55,6 +55,20 @@ public static class UseCaseInterfaceWriter
     internal static string ParameterList(MethodDeclaration method)
     {
         return string.Join(", ", method.Parameters.Select(ParameterText));
+    }
+
+    // [NotLogged] is the one parameter attribute the interface carries: whatever reads the interface instead of the
+    // class (a decorator or client generated in another project) must still leave that parameter out of its logs.
+    // Other parameter attributes are about the class's implementation (model binding, validation, the caller-info
+    // and iterator attributes) and mean nothing on an interface member, or change what its callers compile to.
+    private static string InterfaceParameterList(MethodDeclaration method)
+    {
+        return string.Join(", ", method.Parameters.Select(parameter => NotLoggedPrefix(parameter) + ParameterText(parameter)));
+    }
+
+    private static string NotLoggedPrefix(ParameterDeclaration parameter)
+    {
+        return LoggedParameters.IsMarkedNotLogged(parameter) ? "[" + LoggedParameters.NotLoggedAttributeFullyQualifiedName + "] " : "";
     }
 
     private static string ParameterText(ParameterDeclaration parameter)

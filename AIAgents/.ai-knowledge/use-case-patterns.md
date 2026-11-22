@@ -23,7 +23,7 @@ public partial class PayChargeUseCase(
 ```
 
 - `[GenerateInterface]` makes the compiler write `IPayChargeUseCase : IMagicUseCase` from the public `Execute`
-  methods and their doc comments; callers and tests use `IPayChargeUseCase` as usual. `[LogExecuting]` writes the
+  methods, their doc comments and the `[NotLogged]` marks on their parameters; callers and tests use `IPayChargeUseCase` as usual. `[LogExecuting]` writes the
   `Executing:` line ([Logging](#logging)). Both come from `MagicCSharp.Generators`; when to write the interface or
   the line by hand instead is in `generated-code.md`.
 - In a repository that does not reference `MagicCSharp.Generators`, write the interface by hand, as its existing use

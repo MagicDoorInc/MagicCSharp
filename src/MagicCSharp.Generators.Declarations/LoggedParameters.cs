@@ -17,7 +17,12 @@ public static class LoggedParameters
             return false;
         }
 
-        return !parameter.Attributes.Any(attribute => attribute.Type.FullyQualifiedName == NotLoggedAttributeFullyQualifiedName);
+        return !IsMarkedNotLogged(parameter);
+    }
+
+    public static bool IsMarkedNotLogged(ParameterDeclaration parameter)
+    {
+        return parameter.Attributes.Any(attribute => attribute.Type.FullyQualifiedName == NotLoggedAttributeFullyQualifiedName);
     }
 
     public static EquatableArray<ParameterDeclaration> Choose(MethodDeclaration method)

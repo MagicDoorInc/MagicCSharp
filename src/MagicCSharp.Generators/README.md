@@ -15,7 +15,7 @@ Reference it with `PrivateAssets="all"`, in every project (a repository `mcs ini
 
 | You write | The compiler writes | Guide |
 |---|---|---|
-| `[GenerateInterface]` on a `partial` use case class | its interface `IX : IMagicUseCase`, from the public `Execute` methods and their doc comments | [Use cases](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp/README.md#generated-interfaces) |
+| `[GenerateInterface]` on a `partial` use case class | its interface `IX : IMagicUseCase`, from the public `Execute` methods, their doc comments and `[NotLogged]` marks | [Use cases](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp/README.md#generated-interfaces) |
 | `[LogExecuting]` on a use case | a decorator registered in its place that logs `Executing: name=value, …` at trace level, then calls it | [Use cases](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp/README.md#the-executing-line) |
 | `[GenerateDalMapping]` on a `partial` DAL with only its columns | `ToEntity`, `Apply` and `From`, matched by name and type | [Data.EntityFramework](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Data.EntityFramework/README.md#generated-dal-mapping) |
 | `[GenerateFilterQuery]` on a `partial` repository without `ApplyFilter` | `ApplyFilter`, one helper call per filter field | [Data](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Data/README.md#generated-filters) |
@@ -147,7 +147,7 @@ the source writers. A generator in another repository compiles against it from t
 
 The declarations are a building block with no compatibility promise: their types may change between any two
 versions, patch releases included. A generator built on them pins the exact version of `MagicCSharp.Generators`
-(`Version="[1.1.2]"`) and is rebuilt and checked against each new one.
+(`Version="[1.1.3]"`) and is rebuilt and checked against each new one.
 
 A generator never sees another's output, so one that needs a generated use case interface looks it up through
 `UseCasePipelines.GeneratedInterfaceIndex`. Its own diagnostics use its own ids, never `MCS`.

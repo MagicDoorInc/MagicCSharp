@@ -13,7 +13,8 @@ public sealed record ImplementedInterfaceReading
 
     /// <summary>
     ///     Its methods and those of the interfaces it extends, with the interface's signatures; each parameter carries
-    ///     the attributes of the class's implementation (<c>[NotLogged]</c>), and each method the implementation's location.
+    ///     its own attributes and those of the class's implementation (<c>[NotLogged]</c> on either), and each method the
+    ///     implementation's location.
     /// </summary>
     public required EquatableArray<MethodDeclaration> Methods { get; init; }
 }
