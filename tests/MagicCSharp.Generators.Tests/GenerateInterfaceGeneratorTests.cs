@@ -292,6 +292,44 @@ public class GenerateInterfaceGeneratorTests
     }
 
     [Fact]
+    public void GenerateInterface_CarriesNotLoggedOntoTheInterfaceParameter_AndNoOtherParameterAttribute()
+    {
+        // Arrange
+        const string source = """
+                              using System;
+                              using System.Threading.Tasks;
+                              using MagicCSharp.UseCases;
+
+                              namespace Acme.Identity.Users;
+
+                              [AttributeUsage(AttributeTargets.Parameter)]
+                              public sealed class TrimmedAttribute : Attribute
+                              {
+                              }
+
+                              [GenerateInterface]
+                              public partial class ChangePasswordUseCase
+                              {
+                                  public Task Execute(long userId, [NotLogged] string newPassword, [Trimmed] string reason)
+                                  {
+                                      return Task.CompletedTask;
+                                  }
+                              }
+                              """;
+
+        // Act
+        var generatorRunResult = GeneratorHarness.RunClean(source);
+
+        // Assert
+        var useCaseInterface = generatorRunResult.OutputCompilation.GetTypeByMetadataName("Acme.Identity.Users.IChangePasswordUseCase")!;
+        var executeParameters = useCaseInterface.GetMembers("Execute").OfType<IMethodSymbol>().Single().Parameters;
+        Assert.Empty(executeParameters[0].GetAttributes());
+        var newPasswordAttribute = Assert.Single(executeParameters[1].GetAttributes());
+        Assert.Equal("MagicCSharp.UseCases.NotLoggedAttribute", newPasswordAttribute.AttributeClass!.ToDisplayString());
+        Assert.Empty(executeParameters[2].GetAttributes());
+    }
+
+    [Fact]
     public void GenerateInterface_GeneratesNothing_WhenTheClassAlreadyImplementsItsInterface()
     {
         // Arrange

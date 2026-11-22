@@ -155,6 +155,33 @@ public class ExecutingLogGeneratorTests
     }
 
     [Fact]
+    public void LogExecuting_LeavesAParameterOutOfTheLine_WhenOnlyTheInterfaceMarksItNotLogged()
+    {
+        // Act
+        var generatorRunResult = RunExecutingLog("""
+                                                 public interface IVerifyIdentityUseCase : IMagicUseCase
+                                                 {
+                                                     Task Execute(long userId, [NotLogged] string socialSecurityNumber);
+                                                 }
+
+                                                 [LogExecuting]
+                                                 public class VerifyIdentityUseCase : IVerifyIdentityUseCase
+                                                 {
+                                                     public Task Execute(long userId, string socialSecurityNumber)
+                                                     {
+                                                         return Task.CompletedTask;
+                                                     }
+                                                 }
+                                                 """);
+
+        // Assert
+        Assert.Empty(generatorRunResult.Diagnostics);
+        var decoratorText = generatorRunResult.GeneratedText("Acme.Leasing.Charges.VerifyIdentityUseCase.ExecutingLog.g.cs");
+        Assert.Contains("LogTrace(this.logger, \"Executing: userId={userId}\", new object?[] { userId });", decoratorText);
+        Assert.Contains("return this.verifyIdentityUseCase.Execute(userId, socialSecurityNumber);", decoratorText);
+    }
+
+    [Fact]
     public void LogExecuting_LeavesACancellationTokenOutOfTheLine()
     {
         // Act
