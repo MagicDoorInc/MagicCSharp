@@ -45,6 +45,7 @@ public enum ParcelStatus
     Shipped,
 }
 
+[GenerateMatches]
 public partial class ParcelFilter : IEntityFilter<Parcel>
 {
     public List<long>? Ids { get; init; }

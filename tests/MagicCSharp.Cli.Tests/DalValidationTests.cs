@@ -64,17 +64,26 @@ public class DalValidationTests
     }
 
     [Fact]
-    public void Required_is_accepted_in_a_partial_Dal_whose_From_is_generated()
+    public void Required_is_accepted_in_a_marked_Dal_whose_From_is_generated()
     {
-        var violations = Validate(PartialDal("public required long LeaseId { get; set; }", ownMethods: ""));
+        var violations = Validate(MarkedDal("public required long LeaseId { get; set; }", ownMethods: ""));
 
         Assert.Empty(violations);
     }
 
     [Fact]
-    public void Required_is_reported_in_a_partial_Dal_that_maps_by_hand_without_From()
+    public void Required_is_reported_in_a_partial_Dal_without_GenerateDalMapping()
     {
-        var violations = Validate(PartialDal(
+        var violations = Validate(MarkedDal("public required long LeaseId { get; set; }", ownMethods: "", attribute: ""));
+
+        var violation = Assert.Single(violations);
+        Assert.Equal("LeaseId is 'required' and From() does not assign it", violation.Message);
+    }
+
+    [Fact]
+    public void Required_is_reported_in_a_marked_Dal_that_maps_by_hand_without_From()
+    {
+        var violations = Validate(MarkedDal(
             "public required long LeaseId { get; set; }",
             ownMethods: """
                         public override Charge ToEntity()
@@ -88,9 +97,9 @@ public class DalValidationTests
     }
 
     [Fact]
-    public void Required_is_accepted_in_a_partial_Dal_that_maps_by_hand_and_lists_IDalFromEdit()
+    public void Required_is_accepted_in_a_marked_Dal_that_maps_by_hand_and_lists_IDalFromEdit()
     {
-        var violations = Validate(PartialDal(
+        var violations = Validate(MarkedDal(
             "public required long LeaseId { get; set; }",
             ownMethods: """
                         public override Charge ToEntity()
@@ -104,9 +113,9 @@ public class DalValidationTests
     }
 
     [Fact]
-    public void Required_is_reported_in_a_partial_Dal_whose_own_Apply_sets_it()
+    public void Required_is_reported_in_a_marked_Dal_whose_own_Apply_sets_it()
     {
-        var violations = Validate(PartialDal(
+        var violations = Validate(MarkedDal(
             "public required decimal Amount { get; set; }",
             ownMethods: """
                         public override void Apply(ChargeEdit edit)
@@ -120,9 +129,9 @@ public class DalValidationTests
     }
 
     [Fact]
-    public void Required_is_reported_in_a_partial_Dal_whose_own_From_leaves_it_out()
+    public void Required_is_reported_in_a_marked_Dal_whose_own_From_leaves_it_out()
     {
-        var violations = Validate(PartialDal(
+        var violations = Validate(MarkedDal(
             "public required long LeaseId { get; set; }",
             ownMethods: """
                         public static ChargeDal From(ChargeEdit edit, long id)
@@ -173,10 +182,15 @@ public class DalValidationTests
                  """;
     }
 
-    /// <summary>A DAL the generator maps: <c>partial</c>, with only the methods it writes by hand.</summary>
-    private static string PartialDal(string property, string ownMethods, string baseList = "BaseIdDal<Charge, ChargeEdit>")
+    /// <summary>
+    ///     A DAL the generator maps: <c>partial</c> and <c>[GenerateDalMapping]</c> (unless another attribute line is
+    ///     given), with only the methods it writes by hand.
+    /// </summary>
+    private static string MarkedDal(string property, string ownMethods, string baseList = "BaseIdDal<Charge, ChargeEdit>",
+        string attribute = "[GenerateDalMapping]")
     {
         return $$"""
+                 {{attribute}}
                  public partial class ChargeDal : {{baseList}}
                  {
                      [Required]

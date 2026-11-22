@@ -22,15 +22,17 @@ public record WidgetEdit
     public required string Name { get; init; }
 }
 
-/// <summary><c>partial</c> and <c>IEntityFilter</c>: the generator writes <c>Matches</c>.</summary>
+/// <summary><c>[GenerateMatches]</c> on a <c>partial</c> <c>IEntityFilter</c>: the generator writes <c>Matches</c>.</summary>
+[GenerateMatches]
 public partial class WidgetFilter : IEntityFilter<Widget>
 {
     public List<long>? Ids { get; init; }
     public long? OwnerId { get; init; }
 }
 
-/// <summary><c>partial</c>, with columns only: the generator writes <c>ToEntity</c>, <c>Apply</c> and <c>From</c>.</summary>
+/// <summary><c>[GenerateDalMapping]</c>, with columns only: the generator writes <c>ToEntity</c>, <c>Apply</c> and <c>From</c>.</summary>
 [Table("widgets")]
+[GenerateDalMapping]
 public partial class WidgetDal : BaseIdDal<Widget, WidgetEdit>
 {
     [Required]
@@ -42,14 +44,16 @@ public partial class WidgetDal : BaseIdDal<Widget, WidgetEdit>
     public string Name { get; set; } = "";
 }
 
-/// <summary>The generator writes <c>SmokeContextFactory</c> for <c>dotnet ef</c> from the attribute.</summary>
+/// <summary>The generator writes <c>SmokeContextFactory</c> for <c>dotnet ef</c>, against the database <c>[MigrationsDatabase]</c> names.</summary>
 [MigrationsDatabase("smoke")]
+[GenerateDesignTimeFactory]
 public class SmokeContext(DbContextOptions<SmokeContext> options) : MagicDbContext(options)
 {
     public DbSet<WidgetDal> Widgets { get; set; } = null!;
 }
 
-/// <summary><c>partial</c> on the repository services: <c>ApplyFilter</c> is generated and <c>CreateDal</c> is the base's default.</summary>
+/// <summary><c>[GenerateFilterQuery]</c> on the repository services: <c>ApplyFilter</c> is generated and <c>CreateDal</c> is the base's default.</summary>
+[GenerateFilterQuery]
 public partial class WidgetsRepository(RepositoryServices<SmokeContext> repositoryServices)
     : BaseIdRepository<SmokeContext, WidgetDal, Widget, WidgetFilter, WidgetEdit>(repositoryServices)
 {

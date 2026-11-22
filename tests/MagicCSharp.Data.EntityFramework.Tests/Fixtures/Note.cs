@@ -26,10 +26,11 @@ public class NoteFilter
 }
 
 /// <summary>
-///     Only columns: <c>partial</c> is what makes the generator write <c>ToEntity</c>, <c>Apply</c> and <c>From</c>.
+///     Only columns: <c>[GenerateDalMapping]</c> is what makes the generator write <c>ToEntity</c>, <c>Apply</c> and <c>From</c>.
 ///     <c>TenantId</c> is <c>required</c>, so <c>From</c> sets it and <c>Apply</c> never moves a note to another tenant.
 /// </summary>
 [Table("notes")]
+[GenerateDalMapping]
 public partial class NoteDal : BaseIdDal<Note, NoteEdit>, IDalDeleted
 {
     [Column("tenant_id")]

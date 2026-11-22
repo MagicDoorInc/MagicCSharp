@@ -7,19 +7,20 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace MagicCSharp.Generators;
 
 /// <summary>
-///     Writes <c>{Context}Factory</c> for every context marked <c>[MigrationsDatabase("…")]</c>, so <c>dotnet ef</c> can
-///     build it without the host. The factory derives from <c>MagicCSharpDesignTimeContextFactoryBase</c> (MagicCSharp's
-///     Postgres factory unless the build names another). A project that writes its own factory for the context keeps
-///     it, e.g. to add a provider plugin.
+///     Writes <c>{Context}Factory</c> for every context marked <c>[GenerateDesignTimeFactory]</c>, so <c>dotnet ef</c>
+///     can build it without the host, against the database its <c>[MigrationsDatabase("…")]</c> names. The attribute is
+///     the opt-in: <c>[MigrationsDatabase]</c> alone writes nothing. The factory derives from
+///     <c>MagicCSharpDesignTimeContextFactoryBase</c> (MagicCSharp's Postgres factory unless the build names another). A
+///     project that writes its own factory for the context keeps it, e.g. to add a provider plugin.
 /// </summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class DesignTimeContextFactoryGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var contexts = context.SyntaxProvider.ForAttributeWithMetadataName(ContextFactoryReader.MigrationsDatabaseAttributeMetadataName,
+        var contexts = context.SyntaxProvider.ForAttributeWithMetadataName(ContextFactoryReader.GenerateDesignTimeFactoryAttributeMetadataName,
             (node, _) => node is ClassDeclarationSyntax,
-            (attributeContext, _) => ContextFactoryReader.ReadContext((INamedTypeSymbol)attributeContext.TargetSymbol, attributeContext.Attributes[0]));
+            (attributeContext, _) => ContextFactoryReader.ReadContext((INamedTypeSymbol)attributeContext.TargetSymbol));
 
         var contextsWithHandWrittenFactories = context.SyntaxProvider.CreateSyntaxProvider(IsClassWithBaseList, ReadFactoryContext)
             .Where(factoryContext => factoryContext != null)
@@ -50,10 +51,10 @@ public sealed class DesignTimeContextFactoryGenerator : IIncrementalGenerator
     {
         var migrationsDatabaseContext = input.Declarations.Context;
 
-        var blankDatabaseName = ContextFactoryPlanner.BlankDatabaseName(migrationsDatabaseContext);
-        if (blankDatabaseName != null)
+        var declarationRefusal = ContextFactoryPlanner.DeclarationRefusal(migrationsDatabaseContext);
+        if (declarationRefusal != null)
         {
-            sourceProductionContext.ReportDiagnostic(blankDatabaseName.ToDiagnostic());
+            sourceProductionContext.ReportDiagnostic(declarationRefusal.ToDiagnostic());
             return;
         }
 

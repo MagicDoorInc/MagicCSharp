@@ -39,6 +39,7 @@ public class EntityFilterMatchesGeneratorTests
     // A filter that gets Matches, beside the one under test, which proves the generator ran.
     private const string ControlFilter = """
 
+                                         [GenerateMatches]
                                          public partial class ShipmentControlFilter : IEntityFilter<Shipment>
                                          {
                                              public List<long>? Ids { get; init; }
@@ -51,6 +52,7 @@ public class EntityFilterMatchesGeneratorTests
     {
         // Arrange
         const string source = Usings + ShipmentTypes + """
+                                                       [GenerateMatches]
                                                        public partial class ShipmentFilter : IEntityFilter<Shipment>
                                                        {
                                                            public List<long>? Ids { get; init; }
@@ -112,6 +114,7 @@ public class EntityFilterMatchesGeneratorTests
     {
         // Arrange
         const string source = Usings + ShipmentTypes + """
+                                                       [GenerateMatches]
                                                        public partial record ShipmentFilter : IEntityFilter<Shipment>
                                                        {
                                                            public string[]? TrackingCodes { get; init; }
@@ -131,6 +134,7 @@ public class EntityFilterMatchesGeneratorTests
     {
         // Arrange
         const string source = Usings + ShipmentTypes + """
+                                                       [GenerateMatches]
                                                        public partial class ShipmentFilter : IEntityFilter<Shipment>
                                                        {
                                                            public long? TenantId { get; init; }
@@ -176,6 +180,7 @@ public class EntityFilterMatchesGeneratorTests
     {
         // Arrange
         const string source = Usings + ShipmentTypes + """
+                                                       [GenerateMatches]
                                                        public partial class ShipmentFilter : IEntityFilter<Shipment>
                                                        {
                                                            public string? TrackingCodeContains { get; init; }
@@ -197,6 +202,7 @@ public class EntityFilterMatchesGeneratorTests
     {
         // Arrange: 'Ids' fits the list rule by name, but 'Id' is a long, not an int.
         const string source = Usings + ShipmentTypes + """
+                                                       [GenerateMatches]
                                                        public partial class ShipmentFilter : IEntityFilter<Shipment>
                                                        {
                                                            public List<int>? Ids { get; init; }
@@ -217,6 +223,7 @@ public class EntityFilterMatchesGeneratorTests
     {
         // Arrange: 'Created' fits the range rule by name, but 'Created' is a DateTimeOffset, not a DateTime.
         const string source = Usings + ShipmentTypes + """
+                                                       [GenerateMatches]
                                                        public partial class ShipmentFilter : IEntityFilter<Shipment>
                                                        {
                                                            public ComparableRange<DateTime>? Created { get; init; }
@@ -245,6 +252,7 @@ public class EntityFilterMatchesGeneratorTests
                                            public required string Note { get; init; }
                                        }
 
+                                       [GenerateMatches]
                                        public partial class ShipmentFilter : IEntityFilter<Shipment>
                                        {
                                            public string? TrackingCodeContains { get; init; }
@@ -273,6 +281,7 @@ public class EntityFilterMatchesGeneratorTests
         const string source = Usings + ShipmentTypes + """
                                                        public static partial class Filters
                                                        {
+                                                           [GenerateMatches]
                                                            public partial class ShipmentFilter : IEntityFilter<Shipment>
                                                            {
                                                                public List<long>? Ids { get; init; }
@@ -294,6 +303,7 @@ public class EntityFilterMatchesGeneratorTests
     {
         // Arrange
         const string source = Usings + ShipmentTypes + """
+                                                       [GenerateMatches]
                                                        public partial class ShipmentFilter<TMarker> : IEntityFilter<Shipment>
                                                        {
                                                            public List<long>? Ids { get; init; }
@@ -314,6 +324,7 @@ public class EntityFilterMatchesGeneratorTests
     {
         // Arrange
         const string source = Usings + ShipmentTypes + ControlFilter + """
+                                                                       [GenerateMatches]
                                                                        public partial class ShipmentFilter : IEntityFilter<Shipment>
                                                                        {
                                                                            public List<long>? Ids { get; init; }
@@ -334,26 +345,67 @@ public class EntityFilterMatchesGeneratorTests
     }
 
     [Fact]
-    public void FilterMatches_GeneratesNothing_ForAFilterWithoutIEntityFilter()
+    public void FilterMatches_GeneratesNothing_ForAPartialFilterWithoutTheAttribute()
     {
-        // Arrange
+        // Arrange: partial and listing IEntityFilter, but not marked; it does not compile for want of Matches.
         const string source = Usings + ShipmentTypes + ControlFilter + """
-                                                                       public class ShipmentFilterBase
-                                                                       {
-                                                                       }
-
-                                                                       public partial class ShipmentFilter : ShipmentFilterBase
+                                                                       public partial class ShipmentFilter : IEntityFilter<Shipment>
                                                                        {
                                                                            public List<long>? Ids { get; init; }
                                                                        }
                                                                        """;
 
         // Act
-        var generatorRunResult = RunClean(source);
+        var generatedHintNames = GeneratedHintNames(source);
 
         // Assert
-        var generatedFile = Assert.Single(generatorRunResult.GeneratedFiles);
-        Assert.Equal(ControlFilterHintName, generatedFile.Path);
+        Assert.Equal([ControlFilterHintName], generatedHintNames);
+    }
+
+    [Fact]
+    public void FilterMatches_ReportsMCS1311_ForAMarkedFilterThatIsNotPartial()
+    {
+        // Arrange
+        const string source = Usings + ShipmentTypes + """
+                                                       [GenerateMatches]
+                                                       public class ShipmentFilter : IEntityFilter<Shipment>
+                                                       {
+                                                           public List<long>? Ids { get; init; }
+                                                       }
+                                                       """;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("MCS1311 Subject.cs:24 'ShipmentFilter' has [GenerateMatches] but is not partial; add 'partial' so the generated Matches can be " +
+                     "attached to it", diagnostic);
+    }
+
+    [Fact]
+    public void FilterMatches_ReportsMCS1312_ForAMarkedFilterWithoutIEntityFilter()
+    {
+        // Arrange
+        const string source = Usings + ShipmentTypes + """
+                                                       public class ShipmentFilterBase
+                                                       {
+                                                       }
+
+                                                       [GenerateMatches]
+                                                       public partial class ShipmentFilter : ShipmentFilterBase
+                                                       {
+                                                           public List<long>? Ids { get; init; }
+                                                       }
+                                                       """;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.StartsWith("MCS1312 ", diagnostic);
+        Assert.Contains("'ShipmentFilter' has [GenerateMatches] but is not a class implementing IEntityFilter<TEntity>", diagnostic);
     }
 
     private static GeneratorRunRequest Request(string source)
@@ -371,6 +423,15 @@ public class EntityFilterMatchesGeneratorTests
         var generatorRunResult = GeneratorHarness.Run(Request(source));
         Assert.Empty(generatorRunResult.Diagnostics);
         return generatorRunResult;
+    }
+
+    // The files the generator writes, without asking the compilation to compile.
+    private static string[] GeneratedHintNames(string source)
+    {
+        var generatorRunRequest = Request(source);
+        var compilation = GeneratorHarness.CreateCompilation(generatorRunRequest.SourceFiles);
+        var runResult = GeneratorHarness.CreateDriver(generatorRunRequest, false).RunGenerators(compilation).GetRunResult();
+        return runResult.Results.SelectMany(result => result.GeneratedSources).Select(generatedSource => generatedSource.HintName).Order().ToArray();
     }
 
     // The generator's diagnostics alone. A refused filter has no Matches and does not compile, so this does not ask

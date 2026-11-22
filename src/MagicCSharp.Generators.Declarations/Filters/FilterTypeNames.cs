@@ -6,6 +6,10 @@ namespace MagicCSharp.Generators.Declarations.Filters;
 /// </summary>
 public static class FilterTypeNames
 {
+    public const string GenerateFilterQueryAttribute = "MagicCSharp.Data.EntityFramework.Repositories.GenerateFilterQueryAttribute";
+
+    public const string GenerateMatchesAttribute = "MagicCSharp.Infrastructure.GenerateMatchesAttribute";
+
     public const string EntityFilter = "MagicCSharp.Infrastructure.IEntityFilter`1";
 
     public const string ComparableRange = "MagicCSharp.Infrastructure.ComparableRange`1";

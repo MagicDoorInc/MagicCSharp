@@ -88,6 +88,7 @@ public class FilterQueryGeneratorTests
 
     private const string ShipmentsRepository = """
 
+                                               [GenerateFilterQuery]
                                                public partial class ShipmentsRepository(RepositoryServices<ShippingContext> repositoryServices)
                                                    : BaseIdRepository<ShippingContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices);
                                                """;
@@ -201,6 +202,7 @@ public class FilterQueryGeneratorTests
                                            public ParcelCategory[]? Categories { get; init; }
                                        }
 
+                                       [GenerateFilterQuery]
                                        public partial class ParcelsRepository(RepositoryServices<ShippingContext> repositoryServices)
                                            : BaseIdRepository<ShippingContext, ParcelDal, Parcel, ParcelFilter, ParcelEdit>(repositoryServices);
                                        """;
@@ -323,6 +325,7 @@ public class FilterQueryGeneratorTests
                                                            public string? TrackingCodeContains { get; init; }
                                                        }
 
+                                                       [GenerateFilterQuery]
                                                        public partial class ShipmentsRepository(RepositoryServices<ShippingContext> repositoryServices)
                                                            : BaseIdRepository<ShippingContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices)
                                                        {
@@ -435,6 +438,7 @@ public class FilterQueryGeneratorTests
                                                            public string? Reference { get; init; }
                                                        }
 
+                                                       [GenerateFilterQuery]
                                                        public partial class ShipmentsRepository(RepositoryServices<ShippingContext> repositoryServices)
                                                            : BaseIdRepository<ShippingContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices)
                                                        {
@@ -509,6 +513,7 @@ public class FilterQueryGeneratorTests
                                                                   public decimal? Weight { get; init; }
                                                               }
 
+                                                              [GenerateFilterQuery]
                                                               public partial class ShipmentsRepository(RepositoryServices<ShippingContext> repositoryServices)
                                                                   : BaseIdRepository<ShippingContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices)
                                                               {
@@ -539,6 +544,7 @@ public class FilterQueryGeneratorTests
 
                                                        public static partial class Storage
                                                        {
+                                                           [GenerateFilterQuery]
                                                            public partial class ShipmentsRepository(RepositoryServices<ShippingContext> repositoryServices)
                                                                : BaseIdRepository<ShippingContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices);
                                                        }
@@ -563,6 +569,7 @@ public class FilterQueryGeneratorTests
                                                            public List<long>? Ids { get; init; }
                                                        }
 
+                                                       [GenerateFilterQuery]
                                                        public partial class ShipmentsRepository<TMarker>(RepositoryServices<ShippingContext> repositoryServices)
                                                            : BaseIdRepository<ShippingContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices);
                                                        """;
@@ -582,6 +589,7 @@ public class FilterQueryGeneratorTests
         // Arrange: a partial repository with its own ApplyFilter, beside one without, which proves the generator ran.
         const string source = Usings + ShipmentTypes + ShipmentFilterWithIds + ControlRepository + """
 
+                                                                                                   [GenerateFilterQuery]
                                                                                                    public partial class ShipmentsRepository(RepositoryServices<ShippingContext> repositoryServices)
                                                                                                        : BaseIdRepository<ShippingContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices)
                                                                                                    {
@@ -601,10 +609,10 @@ public class FilterQueryGeneratorTests
     }
 
     [Fact]
-    public void FilterQuery_GeneratesNothing_ForANonPartialRepository()
+    public void FilterQuery_GeneratesNothing_ForAPartialRepositoryWithoutTheAttribute()
     {
-        // Arrange: the repository leaves ApplyFilter unwritten, so only 'partial' decides; it does not compile for want of ApplyFilter.
-        var source = Usings + ShipmentTypes + ShipmentFilterWithIds + ControlRepository + RepositoryWithoutApplyFilter("public class");
+        // Arrange: partial and without ApplyFilter, but not marked; it does not compile for want of ApplyFilter.
+        var source = Usings + ShipmentTypes + ShipmentFilterWithIds + ControlRepository + RepositoryWithoutApplyFilter("public partial class");
 
         // Act
         var generatedHintNames = GeneratedHintNames(source);
@@ -614,10 +622,11 @@ public class FilterQueryGeneratorTests
     }
 
     [Fact]
-    public void FilterQuery_GeneratesApplyFilter_ForThePartialRepositoryTheNonPartialTestLeavesOut()
+    public void FilterQuery_GeneratesApplyFilter_ForTheRepositoryTheUnmarkedTestLeavesOut()
     {
-        // Arrange: the same repository as the non-partial case, declared partial.
-        var source = Usings + ShipmentTypes + ShipmentFilterWithIds + ControlRepository + RepositoryWithoutApplyFilter("public partial class");
+        // Arrange: the same repository as the unmarked case, with the attribute.
+        var source = Usings + ShipmentTypes + ShipmentFilterWithIds + ControlRepository +
+                     RepositoryWithoutApplyFilter("[GenerateFilterQuery]\npublic partial class");
 
         // Act
         var generatedHintNames = RunClean(source).GeneratedFiles.Select(generatedFile => generatedFile.Path).Order().ToArray();
@@ -627,21 +636,38 @@ public class FilterQueryGeneratorTests
     }
 
     [Fact]
-    public void FilterQuery_GeneratesNothing_ForAnAbstractRepositoryBase()
+    public void FilterQuery_ReportsMCS1309_ForAMarkedRepositoryThatIsNotPartial()
     {
-        // Arrange: an abstract partial base leaves ApplyFilter to the repositories deriving from it.
-        const string source = Usings + ShipmentTypes + ShipmentFilterWithIds + ControlRepository + """
-
-                                                                                                   public abstract partial class AuditedShipmentsRepository(RepositoryServices<ShippingContext> repositoryServices)
-                                                                                                       : BaseIdRepository<ShippingContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices);
-                                                                                                   """;
+        // Arrange
+        var source = Usings + ShipmentTypes + ShipmentFilterWithIds + RepositoryWithoutApplyFilter("[GenerateFilterQuery]\npublic class");
 
         // Act
-        var generatorRunResult = RunClean(source);
+        var diagnostics = Diagnostics(source);
 
         // Assert
-        var generatedFile = Assert.Single(generatorRunResult.GeneratedFiles);
-        Assert.Equal(ControlRepositoryHintName, generatedFile.Path);
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("MCS1309 Subject.cs:73 'ShipmentsRepository' has [GenerateFilterQuery] but is not partial; add 'partial' so the generated ApplyFilter " +
+                     "can be attached to it", diagnostic);
+    }
+
+    [Fact]
+    public void FilterQuery_ReportsMCS1310_ForAMarkedAbstractRepositoryBase()
+    {
+        // Arrange: an abstract base leaves ApplyFilter to the repositories deriving from it, which carry the attribute.
+        const string source = Usings + ShipmentTypes + ShipmentFilterWithIds + """
+
+                                                                               [GenerateFilterQuery]
+                                                                               public abstract partial class AuditedShipmentsRepository(RepositoryServices<ShippingContext> repositoryServices)
+                                                                                   : BaseIdRepository<ShippingContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices);
+                                                                               """;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.StartsWith("MCS1310 ", diagnostic);
+        Assert.Contains("'AuditedShipmentsRepository' has [GenerateFilterQuery] but is not a concrete class inheriting an abstract ApplyFilter", diagnostic);
     }
 
     [Fact]
@@ -655,6 +681,7 @@ public class FilterQueryGeneratorTests
                                                                                    protected abstract IQueryable<TDal> ApplyFilter(IQueryable<TDal> query, TFilter filter);
                                                                                }
 
+                                                                               [GenerateFilterQuery]
                                                                                public partial class ShipmentsRepository : PlatformRepository<ShipmentDal, ShipmentFilter>;
                                                                                """;
 
@@ -717,6 +744,7 @@ public class FilterQueryGeneratorTests
 
     private const string ControlRepository = """
 
+                                             [GenerateFilterQuery]
                                              public partial class ShipmentsControlRepository(RepositoryServices<ShippingContext> repositoryServices)
                                                  : BaseIdRepository<ShippingContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices);
 
@@ -761,7 +789,7 @@ public class FilterQueryGeneratorTests
         return template.Replace("DAL_WEIGHT_COLUMN", dalWeightColumn);
     }
 
-    // The shipment repository, which leaves ApplyFilter to the generator when it is partial.
+    // The shipment repository, which leaves ApplyFilter to the generator when it is partial and marked.
     private static string RepositoryWithoutApplyFilter(string classDeclaration)
     {
         return $"""

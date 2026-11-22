@@ -11,12 +11,24 @@ public static class ContextFactoryPlanner
     }
 
     /// <summary>
-    ///     MCS1602 when the context names no database; null otherwise. Checked even when the project writes its own
-    ///     factory, because the migration check reads the name too.
+    ///     What is wrong with the context's attributes, or null when nothing is: MCS1611 when it has no
+    ///     <c>[MigrationsDatabase]</c>, MCS1602 when that names no database. Checked even when the project writes its own
+    ///     factory, because the migration check reads the name too. The context need not be partial: the factory is a
+    ///     class of its own.
     /// </summary>
-    public static DiagnosticInfo? BlankDatabaseName(MigrationsDatabaseContext context)
+    public static DiagnosticInfo? DeclarationRefusal(MigrationsDatabaseContext context)
     {
-        return string.IsNullOrWhiteSpace(context.DatabaseName) ? Refusal(ContextFactoryDiagnostics.BlankDatabaseName, context, context.Name) : null;
+        if (!context.HasMigrationsDatabase)
+        {
+            return Refusal(ContextFactoryDiagnostics.MigrationsDatabaseMissing, context, context.Name);
+        }
+
+        if (string.IsNullOrWhiteSpace(context.DatabaseName))
+        {
+            return Refusal(ContextFactoryDiagnostics.BlankDatabaseName, context, context.Name);
+        }
+
+        return null;
     }
 
     /// <summary>Whether the project writes its own factory for the context, so nothing is generated.</summary>

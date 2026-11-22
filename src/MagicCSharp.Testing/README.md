@@ -105,7 +105,7 @@ It behaves as `BaseIdRepository` and `BaseIdPaginatedRepository` do on the datab
 `NotFoundIdException`; a bulk call checks every id first and writes nothing on a miss; paging honours `IsDisabled`;
 an update leaves the columns `SetOncePropertyNames` lists unchanged (none by default), as a DAL's `Apply` leaves the
 columns set once at creation — for a generated `Apply`, the DAL's `required` and `[Key]` properties; list those here.
-A filter is applied through its `Matches`, which the generator writes for a `partial` filter listing `IEntityFilter<TEntity>`
+A filter is applied through its `Matches`, which the generator writes for a `[GenerateMatches]` filter listing `IEntityFilter<TEntity>`
 ([MagicCSharp.Data](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Data/README.md#generated-filters)),
 so the fake narrows exactly as the generated query does.
 

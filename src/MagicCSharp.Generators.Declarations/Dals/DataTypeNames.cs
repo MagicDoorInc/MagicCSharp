@@ -6,6 +6,8 @@ namespace MagicCSharp.Generators.Declarations.Dals;
 /// </summary>
 public static class DataTypeNames
 {
+    public const string GenerateDalMappingAttribute = "MagicCSharp.Data.EntityFramework.Dals.GenerateDalMappingAttribute";
+
     public const string DalTransform = "MagicCSharp.Data.EntityFramework.Dals.IDalTransform`2";
 
     public const string DalId = "MagicCSharp.Data.EntityFramework.Dals.IDalId";

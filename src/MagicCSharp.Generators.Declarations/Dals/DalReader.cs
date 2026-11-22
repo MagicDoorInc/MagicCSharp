@@ -3,8 +3,8 @@ using Microsoft.CodeAnalysis;
 namespace MagicCSharp.Generators.Declarations.Dals;
 
 /// <summary>
-///     Reads a class implementing <c>IDalTransform&lt;TEntity, TEdit&gt;</c> into a <see cref="DalDeclaration" />. Any
-///     other class, and an abstract Dal base, reads as no Dal.
+///     Reads a <c>[GenerateDalMapping]</c> class into a <see cref="DalDeclaration" />. The class must be partial and a
+///     concrete class implementing <c>IDalTransform&lt;TEntity, TEdit&gt;</c>; anything else is refused.
 /// </summary>
 public static class DalReader
 {
@@ -12,7 +12,7 @@ public static class DalReader
     private const string ApplyMethodName = "Apply";
     private const string FromMethodName = "From";
 
-    internal static DalReadResult NotADal { get; } = new DalReadResult
+    internal static DalReadResult NoMappingToWrite { get; } = new DalReadResult
     {
         Declaration = null,
         Diagnostics = EquatableArray<DiagnosticInfo>.Empty,
@@ -20,17 +20,22 @@ public static class DalReader
 
     public static DalReadResult Read(INamedTypeSymbol dalClass, CancellationToken cancellationToken)
     {
+        if (!TypeDeclarationReader.IsPartial(dalClass, cancellationToken))
+        {
+            return Refused(DalMappingDiagnostics.DalNotPartial, dalClass);
+        }
+
         var dalTransform = FindInterface(dalClass, DataTypeNames.DalTransform);
         if (dalTransform == null || dalClass.TypeKind != TypeKind.Class || dalClass.IsAbstract || dalClass.IsStatic)
         {
-            return NotADal;
+            return Refused(DalMappingDiagnostics.NotADal, dalClass);
         }
 
         var entityType = dalTransform.TypeArguments[0];
         var editType = dalTransform.TypeArguments[1];
         if (entityType.TypeKind == TypeKind.Error || editType.TypeKind == TypeKind.Error)
         {
-            return NotADal;
+            return NoMappingToWrite;
         }
 
         var dal = TypeDeclarationReader.Read(dalClass, cancellationToken);
@@ -48,13 +53,13 @@ public static class DalReader
                                (primaryKind != DalPrimaryKind.None && hasOptedIntoFrom && ownFrom == null);
         if (dal.IsNested || dal.TypeParameters.Count > 0)
         {
-            if (!dal.IsPartial || !isMissingAMethod)
+            if (!isMissingAMethod)
             {
-                return NotADal;
+                return NoMappingToWrite;
             }
 
             var shapeDescriptor = dal.IsNested ? DalMappingDiagnostics.NestedDal : DalMappingDiagnostics.GenericDal;
-            return Refused(shapeDescriptor, dal);
+            return Refused(shapeDescriptor, dalClass);
         }
 
         var dalProperties = MappablePropertyReader.Read(dalClass);
@@ -177,7 +182,7 @@ public static class DalReader
                                                                                         Accessibility.ProtectedOrInternal))));
     }
 
-    private static DalReadResult Refused(DiagnosticDescriptor descriptor, TypeDeclaration dal)
+    private static DalReadResult Refused(DiagnosticDescriptor descriptor, INamedTypeSymbol dalClass)
     {
         return new DalReadResult
         {
@@ -187,8 +192,8 @@ public static class DalReader
                 new DiagnosticInfo
                 {
                     Descriptor = descriptor,
-                    Location = dal.Location,
-                    MessageArguments = new EquatableArray<string>([dal.Name]),
+                    Location = SourceLocation.From(dalClass.Locations.FirstOrDefault()),
+                    MessageArguments = new EquatableArray<string>([dalClass.Name]),
                 },
             ]),
         };

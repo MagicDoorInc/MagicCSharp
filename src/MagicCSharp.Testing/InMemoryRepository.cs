@@ -257,7 +257,7 @@ public class InMemoryRepository<TEntity, TEdit, TFilter> : IRepository<TEntity, 
         if (entityFilter == null)
         {
             throw new InvalidOperationException(
-                $"{typeof(TFilter).Name} does not implement IEntityFilter<{typeof(TEntity).Name}>. Make it a partial class listing that interface, " +
+                $"{typeof(TFilter).Name} does not implement IEntityFilter<{typeof(TEntity).Name}>. Make it a partial [GenerateMatches] class listing that interface, " +
                 $"so its Matches is generated, or override Matches in {GetType().Name}.");
         }
 

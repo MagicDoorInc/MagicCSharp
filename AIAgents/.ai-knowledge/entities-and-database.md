@@ -46,11 +46,13 @@ public class ChargeFilter                                        // what you can
 
 ## The DAL: columns only, mapping generated
 
-With `MagicCSharp.Generators` referenced, a DAL is `partial` and declares only its columns; the compiler writes
-`ToEntity()`, `Apply(edit)` and `From(edit, id)` by matching properties of the same name and type:
+With `MagicCSharp.Generators` referenced, a DAL is `[GenerateDalMapping]` and `partial` and declares only its columns;
+the compiler writes `ToEntity()`, `Apply(edit)` and `From(edit, id)` by matching properties of the same name and type.
+Without the attribute nothing is written, `partial` or not:
 
 ```csharp
 [Table("shipments")]
+[GenerateDalMapping]
 public partial class ShipmentDal : BaseIdDal<Shipment, ShipmentEdit>, IDalDeleted
 {
     [Column("tenant_id")]
@@ -68,8 +70,8 @@ public partial class ShipmentDal : BaseIdDal<Shipment, ShipmentEdit>, IDalDelete
 }
 ```
 
-- `mcs add-entity` writes the mapping by hand. To let the compiler write it, add `partial` and delete `ToEntity`,
-  `Apply` and `From`; keep a method only if it does something besides copying (below).
+- `mcs add-entity` writes the mapping by hand. To let the compiler write it, add `[GenerateDalMapping]` and `partial`
+  and delete `ToEntity`, `Apply` and `From`; keep a method only if it does something besides copying (below).
 - A column set once and never changed by `Apply` (a parent id, a tenant) is `required`: the generated `From` sets it
   and the generated `Apply` skips it. The key is skipped by `Apply` too.
 - A build error `MCS1201`–`MCS1203` names a property with no counterpart of the same name and type: rename or retype
@@ -132,11 +134,12 @@ check the migration.
 ## Repositories
 
 `mcs add-entity` writes the interface in `Data.Models/Repositories/` and the EF implementation in
-`Data.EntityFramework/Repositories/`. With `MagicCSharp.Generators`, the implementation is `partial`, takes
-`RepositoryServices<TContext>`, and declares neither `CreateDal` (the base builds rows through the DAL's generated
-`From`) nor `ApplyFilter` (generated from the filter's field names):
+`Data.EntityFramework/Repositories/`. With `MagicCSharp.Generators`, the implementation is `[GenerateFilterQuery]` and
+`partial`, takes `RepositoryServices<TContext>`, and declares neither `CreateDal` (the base builds rows through the
+DAL's generated `From`) nor `ApplyFilter` (generated from the filter's field names):
 
 ```csharp
+[GenerateFilterQuery]
 public partial class ShipmentsRepository(RepositoryServices<TestDbContext> repositoryServices)
     : BaseIdSoftDeleteRepository<TestDbContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices)
 {
@@ -145,8 +148,8 @@ public partial class ShipmentsRepository(RepositoryServices<TestDbContext> repos
 
 Filter field rules, by name and type against the entity: a plural list (`Ids`, `Statuses`) is "in the list"; a `V?`
 of the property's name is "equal"; `bool? Is{X}` is "`{X}` has a value"; `ComparableRange<V>` named `{X}` or
-`{X}Range` is "in the range". Make the filter `partial` and list `IEntityFilter<TEntity>`, and its `Matches` is
-generated too, for `InMemoryRepository` in tests. A field that fits no rule is custom: write it in the
+`{X}Range` is "in the range". Mark the filter `[GenerateMatches]`, make it `partial` and list `IEntityFilter<TEntity>`,
+and its `Matches` is generated too, for `InMemoryRepository` in tests. A field that fits no rule is custom: write it in the
 `private partial IQueryable<TDal> ApplyCustomFilter(...)` and `private partial bool MatchesCustomFilter(TEntity entity)`
 the compiler then asks for, and read every custom field in both (`MCS1301`, `MCS1304`). Prefer a field that fits a rule
 over a custom one.
@@ -181,5 +184,5 @@ One migration per change, named for what it does, generated at the end
 Do not add database-level defaults; the code owns defaults. Tests build their schema from the migrations.
 
 `dotnet ef` needs a design-time factory. `mcs create-app` writes one (`Magic{Service}ContextFactory`); with the
-generators, `[MigrationsDatabase("{database}")]` on the context writes it instead, and the hand-written one is deleted.
-Never keep both.
+generators, `[GenerateDesignTimeFactory]` with `[MigrationsDatabase("{database}")]` on the context writes it
+instead, and the hand-written one is deleted. `[MigrationsDatabase]` alone writes nothing. Never keep both.

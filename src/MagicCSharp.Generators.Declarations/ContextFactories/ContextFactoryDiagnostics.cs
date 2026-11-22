@@ -3,8 +3,8 @@ using Microsoft.CodeAnalysis;
 namespace MagicCSharp.Generators.Declarations.ContextFactories;
 
 /// <summary>
-///     The design-time context factory's diagnostics, <c>MCS1602</c>–<c>MCS1608</c>. Each names the context whose
-///     factory is not written and what stands in the way.
+///     The design-time context factory's diagnostics, <c>MCS1602</c>–<c>MCS1608</c> and <c>MCS1611</c>.
+///     Each names the context whose factory is not written and what stands in the way.
 /// </summary>
 public static class ContextFactoryDiagnostics
 {
@@ -40,6 +40,11 @@ public static class ContextFactoryDiagnostics
 
     public static readonly DiagnosticDescriptor AbstractContext = new DiagnosticDescriptor("MCS1608",
         "An abstract context gets no design-time factory",
-        "'{0}' is abstract, and dotnet ef cannot build it; put [MigrationsDatabase] on the context it derives into",
+        "'{0}' is abstract, and dotnet ef cannot build it; put [GenerateDesignTimeFactory] on the context it derives into",
+        GeneratorDiagnostics.Category, DiagnosticSeverity.Error, true);
+
+    public static readonly DiagnosticDescriptor MigrationsDatabaseMissing = new DiagnosticDescriptor("MCS1611",
+        "[GenerateDesignTimeFactory] needs [MigrationsDatabase]",
+        "'{0}' has [GenerateDesignTimeFactory] but no [MigrationsDatabase]; add [MigrationsDatabase(\"…\")] naming the database the factory connects to",
         GeneratorDiagnostics.Category, DiagnosticSeverity.Error, true);
 }

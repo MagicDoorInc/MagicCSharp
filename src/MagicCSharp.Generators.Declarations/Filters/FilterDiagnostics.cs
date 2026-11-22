@@ -47,4 +47,24 @@ public static class FilterDiagnostics
         "A generic filter gets no generated Matches",
         "'{0}' is generic; write Matches by hand",
         GeneratorDiagnostics.Category, DiagnosticSeverity.Error, true);
+
+    public static readonly DiagnosticDescriptor FilteredRepositoryNotPartial = new DiagnosticDescriptor("MCS1309",
+        "A [GenerateFilterQuery] repository must be partial",
+        "'{0}' has [GenerateFilterQuery] but is not partial; add 'partial' so the generated ApplyFilter can be attached to it",
+        GeneratorDiagnostics.Category, DiagnosticSeverity.Error, true);
+
+    public static readonly DiagnosticDescriptor NotAFilteredRepository = new DiagnosticDescriptor("MCS1310",
+        "[GenerateFilterQuery] is on a class that is not a filtered repository",
+        "'{0}' has [GenerateFilterQuery] but is not a concrete class inheriting an abstract ApplyFilter(IQueryable<TDal> query, TFilter filter) over a Dal implementing IDalTransform<TEntity, TEdit>; put the attribute on the repository, or remove it",
+        GeneratorDiagnostics.Category, DiagnosticSeverity.Error, true);
+
+    public static readonly DiagnosticDescriptor EntityFilterNotPartial = new DiagnosticDescriptor("MCS1311",
+        "A [GenerateMatches] filter must be partial",
+        "'{0}' has [GenerateMatches] but is not partial; add 'partial' so the generated Matches can be attached to it",
+        GeneratorDiagnostics.Category, DiagnosticSeverity.Error, true);
+
+    public static readonly DiagnosticDescriptor NotAnEntityFilter = new DiagnosticDescriptor("MCS1312",
+        "[GenerateMatches] is on a type that is not an entity filter class",
+        "'{0}' has [GenerateMatches] but is not a class implementing IEntityFilter<TEntity>; list the interface to name the entity Matches tests, or remove the attribute",
+        GeneratorDiagnostics.Category, DiagnosticSeverity.Error, true);
 }

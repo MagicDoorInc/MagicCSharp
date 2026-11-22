@@ -7,6 +7,49 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ---
 
+## 1.1.2 — 2026-11-21
+
+Every generator now runs only for a class that carries its own attribute. In 1.1.1 a class asked for the DAL mapping,
+the filter query and `Matches` by being `partial` (and listing an interface), and `[MigrationsDatabase]` alone wrote
+the design-time factory; see **Upgrading** below.
+
+### Changed
+
+- **`[GenerateDalMapping]`** (MagicCSharp.Data.EntityFramework, `MagicCSharp.Data.EntityFramework.Dals`) asks for a
+  DAL's `ToEntity`, `Apply` and `From`. A `partial` DAL without it gets nothing.
+- **`[GenerateFilterQuery]`** (MagicCSharp.Data.EntityFramework, `MagicCSharp.Data.EntityFramework.Repositories`) asks
+  for a repository's `ApplyFilter`. A `partial` repository without it gets nothing.
+- **`[GenerateMatches]`** (MagicCSharp, `MagicCSharp.Infrastructure`) asks for a filter's `Matches`; the filter still
+  lists `IEntityFilter<TEntity>`, which names the entity and is what `InMemoryRepository` calls. A `partial` filter
+  without the attribute gets nothing.
+- **`[GenerateDesignTimeFactory]`** (MagicCSharp.Data.EntityFramework, `MagicCSharp.Data.EntityFramework`) asks for a
+  context's design-time factory, which connects to the database the context's `[MigrationsDatabase]` names.
+  `[MigrationsDatabase]` alone writes no factory; it still names the database for the migration check.
+- A DAL, repository or filter with its attribute must be `partial`; a context need not be, because its factory is a
+  class of its own. The per-member rules are unchanged: a member the class
+  writes itself is left alone, and a context with its own `IDesignTimeDbContextFactory` gets no generated one.
+- `mcs validate` accepts a `required` column as set by a generated `From` only in a `[GenerateDalMapping]` DAL.
+
+### Added
+
+- Build errors for an attribute that cannot do what it asks: `MCS1207` (a `[GenerateDalMapping]` class is not
+  `partial`), `MCS1208` (it is not a concrete DAL implementing `IDalTransform<TEntity, TEdit>`), `MCS1309` (a
+  `[GenerateFilterQuery]` class is not `partial`), `MCS1310` (it is not a concrete repository inheriting an abstract
+  `ApplyFilter` over a DAL), `MCS1311` (a `[GenerateMatches]` class is not `partial`), `MCS1312` (it is not a class
+  implementing `IEntityFilter<TEntity>`) and `MCS1611` (a `[GenerateDesignTimeFactory]` context has no
+  `[MigrationsDatabase]`).
+
+### Upgrading
+
+- **From 1.1.0 or 1.1.1:** add the attribute to each class whose code was generated, or the build fails for the
+  methods it no longer gets:
+  - `[GenerateDalMapping]` on each `partial` DAL that leaves `ToEntity`, `Apply` or `From` to the generator;
+  - `[GenerateFilterQuery]` on each `partial` repository without its own `ApplyFilter`;
+  - `[GenerateMatches]` on each `partial` filter listing `IEntityFilter<TEntity>` without its own `Matches`;
+  - `[GenerateDesignTimeFactory]` on each `[MigrationsDatabase]` context without a hand-written factory.
+
+---
+
 ## 1.1.1 — 2026-11-21
 
 Use 1.1.1 instead of 1.1.0. It removes what 1.1.0 added for one product's needs and corrects what a 1.0.3 codebase

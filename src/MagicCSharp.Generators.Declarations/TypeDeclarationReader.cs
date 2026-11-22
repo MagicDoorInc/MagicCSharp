@@ -32,7 +32,8 @@ public static class TypeDeclarationReader
         };
     }
 
-    private static bool IsPartial(INamedTypeSymbol type, CancellationToken cancellationToken)
+    /// <summary>Whether every declaration of <paramref name="type" /> is <c>partial</c>, so generated code can join it.</summary>
+    public static bool IsPartial(INamedTypeSymbol type, CancellationToken cancellationToken)
     {
         var declarations = type.DeclaringSyntaxReferences.Select(syntaxReference => syntaxReference.GetSyntax(cancellationToken))
             .OfType<TypeDeclarationSyntax>()

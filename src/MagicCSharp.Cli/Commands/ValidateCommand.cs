@@ -244,10 +244,11 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
     ///         <c>From()</c>'s initializer assigns the property and <c>Apply()</c> does not.
     ///     </para>
     ///     <para>
-    ///         A <c>partial</c> DAL without a <c>From()</c> of its own gets one from MagicCSharp.Generators when it lists
-    ///         <c>IDalFromEdit</c> or writes neither <c>ToEntity()</c> nor <c>Apply()</c>; the generated one sets exactly
-    ///         the <c>required</c> columns (and the key) and leaves them out of the generated <c>Apply()</c>. There
-    ///         <c>required</c> is accepted unless a hand-written <c>Apply()</c> assigns it.
+    ///         A <c>partial</c> <c>[GenerateDalMapping]</c> DAL without a <c>From()</c> of its own gets one from
+    ///         MagicCSharp.Generators when it lists <c>IDalFromEdit</c> or writes neither <c>ToEntity()</c> nor
+    ///         <c>Apply()</c>; the generated one sets exactly the <c>required</c> columns (and the key) and leaves them out
+    ///         of the generated <c>Apply()</c>. There <c>required</c> is accepted unless a hand-written <c>Apply()</c>
+    ///         assigns it.
     ///     </para>
     /// </summary>
     internal static IEnumerable<Violation> DalPropertiesAreRequired(IReadOnlyList<SourceFile> files)
@@ -257,6 +258,7 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
         var typeDeclaration = new Regex(@"^\s*(?:public|internal|abstract|sealed|partial|\s)*\b(?<kind>interface|class|record|struct)\b");
 
         var partialClass = new Regex(@"\bpartial\s+class\b");
+        var generateDalMapping = new Regex(@"\bGenerateDalMapping\b");
         const string fromSignature = @"\bstatic\s+\w+\s+From\s*\(";
         const string toEntitySignature = @"\b\w+\s+ToEntity\s*\(\s*\)";
         const string applySignature = @"\bvoid\s+Apply\s*\(";
@@ -267,10 +269,11 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
             var isInInterface = false;
             var setInFrom = AssignedIn(sourceFile, fromSignature);
             var setInApply = AssignedIn(sourceFile, applySignature);
-            var isPartialDal = sourceFile.Lines.Any(line => partialClass.IsMatch(line) && !IsComment(line));
+            var isGeneratedMappingDal = sourceFile.Lines.Any(line => partialClass.IsMatch(line) && !IsComment(line)) &&
+                                        sourceFile.Lines.Any(line => generateDalMapping.IsMatch(line) && !IsComment(line));
             var hasOptedIntoFrom = sourceFile.Lines.Any(line => dalFromEdit.IsMatch(line) && !IsComment(line)) ||
                                    (!Declares(sourceFile, toEntitySignature) && !Declares(sourceFile, applySignature));
-            var isFromGenerated = isPartialDal && hasOptedIntoFrom && !Declares(sourceFile, fromSignature);
+            var isFromGenerated = isGeneratedMappingDal && hasOptedIntoFrom && !Declares(sourceFile, fromSignature);
 
             for (var index = 0; index < sourceFile.Lines.Length; index++)
             {

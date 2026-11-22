@@ -4,8 +4,9 @@ using Microsoft.CodeAnalysis;
 namespace MagicCSharp.Generators.Declarations.Filters;
 
 /// <summary>
-///     Reads a partial class or record that lists MagicCSharp's <c>IEntityFilter&lt;TEntity&gt;</c> and does not write
-///     <c>Matches(TEntity)</c> into an <see cref="EntityFilterDeclaration" />.
+///     Reads a <c>[GenerateMatches]</c> class or record into an <see cref="EntityFilterDeclaration" />. It must be
+///     partial and list MagicCSharp's <c>IEntityFilter&lt;TEntity&gt;</c>; anything else is refused. A filter that writes
+///     <c>Matches(TEntity)</c> itself, or whose base does, is left alone.
 /// </summary>
 public static class EntityFilterReader
 {
@@ -13,34 +14,29 @@ public static class EntityFilterReader
 
     public static EntityFilterReadResult Read(INamedTypeSymbol filterClass, CancellationToken cancellationToken)
     {
-        if (filterClass.TypeKind != TypeKind.Class || filterClass.IsStatic)
+        if (!TypeDeclarationReader.IsPartial(filterClass, cancellationToken))
         {
-            return EntityFilterReadResult.NotAFilter;
+            return Refused(FilterDiagnostics.EntityFilterNotPartial, filterClass);
         }
 
         var entityFilter = filterClass.AllInterfaces.FirstOrDefault(implemented =>
             DalReader.MetadataNameOf(implemented.OriginalDefinition) == FilterTypeNames.EntityFilter);
-        if (entityFilter == null || entityFilter.TypeArguments[0].TypeKind == TypeKind.Error)
+        if (entityFilter == null || filterClass.TypeKind != TypeKind.Class || filterClass.IsStatic)
         {
-            return EntityFilterReadResult.NotAFilter;
+            return Refused(FilterDiagnostics.NotAnEntityFilter, filterClass);
         }
 
         var entityType = entityFilter.TypeArguments[0];
-        if (HasWrittenMatches(filterClass, entityType))
+        if (entityType.TypeKind == TypeKind.Error || HasWrittenMatches(filterClass, entityType))
         {
-            return EntityFilterReadResult.NotAFilter;
+            return EntityFilterReadResult.NoMatchesToWrite;
         }
 
         var filter = TypeDeclarationReader.Read(filterClass, cancellationToken);
-        if (!filter.IsPartial)
-        {
-            return EntityFilterReadResult.NotAFilter;
-        }
-
         if (filter.IsNested || filter.TypeParameters.Count > 0)
         {
             var shapeDescriptor = filter.IsNested ? FilterDiagnostics.NestedEntityFilter : FilterDiagnostics.GenericEntityFilter;
-            return Refused(shapeDescriptor, filter);
+            return Refused(shapeDescriptor, filterClass);
         }
 
         return new EntityFilterReadResult
@@ -75,7 +71,7 @@ public static class EntityFilterReader
         return false;
     }
 
-    private static EntityFilterReadResult Refused(DiagnosticDescriptor descriptor, TypeDeclaration filter)
+    private static EntityFilterReadResult Refused(DiagnosticDescriptor descriptor, INamedTypeSymbol filterClass)
     {
         return new EntityFilterReadResult
         {
@@ -85,8 +81,8 @@ public static class EntityFilterReader
                 new DiagnosticInfo
                 {
                     Descriptor = descriptor,
-                    Location = filter.Location,
-                    MessageArguments = new EquatableArray<string>([filter.Name]),
+                    Location = SourceLocation.From(filterClass.Locations.FirstOrDefault()),
+                    MessageArguments = new EquatableArray<string>([filterClass.Name]),
                 },
             ]),
         };
