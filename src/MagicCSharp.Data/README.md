@@ -131,11 +131,14 @@ say so by having very few of them.
 
 With [MagicCSharp.Generators](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Generators/README.md)
 referenced, most of a filter needs no code: a field named and typed after an entity property already says what it
-narrows on. Make the repository `partial` and leave out `ApplyFilter`, and the compiler writes it, one helper call per
-field. Make the filter `partial` and list `IEntityFilter<TEntity>`, and it writes `Matches(entity)`, the same rules in
-memory, which `InMemoryRepository` in `MagicCSharp.Testing` uses — so a fake and the database cannot disagree.
+narrows on. Mark the repository `[GenerateFilterQuery]`, make it `partial` and leave out `ApplyFilter`, and the
+compiler writes it, one helper call per field. Mark the filter `[GenerateMatches]`, make it `partial` and list
+`IEntityFilter<TEntity>`, and it writes `Matches(entity)`, the same rules in memory, which `InMemoryRepository` in
+`MagicCSharp.Testing` uses — so a fake and the database cannot disagree. Without the attribute nothing is written,
+`partial` or not.
 
 ```csharp
+[GenerateMatches]
 public partial class ShipmentFilter : IEntityFilter<Shipment>
 {
     public List<long>? Ids { get; init; }                         // Id is in the list
@@ -152,6 +155,7 @@ public partial class ShipmentFilter : IEntityFilter<Shipment>
     }
 }
 
+[GenerateFilterQuery]
 public partial class ShipmentsRepository(RepositoryServices<TestDbContext> repositoryServices)
     : BaseIdSoftDeleteRepository<TestDbContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices)
 {
@@ -183,9 +187,9 @@ each must read every custom field (MCS1301, MCS1304), so the two sides cannot dr
 needs a DAL column of the entity property's name and type (MCS1302, MCS1303). No attribute or setting changes a rule.
 
 **When to write it by hand:** a query the rules cannot say goes in `ApplyCustomFilter`, not in a hand-written
-`ApplyFilter`; write all of `ApplyFilter` only when most fields are custom. A filter without `IEntityFilter` gets no
-`Matches`. To leave the generated shape, write `ApplyFilter` (or `Matches`) in the class — the generator stops when one
-exists — and drop `partial` if nothing else is generated for it.
+`ApplyFilter`; write all of `ApplyFilter` only when most fields are custom. To leave the generated shape, write
+`ApplyFilter` (or `Matches`) in the class — the generator stops when one exists — and remove `[GenerateFilterQuery]`
+(or `[GenerateMatches]`).
 
 ## Pages
 

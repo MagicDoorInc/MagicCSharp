@@ -1,6 +1,6 @@
 namespace MagicCSharp.Generators.Declarations.Dals;
 
-/// <summary>Writes the generated part of a partial Dal from its <see cref="DalMappingPlan" />.</summary>
+/// <summary>Writes the generated part of a <c>[GenerateDalMapping]</c> Dal from its <see cref="DalMappingPlan" />.</summary>
 public static class DalMappingWriter
 {
     private const string DalFromEditInterface = "global::MagicCSharp.Data.EntityFramework.Dals.IDalFromEdit";

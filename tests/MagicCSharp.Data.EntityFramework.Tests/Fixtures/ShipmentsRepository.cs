@@ -3,6 +3,7 @@ using MagicCSharp.Data.EntityFramework.Repositories;
 namespace MagicCSharp.Data.EntityFramework.Tests.Fixtures;
 
 /// <summary>A repository whose <c>ApplyFilter</c> is generated; only the custom field's query is its own.</summary>
+[GenerateFilterQuery]
 public partial class ShipmentsRepository(RepositoryServices<TestDbContext> repositoryServices)
     : BaseIdSoftDeleteRepository<TestDbContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices)
 {

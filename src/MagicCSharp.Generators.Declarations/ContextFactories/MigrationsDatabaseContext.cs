@@ -1,6 +1,6 @@
 namespace MagicCSharp.Generators.Declarations.ContextFactories;
 
-/// <summary>A context marked <c>[MigrationsDatabase]</c>, as much as its factory needs.</summary>
+/// <summary>A context marked <c>[GenerateDesignTimeFactory]</c>, as much as its factory needs.</summary>
 public sealed record MigrationsDatabaseContext
 {
     public required string Name { get; init; }
@@ -14,7 +14,10 @@ public sealed record MigrationsDatabaseContext
     /// <summary><c>public</c> or <c>internal</c>, as the context is.</summary>
     public required string Accessibility { get; init; }
 
-    /// <summary>The attribute's name argument; null when it is not a string.</summary>
+    /// <summary>Whether the context carries <c>[MigrationsDatabase]</c>, which names the database the factory connects to.</summary>
+    public required bool HasMigrationsDatabase { get; init; }
+
+    /// <summary><c>[MigrationsDatabase]</c>'s name argument; null when the attribute is missing or the name is not a string.</summary>
     public required string? DatabaseName { get; init; }
 
     /// <summary><c>global::</c>-qualified names of every base class and interface, for the base's constraint.</summary>

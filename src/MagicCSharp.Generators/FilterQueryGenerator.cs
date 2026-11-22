@@ -4,9 +4,10 @@ using Microsoft.CodeAnalysis;
 namespace MagicCSharp.Generators;
 
 /// <summary>
-///     Writes <c>ApplyFilter</c> for every partial repository that inherits it abstract and does not write it, one
-///     query helper call per filter field the name rules match (see <see cref="FilterRulePlanner" />). No attribute:
-///     making the repository partial and leaving <c>ApplyFilter</c> out is the opt-in.
+///     Writes <c>ApplyFilter</c> for every <c>[GenerateFilterQuery]</c> repository that inherits it abstract and does
+///     not write it, one query helper call per filter field the name rules match (see <see cref="FilterRulePlanner" />).
+///     The attribute is the opt-in: a partial repository without it gets nothing, and one with it that is not partial
+///     is refused (MCS1309).
 /// </summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class FilterQueryGenerator : IIncrementalGenerator

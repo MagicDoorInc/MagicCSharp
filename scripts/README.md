@@ -21,9 +21,9 @@ git push origin master v0.2.0                # the tag publishes
 Move the `CHANGELOG.md` entry under the new version before committing.
 
 `publish-all.sh` ends with the package smoke check: [package-smoke/](package-smoke/) is a small app built only from
-the packages it just packed, which uses every generator (`[GenerateInterface]`, `[LogExecuting]`, a partial DAL, a
-generated filter and `Matches`, `[MagicClient]`, `[GenerateFakeBase]`, `[MigrationsDatabase]`, the assembly loader)
-and fails naming the one that did not run. The solution's tests reference the generators as projects, so this is
+the packages it just packed, which uses every generator (`[GenerateInterface]`, `[LogExecuting]`, `[GenerateDalMapping]`,
+`[GenerateFilterQuery]`, `[GenerateMatches]`, `[MagicClient]`, `[GenerateFakeBase]`, `[GenerateDesignTimeFactory]`, the
+assembly loader) and fails naming the one that did not run. The solution's tests reference the generators as projects, so this is
 the only check of what the packages actually carry. The release workflow runs it again on what it is about to push.
 
 Pushing the tag runs [`.github/workflows/release.yml`](../.github/workflows/release.yml). It checks the tag

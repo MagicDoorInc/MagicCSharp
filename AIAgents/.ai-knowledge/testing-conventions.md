@@ -65,7 +65,7 @@ fakes instead — a domain library with no database, or a branch the database ad
 - **Repositories:** derive from `InMemoryRepository<TEntity, TEdit, TFilter>` (or `InMemorySoftDeleteRepository`) in
   `MagicCSharp.Testing` and implement the repository interface. It behaves like the EF base (newest first, a missing
   id throws not-found, bulk calls write nothing on a miss) and filters through the filter's generated `Matches`, so
-  the filter must be `partial` and list `IEntityFilter<TEntity>`. Override one member when the fake must differ;
+  the filter must be `[GenerateMatches]`, `partial` and list `IEntityFilter<TEntity>`. Override one member when the fake must differ;
   never copy the whole class.
 - **The use case:** build it with `TestServices` — `new TestServices(timeProvider).AddFake<IParcelsRepository>(parcelsRepository)`,
   `AddRegistrations(services => services.AddMagicUseCases(...))`, then `Get<IShelveParcelUseCase>()` — so a new

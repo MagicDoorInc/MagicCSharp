@@ -32,7 +32,26 @@ public static class TypeDeclarationReader
         };
     }
 
-    private static bool IsPartial(INamedTypeSymbol type, CancellationToken cancellationToken)
+    /// <summary>
+    ///     Whether a base class or an interface of <paramref name="type" />, or of a class it derives from, does not
+    ///     resolve. The compiler already reports that, so a generator reading the type stays quiet rather than report a
+    ///     shape problem it cannot judge.
+    /// </summary>
+    public static bool HasUnresolvedBaseOrInterface(INamedTypeSymbol type)
+    {
+        for (var declaringType = type; declaringType != null; declaringType = declaringType.BaseType)
+        {
+            if (declaringType.TypeKind == TypeKind.Error || declaringType.Interfaces.Any(implemented => implemented.TypeKind == TypeKind.Error))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether every declaration of <paramref name="type" /> is <c>partial</c>, so generated code can join it.</summary>
+    public static bool IsPartial(INamedTypeSymbol type, CancellationToken cancellationToken)
     {
         var declarations = type.DeclaringSyntaxReferences.Select(syntaxReference => syntaxReference.GetSyntax(cancellationToken))
             .OfType<TypeDeclarationSyntax>()

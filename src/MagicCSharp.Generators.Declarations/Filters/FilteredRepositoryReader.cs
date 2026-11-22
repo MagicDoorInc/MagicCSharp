@@ -4,10 +4,11 @@ using Microsoft.CodeAnalysis;
 namespace MagicCSharp.Generators.Declarations.Filters;
 
 /// <summary>
-///     Reads a class into a <see cref="FilteredRepositoryDeclaration" /> when it is partial, concrete, and inherits an
-///     abstract <c>ApplyFilter(IQueryable&lt;TDal&gt; query, TFilter filter)</c> that no class in its chain writes, over a
-///     Dal implementing MagicCSharp's <c>IDalTransform&lt;TEntity, TEdit&gt;</c>. Recognised by that shape, not by a
-///     base class, so a codebase's own repository bases qualify as MagicCSharp's do.
+///     Reads a <c>[GenerateFilterQuery]</c> class into a <see cref="FilteredRepositoryDeclaration" />. The class must be
+///     partial, concrete, and inherit an abstract <c>ApplyFilter(IQueryable&lt;TDal&gt; query, TFilter filter)</c> over a
+///     Dal implementing MagicCSharp's <c>IDalTransform&lt;TEntity, TEdit&gt;</c>; anything else is refused. Recognised by
+///     that shape, not by a base class, so a codebase's own repository bases qualify as MagicCSharp's do. A repository
+///     that writes <c>ApplyFilter</c> itself, or whose base does, is left alone.
 /// </summary>
 public static class FilteredRepositoryReader
 {
@@ -15,36 +16,52 @@ public static class FilteredRepositoryReader
 
     public static FilteredRepositoryReadResult Read(INamedTypeSymbol repositoryClass, CancellationToken cancellationToken)
     {
-        if (repositoryClass.TypeKind != TypeKind.Class || repositoryClass.IsAbstract || repositoryClass.IsStatic)
+        if (!TypeDeclarationReader.IsPartial(repositoryClass, cancellationToken))
         {
-            return FilteredRepositoryReadResult.NotARepository;
+            return Refused(FilterDiagnostics.FilteredRepositoryNotPartial, repositoryClass);
         }
 
-        var applyFilter = FindUnwrittenApplyFilter(repositoryClass);
+        if (repositoryClass.TypeKind != TypeKind.Class || repositoryClass.IsAbstract || repositoryClass.IsStatic)
+        {
+            return Refused(FilterDiagnostics.NotAFilteredRepository, repositoryClass);
+        }
+
+        var applyFilter = FindNearestApplyFilter(repositoryClass);
+        if (applyFilter == null && TypeDeclarationReader.HasUnresolvedBaseOrInterface(repositoryClass))
+        {
+            return FilteredRepositoryReadResult.NoApplyFilterToWrite;
+        }
+
         if (applyFilter == null)
         {
-            return FilteredRepositoryReadResult.NotARepository;
+            return Refused(FilterDiagnostics.NotAFilteredRepository, repositoryClass);
+        }
+
+        if (!applyFilter.IsAbstract)
+        {
+            return FilteredRepositoryReadResult.NoApplyFilterToWrite;
         }
 
         var dalType = ((INamedTypeSymbol)applyFilter.ReturnType).TypeArguments[0];
         var filterType = applyFilter.Parameters[1].Type;
         var dalTransform = dalType.AllInterfaces.FirstOrDefault(implemented =>
             DalReader.MetadataNameOf(implemented.OriginalDefinition) == DataTypeNames.DalTransform);
-        if (dalTransform == null || filterType.TypeKind == TypeKind.Error || dalTransform.TypeArguments[0].TypeKind == TypeKind.Error)
+        if (filterType.TypeKind == TypeKind.Error || dalType.TypeKind == TypeKind.Error ||
+            (dalTransform != null && dalTransform.TypeArguments[0].TypeKind == TypeKind.Error))
         {
-            return FilteredRepositoryReadResult.NotARepository;
+            return FilteredRepositoryReadResult.NoApplyFilterToWrite;
+        }
+
+        if (dalTransform == null)
+        {
+            return Refused(FilterDiagnostics.NotAFilteredRepository, repositoryClass);
         }
 
         var repository = TypeDeclarationReader.Read(repositoryClass, cancellationToken);
-        if (!repository.IsPartial)
-        {
-            return FilteredRepositoryReadResult.NotARepository;
-        }
-
         if (repository.IsNested || repository.TypeParameters.Count > 0)
         {
             var shapeDescriptor = repository.IsNested ? FilterDiagnostics.NestedFilteredRepository : FilterDiagnostics.GenericFilteredRepository;
-            return Refused(shapeDescriptor, repository);
+            return Refused(shapeDescriptor, repositoryClass);
         }
 
         var entityType = dalTransform.TypeArguments[0];
@@ -67,14 +84,14 @@ public static class FilteredRepositoryReader
     }
 
     // The nearest ApplyFilter up the chain decides: abstract there means no class below it wrote one.
-    private static IMethodSymbol? FindUnwrittenApplyFilter(INamedTypeSymbol repositoryClass)
+    private static IMethodSymbol? FindNearestApplyFilter(INamedTypeSymbol repositoryClass)
     {
         for (INamedTypeSymbol? declaringType = repositoryClass; declaringType != null; declaringType = declaringType.BaseType)
         {
             var applyFilter = declaringType.GetMembers(ApplyFilterName).OfType<IMethodSymbol>().FirstOrDefault(HasApplyFilterShape);
             if (applyFilter != null)
             {
-                return applyFilter.IsAbstract ? applyFilter : null;
+                return applyFilter;
             }
         }
 
@@ -113,7 +130,7 @@ public static class FilteredRepositoryReader
         }
     }
 
-    private static FilteredRepositoryReadResult Refused(DiagnosticDescriptor descriptor, TypeDeclaration repository)
+    private static FilteredRepositoryReadResult Refused(DiagnosticDescriptor descriptor, INamedTypeSymbol repositoryClass)
     {
         return new FilteredRepositoryReadResult
         {
@@ -123,8 +140,8 @@ public static class FilteredRepositoryReader
                 new DiagnosticInfo
                 {
                     Descriptor = descriptor,
-                    Location = repository.Location,
-                    MessageArguments = new EquatableArray<string>([repository.Name]),
+                    Location = SourceLocation.From(repositoryClass.Locations.FirstOrDefault()),
+                    MessageArguments = new EquatableArray<string>([repositoryClass.Name]),
                 },
             ]),
         };

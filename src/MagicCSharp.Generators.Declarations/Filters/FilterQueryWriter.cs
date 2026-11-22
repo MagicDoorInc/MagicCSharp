@@ -19,7 +19,8 @@ public static class FilterQueryWriter
             sourceWriter.WriteLine();
         }
 
-        sourceWriter.WriteLine("partial class " + repository.Repository.Name);
+        var typeKeyword = repository.Repository.Kind == TypeReferenceKind.Record ? "record" : "class";
+        sourceWriter.WriteLine("partial " + typeKeyword + " " + repository.Repository.Name);
         sourceWriter.OpenBlock();
         sourceWriter.WriteLine(repository.ApplyFilterAccessibility + " override " + queryType + " ApplyFilter(" + filterParameters + ")");
         sourceWriter.OpenBlock();

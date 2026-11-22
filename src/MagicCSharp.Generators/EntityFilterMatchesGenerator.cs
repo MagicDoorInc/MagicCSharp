@@ -4,9 +4,11 @@ using Microsoft.CodeAnalysis;
 namespace MagicCSharp.Generators;
 
 /// <summary>
-///     Writes <c>Matches</c> for every partial filter that lists <c>IEntityFilter&lt;TEntity&gt;</c> and does not write
-///     it, from the same name rules as the repository's generated query (see <see cref="FilterRulePlanner" />), so an
-///     in-memory test repository selects what the database selects.
+///     Writes <c>Matches</c> for every <c>[GenerateMatches]</c> filter that lists <c>IEntityFilter&lt;TEntity&gt;</c> and
+///     does not write it, from the same name rules as the repository's generated query (see
+///     <see cref="FilterRulePlanner" />), so an in-memory test repository selects what the database selects. The
+///     attribute is the opt-in: a partial filter without it gets nothing, and one with it that is not partial is
+///     refused (MCS1311).
 /// </summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class EntityFilterMatchesGenerator : IIncrementalGenerator

@@ -152,10 +152,11 @@ so singleton is equally correct; scoped simply matches the use cases that depend
 
 Most of the DAL above is copying: `ToEntity`, `Apply` and `From` assign each property to the one of the same name.
 With [MagicCSharp.Generators](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Generators/README.md)
-referenced, make the DAL `partial` and write only its columns:
+referenced, mark the DAL `[GenerateDalMapping]`, make it `partial` and write only its columns:
 
 ```csharp
 [Table("shipments")]
+[GenerateDalMapping]
 public partial class ShipmentDal : BaseIdDal<Shipment, ShipmentEdit>, IDalDeleted
 {
     [Column("tenant_id")]
@@ -188,18 +189,19 @@ included, inherited and `[NotMapped]` ones too:
   after the insert (MCS1202).
 - `static From(edit, id)` (or `From(edit, key)`) sets the id and exactly those set-once columns, then calls `Apply`
   (MCS1203 names a `required` column the edit has nothing for). A `required` column here is one `From` sets once —
-  a parent id or tenant that never changes — and `mcs validate` accepts it in a `partial` DAL whose `From` is
-  generated.
+  a parent id or tenant that never changes — and `mcs validate` accepts it in a `[GenerateDalMapping]` DAL whose
+  `From` is generated.
 
 `From` is written only for a DAL that asks for it: one that writes neither `ToEntity` nor `Apply` by hand, or one that
-lists `IDalFromEdit<TDal, TEdit>` itself. A `partial` DAL that maps by hand without `IDalFromEdit`, as a DAL written
-before 1.1 does, gets no `From` and no build error about one; the generator leaves it as it is.
+lists `IDalFromEdit<TDal, TEdit>` itself. A `[GenerateDalMapping]` DAL that maps by hand without `IDalFromEdit` gets no
+`From` and no build error about one. A DAL without the attribute, `partial` or not, gets nothing.
 
 An id DAL whose `From` is generated, or that writes its own public `From` and nothing else by hand, also gets
 `IDalFromEdit`, so the base's default `CreateDal` builds rows through `From` with an id from `IKeyGenService`. The
 repository then needs neither method:
 
 ```csharp
+[GenerateFilterQuery]
 public partial class ShipmentsRepository(RepositoryServices<TestDbContext> repositoryServices)
     : BaseIdSoftDeleteRepository<TestDbContext, ShipmentDal, Shipment, ShipmentFilter, ShipmentEdit>(repositoryServices)
 {
@@ -215,7 +217,7 @@ method that touches it written by hand; the generator still writes the other map
 lists `IDalFromEdit<TDal, TEdit>`. A `[NotMapped]` property of the
 entity's name and type can carry a conversion instead, and then nothing is hand-written. A key DAL's `CreateDal` stays
 yours, because keys are often natural. To leave the generated shape, write the three methods (copy them from the
-generated file) and drop `partial`.
+generated file) and remove `[GenerateDalMapping]`.
 
 ### Registration by convention
 
@@ -355,16 +357,17 @@ does not throw on a developer's machine that CI never sees.
 `dotnet ef` builds the context outside your DI container, so it needs a design-time factory —
 `MagicDbContextFactory<TContext>` in `MagicCSharp.Data.Postgres` is one line. With
 [MagicCSharp.Generators](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Generators/README.md)
-it is none: name the database on the context, and the compiler writes `MagicShopContextFactory` deriving from
-`MagicDbContextFactory<MagicShopContext>`:
+it is none: name the database on the context and mark it `[GenerateDesignTimeFactory]`, and the compiler writes `MagicShopContextFactory` deriving from `MagicDbContextFactory<MagicShopContext>`. `[MigrationsDatabase]`
+alone writes no factory:
 
 ```csharp
 [MigrationsDatabase("shop")]
+[GenerateDesignTimeFactory]
 public class MagicShopContext(DbContextOptions<MagicShopContext> options) : MagicDbContext(options)
 ```
 
-A context with its own `IDesignTimeDbContextFactory` in the project gets none, which is also how to leave the
-generated one: write the class. A codebase with its own factory base names it with the MSBuild property
+A context with its own `IDesignTimeDbContextFactory` in the project gets none even with the attribute. To leave the
+generated one, write the class and remove `[GenerateDesignTimeFactory]`. A codebase with its own factory base names it with the MSBuild property
 `MagicCSharpDesignTimeContextFactoryBase` (a generic class with one type parameter whose constructor takes the database
 name first). `MigrationsDatabaseAttribute.NameOf(typeof(MagicShopContext))` reads the name, which is how the migration
 check in [MagicCSharp.Testing.Database](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Testing.Database/README.md#migrations-upgrade-from-the-last-release)

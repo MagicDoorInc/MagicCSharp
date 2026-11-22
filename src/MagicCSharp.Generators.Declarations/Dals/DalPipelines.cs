@@ -7,40 +7,23 @@ namespace MagicCSharp.Generators.Declarations.Dals;
 public static class DalPipelines
 {
     /// <summary>
-    ///     One <see cref="DalReadResult" /> per class implementing <c>IDalTransform&lt;TEntity, TEdit&gt;</c>, partial or
-    ///     not: the declaration, or the diagnostics of a partial Dal whose shape gets no mapping.
+    ///     One <see cref="DalReadResult" /> per <c>[GenerateDalMapping]</c> class: the declaration, or the diagnostics
+    ///     of a class whose shape gets no mapping. A class without the attribute is never read, partial or not.
     /// </summary>
     public static IncrementalValuesProvider<DalReadResult> Dals(IncrementalGeneratorInitializationContext context)
     {
-        return context.SyntaxProvider.CreateSyntaxProvider(IsClassWithBaseList, ReadOncePerClass)
+        return context.SyntaxProvider.ForAttributeWithMetadataName(DataTypeNames.GenerateDalMappingAttribute, IsClassOrRecord, ReadDal)
             .Where(readResult => readResult.Declaration != null || readResult.Diagnostics.Count > 0);
     }
 
-    private static bool IsClassWithBaseList(SyntaxNode node, CancellationToken cancellationToken)
+    // A record is read too, so the attribute on one is written for or refused, never ignored.
+    private static bool IsClassOrRecord(SyntaxNode node, CancellationToken cancellationToken)
     {
-        var classDeclaration = node as ClassDeclarationSyntax;
-        return classDeclaration != null && classDeclaration.BaseList != null;
+        return node is ClassDeclarationSyntax || node is RecordDeclarationSyntax;
     }
 
-    // A partial class can list its bases on several parts; only the first such part reads it, so the class gets
-    // one generated file rather than one per part.
-    private static DalReadResult ReadOncePerClass(GeneratorSyntaxContext syntaxContext, CancellationToken cancellationToken)
+    private static DalReadResult ReadDal(GeneratorAttributeSyntaxContext attributeContext, CancellationToken cancellationToken)
     {
-        var classDeclaration = (ClassDeclarationSyntax)syntaxContext.Node;
-        var dalClass = syntaxContext.SemanticModel.GetDeclaredSymbol(classDeclaration, cancellationToken) as INamedTypeSymbol;
-        if (dalClass == null)
-        {
-            return DalReader.NotADal;
-        }
-
-        var firstPartWithBaseList = dalClass.DeclaringSyntaxReferences.Select(syntaxReference => syntaxReference.GetSyntax(cancellationToken))
-            .OfType<ClassDeclarationSyntax>()
-            .FirstOrDefault(declaration => declaration.BaseList != null);
-        if (firstPartWithBaseList != classDeclaration)
-        {
-            return DalReader.NotADal;
-        }
-
-        return DalReader.Read(dalClass, cancellationToken);
+        return DalReader.Read((INamedTypeSymbol)attributeContext.TargetSymbol, cancellationToken);
     }
 }

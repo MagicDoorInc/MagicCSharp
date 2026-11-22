@@ -54,6 +54,7 @@ public class DalMappingGeneratorTests
                                        }
 
                                        [Table("charges")]
+                                       [GenerateDalMapping]
                                        public partial class ChargeDal : BaseIdDal<Charge, ChargeEdit>
                                        {
                                            [Column("lease_id")]
@@ -147,6 +148,7 @@ public class DalMappingGeneratorTests
                                            public required long Id { get; init; }
                                        }
 
+                                       [GenerateDalMapping]
                                        public partial class ImportFileDal : BaseIdDal<ImportFile, ImportFileEdit>
                                        {
                                            public required long CompanyId { get; set; }
@@ -193,6 +195,7 @@ public class DalMappingGeneratorTests
                                            public required string DisplayName { get; init; }
                                        }
 
+                                       [GenerateDalMapping]
                                        public partial class TenantDal : BaseIdDal<Tenant, TenantEdit>
                                        {
                                            public string Name { get; set; } = "";
@@ -237,6 +240,7 @@ public class DalMappingGeneratorTests
                                            public required long Id { get; init; }
                                        }
 
+                                       [GenerateDalMapping]
                                        public partial class TicketDal : BaseIdDal<Ticket, TicketEdit>, IDalFromEdit<TicketDal, TicketEdit>
                                        {
                                            public TicketStatus StoredStatus { get; set; }
@@ -278,6 +282,7 @@ public class DalMappingGeneratorTests
                                            public string? ArchivedReason { get; init; }
                                        }
 
+                                       [GenerateDalMapping]
                                        public partial class NoteDal : BaseIdDal<Note, NoteEdit>
                                        {
                                            public string Text { get; set; } = "";
@@ -313,6 +318,7 @@ public class DalMappingGeneratorTests
                                            public required string AuthorName { get; init; }
                                        }
 
+                                       [GenerateDalMapping]
                                        public partial class NoteDal : BaseIdDal<Note, NoteEdit>
                                        {
                                            public string Text { get; set; } = "";
@@ -346,6 +352,7 @@ public class DalMappingGeneratorTests
                                            public required long Id { get; init; }
                                        }
 
+                                       [GenerateDalMapping]
                                        public partial class NoteDal : BaseIdDal<Note, NoteEdit>
                                        {
                                            public string Text { get; set; } = "";
@@ -383,6 +390,7 @@ public class DalMappingGeneratorTests
                                            public required long Id { get; init; }
                                        }
 
+                                       [GenerateDalMapping]
                                        public partial class NoteDal : BaseIdDal<Note, NoteEdit>
                                        {
                                            public required long PropertyId { get; set; }
@@ -401,11 +409,12 @@ public class DalMappingGeneratorTests
     }
 
     [Fact]
-    public void DalMapping_GeneratesNothing_ForAPartialDalThatMapsByHandWithoutFrom()
+    public void DalMapping_GeneratesNothing_ForAMarkedDalThatMapsByHandWithoutFrom()
     {
         // Arrange: a partial Dal as 1.0.3 allowed, mapping by hand, its repository writing CreateDal. PropertyId has no
         // edit property, so a generated From could not set it; the Dal asked for none, so nothing is reported.
         const string source = Usings + NoteTypes + """
+                                                   [GenerateDalMapping]
                                                    public partial class NoteDal : BaseIdDal<Note, NoteEdit>
                                                    {
                                                        public required long PropertyId { get; set; }
@@ -432,10 +441,11 @@ public class DalMappingGeneratorTests
     }
 
     [Fact]
-    public void DalMapping_GeneratesNothing_ForAPartialDalThatMapsByHandWithItsOwnFrom()
+    public void DalMapping_GeneratesNothing_ForAMarkedDalThatMapsByHandWithItsOwnFrom()
     {
         // Arrange: hand-written ToEntity, Apply and a public From; the Dal does not get IDalFromEdit added.
         const string source = Usings + NoteTypes + """
+                                                   [GenerateDalMapping]
                                                    public partial class NoteDal : BaseIdDal<Note, NoteEdit>
                                                    {
                                                        public string Text { get; set; } = "";
@@ -467,12 +477,13 @@ public class DalMappingGeneratorTests
     }
 
     [Fact]
-    public void DalMapping_ReportsNothing_ForANestedPartialDalThatMapsByHandWithoutFrom()
+    public void DalMapping_ReportsNothing_ForANestedMarkedDalThatMapsByHandWithoutFrom()
     {
         // Arrange: nested, which the generator cannot write into, but it has nothing to write.
         const string source = Usings + NoteTypes + """
                                                    public static class Storage
                                                    {
+                                                       [GenerateDalMapping]
                                                        public partial class NoteDal : BaseIdDal<Note, NoteEdit>
                                                        {
                                                            public string Text { get; set; } = "";
@@ -504,6 +515,7 @@ public class DalMappingGeneratorTests
         const string source = Usings + NoteTypes + """
                                                    public static class Storage
                                                    {
+                                                       [GenerateDalMapping]
                                                        public partial class NoteDal : BaseIdDal<Note, NoteEdit>
                                                        {
                                                            public string Text { get; set; } = "";
@@ -525,6 +537,7 @@ public class DalMappingGeneratorTests
     {
         // Arrange
         const string source = Usings + NoteTypes + """
+                                                   [GenerateDalMapping]
                                                    public partial class NoteDal<TMarker> : BaseIdDal<Note, NoteEdit>
                                                    {
                                                        public string Text { get; set; } = "";
@@ -562,6 +575,7 @@ public class DalMappingGeneratorTests
                                            public long Id { get; init; }
                                        }
 
+                                       [GenerateDalMapping]
                                        public partial class NoteDal : BaseIdDal<Note, NoteEdit>
                                        {
                                            public string Text { get; set; } = "";
@@ -578,44 +592,195 @@ public class DalMappingGeneratorTests
     }
 
     [Fact]
-    public void DalMapping_GeneratesNothing_ForANonPartialDal()
+    public void DalMapping_GeneratesNothing_ForAPartialDalWithoutTheAttribute()
     {
-        // Arrange: not partial, and its entity has a column the Dal lacks; that is no business of the generator.
-        const string source = Usings + """
-                                       namespace Acme.Leasing.Data;
+        // Arrange: partial with only its columns, but not marked; it does not compile for want of ToEntity and Apply.
+        const string source = Usings + NoteTypes + """
+                                                   public partial class NoteDal : BaseIdDal<Note, NoteEdit>
+                                                   {
+                                                       public string Text { get; set; } = "";
+                                                   }
+                                                   """;
 
-                                       public record NoteEdit
-                                       {
-                                           public required string Text { get; init; }
-                                       }
+        // Act
+        var generatedHintNames = GeneratedHintNames(source);
 
-                                       public record Note : NoteEdit
-                                       {
-                                           public required long Id { get; init; }
-                                           public string? Mood { get; init; }
-                                       }
+        // Assert
+        Assert.Empty(generatedHintNames);
+    }
 
-                                       public class NoteDal : BaseIdDal<Note, NoteEdit>
-                                       {
-                                           public string Text { get; set; } = "";
-
-                                           public override Note ToEntity()
-                                           {
-                                               return new Note { Id = Id, Text = Text };
-                                           }
-
-                                           public override void Apply(NoteEdit edit)
-                                           {
-                                               Text = edit.Text;
-                                           }
-                                       }
-                                       """;
+    [Fact]
+    public void DalMapping_WritesTheMapping_ForTheDalTheUnmarkedTestLeavesOut()
+    {
+        // Arrange: the same Dal as the unmarked case, with the attribute.
+        const string source = Usings + NoteTypes + """
+                                                   [GenerateDalMapping]
+                                                   public partial class NoteDal : BaseIdDal<Note, NoteEdit>
+                                                   {
+                                                       public string Text { get; set; } = "";
+                                                   }
+                                                   """;
 
         // Act
         var generatorRunResult = RunClean(source);
 
         // Assert
-        Assert.Empty(generatorRunResult.GeneratedFiles);
+        var generatedFile = Assert.Single(generatorRunResult.GeneratedFiles);
+        Assert.Equal("Acme.Leasing.Data.NoteDal.DalMapping.g.cs", generatedFile.Path);
+    }
+
+    [Fact]
+    public void DalMapping_ReportsMCS1207_ForAMarkedDalThatIsNotPartial()
+    {
+        // Arrange
+        const string source = Usings + NoteTypes + """
+                                                   [GenerateDalMapping]
+                                                   public class NoteDal : BaseIdDal<Note, NoteEdit>
+                                                   {
+                                                       public string Text { get; set; } = "";
+                                                   }
+                                                   """;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("MCS1207 Subject.cs:18 'NoteDal' has [GenerateDalMapping] but is not partial; add 'partial' so the generated ToEntity, Apply " +
+                     "and From can be attached to it", diagnostic);
+    }
+
+    [Fact]
+    public void DalMapping_ReportsMCS1208_ForAMarkedClassThatIsNotADal()
+    {
+        // Arrange: the attribute put on the entity's view model instead of its Dal.
+        const string source = Usings + NoteTypes + """
+                                                   [GenerateDalMapping]
+                                                   public partial class NoteView
+                                                   {
+                                                       public string Text { get; set; } = "";
+                                                   }
+                                                   """;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.StartsWith("MCS1208 ", diagnostic);
+        Assert.Contains("'NoteView' has [GenerateDalMapping] but is not a concrete class implementing IDalTransform<TEntity, TEdit>", diagnostic);
+    }
+
+    [Fact]
+    public void DalMapping_GeneratesNothing_ForAnotherNamespacesAttributeOfTheSameName()
+    {
+        // Arrange: a codebase's own GenerateDalMapping attribute is not MagicCSharp's.
+        const string source = Usings + """
+                                       namespace Acme.Tools
+                                       {
+                                           [AttributeUsage(AttributeTargets.Class)]
+                                           public sealed class GenerateDalMappingAttribute : Attribute
+                                           {
+                                           }
+                                       }
+
+                                       namespace Acme.Leasing.Data
+                                       {
+                                           public record NoteEdit
+                                           {
+                                               public required string Text { get; init; }
+                                           }
+
+                                           public record Note : NoteEdit
+                                           {
+                                               public required long Id { get; init; }
+                                           }
+
+                                           [Acme.Tools.GenerateDalMapping]
+                                           public partial class NoteDal : BaseIdDal<Note, NoteEdit>
+                                           {
+                                               public string Text { get; set; } = "";
+                                           }
+                                       }
+                                       """;
+
+        // Act
+        var generatedHintNames = GeneratedHintNames(source);
+
+        // Assert
+        Assert.Empty(generatedHintNames);
+    }
+
+    [Fact]
+    public void DalMapping_WritesTheMapping_WhenTheAttributeIsOnTheOtherPartOfATwoFileDal()
+    {
+        // Arrange: the base list on one part, the attribute and the columns on another file's part.
+        const string basePart = Usings + NoteTypes + """
+                                                     public partial class NoteDal : BaseIdDal<Note, NoteEdit>
+                                                     {
+                                                     }
+                                                     """;
+        const string columnsPart = Usings + """
+                                            namespace Acme.Leasing.Data;
+
+                                            [GenerateDalMapping]
+                                            public partial class NoteDal
+                                            {
+                                                public string Text { get; set; } = "";
+                                            }
+                                            """;
+        var generatorRunRequest = Request(basePart) with
+        {
+            SourceFiles = [GeneratorHarness.Subject(basePart), new TestSourceFile { Path = "NoteDalColumns.cs", Text = columnsPart }],
+        };
+
+        // Act
+        var generatorRunResult = GeneratorHarness.Run(generatorRunRequest);
+
+        // Assert
+        Assert.Empty(generatorRunResult.Diagnostics);
+        Assert.Contains("Text = edit.Text;", generatorRunResult.GeneratedText("Acme.Leasing.Data.NoteDal.DalMapping.g.cs"));
+    }
+
+    [Fact]
+    public void DalMapping_WritesTheMappingIntoARecord()
+    {
+        // Arrange: a record Dal implementing IDalTransform itself, since a record cannot derive from BaseIdDal.
+        const string source = Usings + NoteTypes + """
+                                                   [GenerateDalMapping]
+                                                   public partial record NoteDal : IDalTransform<Note, NoteEdit>
+                                                   {
+                                                       public long Id { get; set; }
+
+                                                       public string Text { get; set; } = "";
+                                                   }
+                                                   """;
+
+        // Act
+        var generatedText = RunClean(source).GeneratedText("Acme.Leasing.Data.NoteDal.DalMapping.g.cs");
+
+        // Assert
+        Assert.Contains("partial record NoteDal", generatedText);
+        Assert.Contains("public void Apply(global::Acme.Leasing.Data.NoteEdit edit)", generatedText);
+    }
+
+    [Fact]
+    public void DalMapping_ReportsNothing_WhenTheDalsBaseDoesNotResolve()
+    {
+        // Arrange: the compiler reports the missing base; the generator cannot tell whether this is a Dal.
+        const string source = Usings + NoteTypes + """
+                                                   [GenerateDalMapping]
+                                                   public partial class NoteDal : MissingDalBase
+                                                   {
+                                                       public string Text { get; set; } = "";
+                                                   }
+                                                   """;
+
+        // Act
+        var diagnostics = Diagnostics(source);
+
+        // Assert
+        Assert.Empty(diagnostics);
     }
 
     [Fact]
@@ -686,6 +851,7 @@ public class DalMappingGeneratorTests
                                                public required DateTimeOffset Created { get; init; }
                                            }
 
+                                           [GenerateDalMapping]
                                            public partial class ImportFileDal : BaseIdCreatorPlatformDal<ImportFile, ImportFileEdit>
                                            {
                                                public required long CompanyId { get; set; }
@@ -729,6 +895,7 @@ public class DalMappingGeneratorTests
                                            public required string Key { get; init; }
                                        }
 
+                                       [GenerateDalMapping]
                                        public partial class InviteDal : BaseKeyDal<Invite, InviteEdit>
                                        {
                                            public string Email { get; set; } = "";
@@ -749,6 +916,7 @@ public class DalMappingGeneratorTests
     {
         // Arrange
         const string source = Usings + NoteTypes + """
+                                                   [GenerateDalMapping]
                                                    public partial class NoteDal : BaseIdDal<Note, NoteEdit>
                                                    {
                                                        public string Text { get; set; } = "";
@@ -776,6 +944,7 @@ public class DalMappingGeneratorTests
     {
         // Arrange
         var generatorRunRequest = Request(Usings + NoteTypes + """
+                                                               [GenerateDalMapping]
                                                                public partial class NoteDal : BaseIdDal<Note, NoteEdit>
                                                                {
                                                                    public string Text { get; set; } = "";
@@ -836,6 +1005,16 @@ public class DalMappingGeneratorTests
         var generatorRunResult = GeneratorHarness.Run(Request(source));
         Assert.Empty(generatorRunResult.Diagnostics);
         return generatorRunResult;
+    }
+
+    // The files the generator writes, without asking the compilation to compile.
+    private static string[] GeneratedHintNames(string source)
+    {
+        var generatorRunRequest = Request(source);
+        var compilation = GeneratorHarness.CreateCompilation(generatorRunRequest.SourceFiles,
+            GeneratorHarness.DefaultReferences().AddRange(DataReferences));
+        var runResult = GeneratorHarness.CreateDriver(generatorRunRequest, false).RunGenerators(compilation).GetRunResult();
+        return runResult.Results.SelectMany(result => result.GeneratedSources).Select(generatedSource => generatedSource.HintName).Order().ToArray();
     }
 
     // The generator's diagnostics alone. A Dal it refuses is left without its mapping methods and does not compile,

@@ -23,8 +23,8 @@ public static class DalFromEdit<TDal, TEdit>
         if (FromEdit == null)
         {
             throw new InvalidOperationException(
-                $"{typeof(TDal).Name} has no From({typeof(TEdit).Name} edit, long id) to build a new row with. Make it partial so " +
-                $"MagicCSharp.Generators writes one (a DAL that writes ToEntity or Apply by hand also lists IDalFromEdit<{typeof(TDal).Name}, " +
+                $"{typeof(TDal).Name} has no From({typeof(TEdit).Name} edit, long id) to build a new row with. Mark it partial and " +
+                $"[GenerateDalMapping] so MagicCSharp.Generators writes one (a DAL that writes ToEntity or Apply by hand also lists IDalFromEdit<{typeof(TDal).Name}, " +
                 $"{typeof(TEdit).Name}>), implement that interface by hand, or override CreateDal in its repository.");
         }
 

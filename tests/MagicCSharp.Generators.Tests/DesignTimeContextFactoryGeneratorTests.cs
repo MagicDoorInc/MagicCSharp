@@ -30,11 +30,12 @@ public class DesignTimeContextFactoryGeneratorTests
     ];
 
     [Fact]
-    public void ContextFactory_IsGeneratedFromMigrationsDatabase()
+    public void ContextFactory_IsGenerated_ForAMarkedContext_AgainstItsMigrationsDatabase()
     {
         // Act
         var generatorRunResult = Run(Usings + """
                                               [MigrationsDatabase("leasing")]
+                                              [GenerateDesignTimeFactory]
                                               public class MagicLeasingContext(DbContextOptions<MagicLeasingContext> options) : MagicDbContext(options);
                                               """);
 
@@ -77,6 +78,7 @@ public class DesignTimeContextFactoryGeneratorTests
                                        }
 
                                        [MigrationsDatabase("leasing")]
+                                       [GenerateDesignTimeFactory]
                                        public class LeasingContext(DbContextOptions<LeasingContext> options) : DbContext(options);
                                        """;
 
@@ -95,6 +97,7 @@ public class DesignTimeContextFactoryGeneratorTests
         // Act
         var generatorRunResult = Run(Usings + """
                                               [MigrationsDatabase("leasing_vector")]
+                                              [GenerateDesignTimeFactory]
                                               public class LeasingVectorContext(DbContextOptions<LeasingVectorContext> options) : MagicDbContext(options);
 
                                               public class LeasingVectorContextFactory : IDesignTimeDbContextFactory<LeasingVectorContext>
@@ -112,16 +115,82 @@ public class DesignTimeContextFactoryGeneratorTests
     }
 
     [Fact]
+    public void ContextFactory_IsNotGenerated_ForAContextWithOnlyMigrationsDatabase()
+    {
+        // Act: names its database, but is not marked.
+        var generatorRunResult = Run(Usings + """
+                                              [MigrationsDatabase("leasing")]
+                                              public class MagicLeasingContext(DbContextOptions<MagicLeasingContext> options) : MagicDbContext(options);
+                                              """);
+
+        // Assert
+        Assert.Empty(generatorRunResult.Diagnostics);
+        Assert.Empty(generatorRunResult.GeneratedFiles);
+    }
+
+    [Fact]
+    public void ContextFactory_IsNotGenerated_ForAnotherAttributeOfTheSameName()
+    {
+        // Act: a codebase's own GenerateDesignTimeFactory attribute is not MagicCSharp's.
+        var generatorRunResult = Run(Usings + """
+                                              public static class Tools
+                                              {
+                                                  [AttributeUsage(AttributeTargets.Class)]
+                                                  public sealed class GenerateDesignTimeFactoryAttribute : Attribute
+                                                  {
+                                                  }
+                                              }
+
+                                              [MigrationsDatabase("leasing")]
+                                              [Tools.GenerateDesignTimeFactory]
+                                              public class MagicLeasingContext(DbContextOptions<MagicLeasingContext> options) : MagicDbContext(options);
+                                              """);
+
+        // Assert
+        Assert.Empty(generatorRunResult.Diagnostics);
+        Assert.Empty(generatorRunResult.GeneratedFiles);
+    }
+
+    [Fact]
+    public void ContextFactory_ReportsMCS1605_ForAMarkedRecord()
+    {
+        // Act: a record cannot derive from DbContext, so it cannot be the context the factory builds.
+        var diagnostic = SingleRefusal(Usings + """
+                                                [MigrationsDatabase("leasing")]
+                                                [GenerateDesignTimeFactory]
+                                                public record LeasingSettings(string Region);
+                                                """);
+
+        // Assert
+        Assert.StartsWith("MCS1605 Subject.cs:9 The design-time factory of 'LeasingSettings' is not generated", diagnostic);
+    }
+
+    [Fact]
+    public void ContextFactory_ReportsMCS1611_ForAMarkedContextWithoutMigrationsDatabase()
+    {
+        // Act
+        var diagnostic = SingleRefusal(Usings + """
+                                                [GenerateDesignTimeFactory]
+                                                public class MagicLeasingContext(DbContextOptions<MagicLeasingContext> options) : MagicDbContext(options);
+                                                """);
+
+        // Assert
+        Assert.Equal("MCS1611 Subject.cs:8 'MagicLeasingContext' has [GenerateDesignTimeFactory] but no [MigrationsDatabase]; add " +
+                     "[MigrationsDatabase(\"…\")] naming the database the factory connects to", diagnostic);
+    }
+
+    [Fact]
     public void ContextFactory_ReportsMCS1602_ForABlankDatabaseName()
     {
         // Act
         var diagnostic = SingleRefusal(Usings + """
                                                 [MigrationsDatabase("  ")]
+                                                [GenerateDesignTimeFactory]
                                                 public class MagicLeasingContext(DbContextOptions<MagicLeasingContext> options) : MagicDbContext(options);
                                                 """);
 
         // Assert
-        Assert.Equal("MCS1602 Subject.cs:8 'MagicLeasingContext' has [MigrationsDatabase] with a blank name; name the database its migrations target", diagnostic);
+        Assert.Equal("MCS1602 Subject.cs:9 'MagicLeasingContext' has [MigrationsDatabase] with a blank name; name the database its migrations target", diagnostic);
     }
 
     [Fact]
@@ -131,7 +200,7 @@ public class DesignTimeContextFactoryGeneratorTests
         var diagnostic = SingleRefusal(LeasingContextSource, "Acme.Shared.MissingContextFactory`1");
 
         // Assert
-        Assert.StartsWith("MCS1603 Subject.cs:8 The design-time factory of 'MagicLeasingContext' is not generated: base type 'Acme.Shared.MissingContextFactory`1' is not in the compilation",
+        Assert.StartsWith("MCS1603 Subject.cs:9 The design-time factory of 'MagicLeasingContext' is not generated: base type 'Acme.Shared.MissingContextFactory`1' is not in the compilation",
             diagnostic);
     }
 
@@ -156,7 +225,7 @@ public class DesignTimeContextFactoryGeneratorTests
         var diagnostic = SingleRefusal(source, "Acme.Leasing.Data.PortOnlyContextFactory`1");
 
         // Assert
-        Assert.StartsWith("MCS1604 Subject.cs:8 The design-time factory of 'MagicLeasingContext' is not generated: base type " +
+        Assert.StartsWith("MCS1604 Subject.cs:9 The design-time factory of 'MagicLeasingContext' is not generated: base type " +
                           "'Acme.Leasing.Data.PortOnlyContextFactory`1' has no constructor taking the database name first", diagnostic);
     }
 
@@ -166,11 +235,12 @@ public class DesignTimeContextFactoryGeneratorTests
         // Act: MagicCSharp's Postgres factory takes only a MagicDbContext.
         var diagnostic = SingleRefusal(Usings + """
                                                 [MigrationsDatabase("leasing")]
+                                                [GenerateDesignTimeFactory]
                                                 public class PlainLeasingContext(DbContextOptions<PlainLeasingContext> options) : DbContext(options);
                                                 """);
 
         // Assert
-        Assert.Equal("MCS1605 Subject.cs:8 The design-time factory of 'PlainLeasingContext' is not generated: " +
+        Assert.Equal("MCS1605 Subject.cs:9 The design-time factory of 'PlainLeasingContext' is not generated: " +
                      "'MagicCSharp.Data.Postgres.MagicDbContextFactory`1' requires its context to be a 'MagicCSharp.Data.EntityFramework.MagicDbContext'",
             diagnostic);
     }
@@ -183,12 +253,13 @@ public class DesignTimeContextFactoryGeneratorTests
                                                 public class Contexts
                                                 {
                                                     [MigrationsDatabase("leasing")]
+                                                    [GenerateDesignTimeFactory]
                                                     public class MagicLeasingContext(DbContextOptions<MagicLeasingContext> options) : MagicDbContext(options);
                                                 }
                                                 """);
 
         // Assert
-        Assert.StartsWith("MCS1606 Subject.cs:10 'global::Acme.Leasing.Data.Contexts.MagicLeasingContext' is nested in another type", diagnostic);
+        Assert.StartsWith("MCS1606 Subject.cs:11 'global::Acme.Leasing.Data.Contexts.MagicLeasingContext' is nested in another type", diagnostic);
     }
 
     [Fact]
@@ -197,11 +268,12 @@ public class DesignTimeContextFactoryGeneratorTests
         // Act
         var diagnostic = SingleRefusal(Usings + """
                                                 [MigrationsDatabase("leasing")]
+                                                [GenerateDesignTimeFactory]
                                                 public class MagicLeasingContext<TTenant>(DbContextOptions options) : MagicDbContext(options);
                                                 """);
 
         // Assert
-        Assert.Equal("MCS1607 Subject.cs:8 'MagicLeasingContext' is generic; write its IDesignTimeDbContextFactory by hand", diagnostic);
+        Assert.Equal("MCS1607 Subject.cs:9 'MagicLeasingContext' is generic; write its IDesignTimeDbContextFactory by hand", diagnostic);
     }
 
     [Fact]
@@ -210,15 +282,17 @@ public class DesignTimeContextFactoryGeneratorTests
         // Act
         var diagnostic = SingleRefusal(Usings + """
                                                 [MigrationsDatabase("leasing")]
+                                                [GenerateDesignTimeFactory]
                                                 public abstract class MagicLeasingContext(DbContextOptions options) : MagicDbContext(options);
                                                 """);
 
         // Assert
-        Assert.StartsWith("MCS1608 Subject.cs:8 'MagicLeasingContext' is abstract", diagnostic);
+        Assert.StartsWith("MCS1608 Subject.cs:9 'MagicLeasingContext' is abstract", diagnostic);
     }
 
     private const string LeasingContextSource = Usings + """
                                                          [MigrationsDatabase("leasing")]
+                                                         [GenerateDesignTimeFactory]
                                                          public class MagicLeasingContext(DbContextOptions<MagicLeasingContext> options) : MagicDbContext(options);
                                                          """;
 

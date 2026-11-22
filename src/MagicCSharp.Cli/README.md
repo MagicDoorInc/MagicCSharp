@@ -62,7 +62,7 @@ for every project, and its `.editorconfig` tells those rules that EF migrations 
 Every project also references
 [MagicCSharp.Generators](https://github.com/MagicDoorInc/MagicCSharp/blob/master/src/MagicCSharp.Generators/README.md),
 with or without `--no-build-rules`: it is not a rule set, and it writes nothing until a class asks for it
-(`[GenerateInterface]` on a use case, a `partial` DAL, a `[MagicClient]` interface). The files `add-entity` writes
+(`[GenerateInterface]` on a use case, `[GenerateDalMapping]` on a DAL, a `[MagicClient]` interface). The files `add-entity` writes
 are the hand-written shape; the generators' guide says how to let the compiler write their mapping and filter.
 
 It also writes the conventions down for AI coding agents — and for a person new to the code: an `AGENTS.md`,

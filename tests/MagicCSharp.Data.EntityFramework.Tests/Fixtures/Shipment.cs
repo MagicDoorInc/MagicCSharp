@@ -31,9 +31,10 @@ public enum ShipmentStatus
 }
 
 /// <summary>
-///     Every rule the generators know, over every column kind, plus one custom field. <c>partial</c> and
-///     <c>IEntityFilter</c> are what make the generator write <c>Matches</c>.
+///     Every rule the generators know, over every column kind, plus one custom field. <c>[GenerateMatches]</c> is what
+///     makes the generator write <c>Matches</c>; <c>IEntityFilter</c> names the entity it tests.
 /// </summary>
+[GenerateMatches]
 public partial class ShipmentFilter : IEntityFilter<Shipment>
 {
     public List<long>? Ids { get; init; }
@@ -55,6 +56,7 @@ public partial class ShipmentFilter : IEntityFilter<Shipment>
 }
 
 [Table("shipments")]
+[GenerateDalMapping]
 public partial class ShipmentDal : BaseIdDal<Shipment, ShipmentEdit>, IDalDeleted
 {
     [Column("tenant_id")]

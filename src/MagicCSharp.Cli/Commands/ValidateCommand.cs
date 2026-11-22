@@ -15,6 +15,20 @@ public record Violation
     public required string Why { get; init; }
 }
 
+/// <summary>One type declared in a source file: its keyword, whether it is <c>partial</c>, and its lines.</summary>
+internal sealed record TypeSpan
+{
+    public required string Kind { get; init; }
+
+    public required bool IsPartial { get; init; }
+
+    /// <summary>The declaration line's index.</summary>
+    public required int Start { get; init; }
+
+    /// <summary>The index after the type's last line: the next declaration, or the end of the file.</summary>
+    public required int End { get; init; }
+}
+
 public record SourceFile
 {
     public required string Path { get; init; }
@@ -39,6 +53,10 @@ public record SourceFile
 /// </summary>
 public class ValidateCommand : Command<ValidateCommand.Settings>
 {
+    private static readonly Regex PartialModifier = new Regex(@"\bpartial\b");
+
+    private static readonly Regex GenerateDalMappingAttribute = new Regex(@"[\[,]\s*(?:[\w.]+\.)?GenerateDalMapping(?:Attribute)?\s*[\],(]");
+
     public class Settings : CommandSettings
     {
         [CommandOption("--path <PATH>")]
@@ -244,10 +262,11 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
     ///         <c>From()</c>'s initializer assigns the property and <c>Apply()</c> does not.
     ///     </para>
     ///     <para>
-    ///         A <c>partial</c> DAL without a <c>From()</c> of its own gets one from MagicCSharp.Generators when it lists
-    ///         <c>IDalFromEdit</c> or writes neither <c>ToEntity()</c> nor <c>Apply()</c>; the generated one sets exactly
-    ///         the <c>required</c> columns (and the key) and leaves them out of the generated <c>Apply()</c>. There
-    ///         <c>required</c> is accepted unless a hand-written <c>Apply()</c> assigns it.
+    ///         A <c>partial</c> <c>[GenerateDalMapping]</c> DAL without a <c>From()</c> of its own gets one from
+    ///         MagicCSharp.Generators when it lists <c>IDalFromEdit</c> or writes neither <c>ToEntity()</c> nor
+    ///         <c>Apply()</c>; the generated one sets exactly the <c>required</c> columns (and the key) and leaves them out
+    ///         of the generated <c>Apply()</c>. There <c>required</c> is accepted unless a hand-written <c>Apply()</c>
+    ///         assigns it.
     ///     </para>
     /// </summary>
     internal static IEnumerable<Violation> DalPropertiesAreRequired(IReadOnlyList<SourceFile> files)
@@ -256,7 +275,6 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
 
         var typeDeclaration = new Regex(@"^\s*(?:public|internal|abstract|sealed|partial|\s)*\b(?<kind>interface|class|record|struct)\b");
 
-        var partialClass = new Regex(@"\bpartial\s+class\b");
         const string fromSignature = @"\bstatic\s+\w+\s+From\s*\(";
         const string toEntitySignature = @"\b\w+\s+ToEntity\s*\(\s*\)";
         const string applySignature = @"\bvoid\s+Apply\s*\(";
@@ -264,83 +282,144 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
 
         foreach (var sourceFile in files.Where(sourceFile => sourceFile.Name.EndsWith("Dal.cs")))
         {
-            var isInInterface = false;
-            var setInFrom = AssignedIn(sourceFile, fromSignature);
-            var setInApply = AssignedIn(sourceFile, applySignature);
-            var isPartialDal = sourceFile.Lines.Any(line => partialClass.IsMatch(line) && !IsComment(line));
-            var hasOptedIntoFrom = sourceFile.Lines.Any(line => dalFromEdit.IsMatch(line) && !IsComment(line)) ||
-                                   (!Declares(sourceFile, toEntitySignature) && !Declares(sourceFile, applySignature));
-            var isFromGenerated = isPartialDal && hasOptedIntoFrom && !Declares(sourceFile, fromSignature);
-
-            for (var index = 0; index < sourceFile.Lines.Length; index++)
+            foreach (var typeSpan in TypeSpans(sourceFile, typeDeclaration))
             {
-                var line = sourceFile.Lines[index];
-
-                var declaration = typeDeclaration.Match(line);
-                if (declaration.Success && !IsComment(line))
-                {
-                    // An interface declares the shape; it carries no columns and cannot be annotated.
-                    isInInterface = declaration.Groups["kind"].Value == "interface";
-                }
-
-                var match = property.Match(line);
-
-                if (!match.Success || IsComment(line) || isInInterface)
+                // An interface declares the shape; it carries no columns and cannot be annotated.
+                if (typeSpan.Kind == "interface")
                 {
                     continue;
                 }
 
-                if (match.Groups["required"].Success)
-                {
-                    var name = match.Groups["name"].Value;
-                    var isSetOnceInFrom = (isFromGenerated || setInFrom.Contains(name)) && !setInApply.Contains(name);
+                var typeLines = sourceFile.Lines[typeSpan.Start..typeSpan.End];
+                var setInFrom = AssignedIn(typeLines, fromSignature);
+                var setInApply = AssignedIn(typeLines, applySignature);
+                var isGeneratedMappingDal = typeSpan.IsPartial && HasGenerateDalMappingAbove(sourceFile, typeSpan.Start);
+                var hasOptedIntoFrom = typeLines.Any(line => dalFromEdit.IsMatch(line) && !IsComment(line)) ||
+                                       (!Declares(typeLines, toEntitySignature) && !Declares(typeLines, applySignature));
+                var isFromGenerated = isGeneratedMappingDal && hasOptedIntoFrom && !Declares(typeLines, fromSignature);
 
-                    if (isSetOnceInFrom || HasAttributeAbove(sourceFile, index, "Key"))
+                for (var index = typeSpan.Start; index < typeSpan.End; index++)
+                {
+                    var line = sourceFile.Lines[index];
+                    var match = property.Match(line);
+                    if (!match.Success || IsComment(line))
+                    {
+                        continue;
+                    }
+
+                    if (match.Groups["required"].Success)
+                    {
+                        var name = match.Groups["name"].Value;
+                        var isSetOnceInFrom = (isFromGenerated || setInFrom.Contains(name)) && !setInApply.Contains(name);
+
+                        if (isSetOnceInFrom || HasAttributeAbove(sourceFile, index, "Key"))
+                        {
+                            continue;
+                        }
+
+                        yield return new Violation
+                        {
+                            Rule = "DAL property is 'required' but not set once in From()",
+                            File = sourceFile.RelativePath,
+                            Line = index + 1,
+                            Message = setInApply.Contains(name)
+                                ? $"{name} is 'required' and Apply() assigns it"
+                                : $"{name} is 'required' and From() does not assign it",
+                            Why = "'required' is for a column From()'s initializer sets once and Apply() leaves alone. For any other column use [Required].",
+                        };
+                        continue;
+                    }
+
+                    // Nullable and initialized properties already say what happens when nothing assigns them.
+                    if (line.Contains('?') || line.Contains('=') || match.Groups["type"].Value.Contains('<'))
+                    {
+                        continue;
+                    }
+
+                    if (HasAttributeAbove(sourceFile, index, "Required") || HasAttributeAbove(sourceFile, index, "Key"))
                     {
                         continue;
                     }
 
                     yield return new Violation
                     {
-                        Rule = "DAL property is 'required' but not set once in From()",
+                        Rule = "DAL column is non-nullable but not marked [Required]",
                         File = sourceFile.RelativePath,
                         Line = index + 1,
-                        Message = setInApply.Contains(name)
-                            ? $"{name} is 'required' and Apply() assigns it"
-                            : $"{name} is 'required' and From() does not assign it",
-                        Why = "'required' is for a column From()'s initializer sets once and Apply() leaves alone. For any other column use [Required].",
+                        Message = $"{match.Groups["name"].Value} is {match.Groups["type"].Value}",
+                        Why = "Add [Required] so EF generates NOT NULL, or make the property nullable to match the column.",
                     };
-                    continue;
                 }
-
-                // Nullable and initialized properties already say what happens when nothing assigns them.
-                if (line.Contains('?') || line.Contains('=') || match.Groups["type"].Value.Contains('<'))
-                {
-                    continue;
-                }
-
-                if (HasAttributeAbove(sourceFile, index, "Required") || HasAttributeAbove(sourceFile, index, "Key"))
-                {
-                    continue;
-                }
-
-                yield return new Violation
-                {
-                    Rule = "DAL column is non-nullable but not marked [Required]",
-                    File = sourceFile.RelativePath,
-                    Line = index + 1,
-                    Message = $"{match.Groups["name"].Value} is {match.Groups["type"].Value}",
-                    Why = "Add [Required] so EF generates NOT NULL, or make the property nullable to match the column.",
-                };
             }
         }
     }
 
+    /// <summary>
+    ///     Each type declared in the file, from its declaration line to the next one, so a rule reads one type's members
+    ///     and attributes rather than the whole file's.
+    /// </summary>
+    private static List<TypeSpan> TypeSpans(SourceFile sourceFile, Regex typeDeclaration)
+    {
+        var typeSpans = new List<TypeSpan>();
+        for (var index = 0; index < sourceFile.Lines.Length; index++)
+        {
+            var line = sourceFile.Lines[index];
+            var declaration = typeDeclaration.Match(line);
+            if (!declaration.Success || IsComment(line))
+            {
+                continue;
+            }
+
+            if (typeSpans.Count > 0)
+            {
+                typeSpans[^1] = typeSpans[^1] with { End = index };
+            }
+
+            typeSpans.Add(new TypeSpan
+            {
+                Kind = declaration.Groups["kind"].Value,
+                IsPartial = PartialModifier.IsMatch(declaration.Value),
+                Start = index,
+                End = sourceFile.Lines.Length,
+            });
+        }
+
+        return typeSpans;
+    }
+
+    /// <summary>
+    ///     Whether the attribute block directly above a type declaration asks MagicCSharp.Generators for the mapping:
+    ///     <c>[GenerateDalMapping]</c> or <c>[GenerateDalMappingAttribute]</c>, alone or beside other attributes.
+    /// </summary>
+    private static bool HasGenerateDalMappingAbove(SourceFile sourceFile, int declarationIndex)
+    {
+        for (var index = declarationIndex - 1; index >= 0; index--)
+        {
+            var line = sourceFile.Lines[index].Trim();
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
+            if (!line.StartsWith('['))
+            {
+                return false;
+            }
+
+            if (GenerateDalMappingAttribute.IsMatch(line))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Whether a line outside a comment declares a method whose signature matches.</summary>
-    private static bool Declares(SourceFile sourceFile, string methodSignature)
+    private static bool Declares(string[] lines, string methodSignature)
     {
         var signature = new Regex(methodSignature);
-        return sourceFile.Lines.Any(line => signature.IsMatch(line) && !IsComment(line));
+        return lines.Any(line => signature.IsMatch(line) && !IsComment(line));
     }
 
     /// <summary>
@@ -349,13 +428,13 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
     ///     for <c>Apply()</c> its statements — a line-based read, which is all a DAL written from the template
     ///     needs.
     /// </summary>
-    private static HashSet<string> AssignedIn(SourceFile sourceFile, string methodSignature)
+    private static HashSet<string> AssignedIn(string[] lines, string methodSignature)
     {
         var assigned = new HashSet<string>(StringComparer.Ordinal);
         var signature = new Regex(methodSignature);
         var assignment = new Regex(@"^\s*(?:dal\.)?(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*=(?!=)");
 
-        var start = Array.FindIndex(sourceFile.Lines, line => signature.IsMatch(line) && !IsComment(line));
+        var start = Array.FindIndex(lines, line => signature.IsMatch(line) && !IsComment(line));
         if (start < 0)
         {
             return assigned;
@@ -364,9 +443,9 @@ public class ValidateCommand : Command<ValidateCommand.Settings>
         var depth = 0;
         var hasEnteredBody = false;
 
-        for (var index = start; index < sourceFile.Lines.Length; index++)
+        for (var index = start; index < lines.Length; index++)
         {
-            var line = sourceFile.Lines[index];
+            var line = lines[index];
 
             if (hasEnteredBody && !IsComment(line))
             {

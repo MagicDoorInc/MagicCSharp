@@ -3,7 +3,7 @@ using MagicCSharp.Generators.Declarations.Dals;
 namespace MagicCSharp.Generators.Declarations.Filters;
 
 /// <summary>
-///     A partial repository whose base declares <c>ApplyFilter(IQueryable&lt;TDal&gt;, TFilter)</c> abstract and that
+///     A <c>[GenerateFilterQuery]</c> repository whose base declares <c>ApplyFilter(IQueryable&lt;TDal&gt;, TFilter)</c> abstract and that
 ///     does not write it: the types the query is written over, the filter's fields, and its custom filter method.
 /// </summary>
 public sealed record FilteredRepositoryDeclaration

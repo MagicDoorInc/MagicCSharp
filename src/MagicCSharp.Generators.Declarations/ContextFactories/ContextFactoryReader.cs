@@ -2,22 +2,33 @@ using Microsoft.CodeAnalysis;
 
 namespace MagicCSharp.Generators.Declarations.ContextFactories;
 
-/// <summary>Reads <c>[MigrationsDatabase]</c> contexts, hand-written factories and the factory base.</summary>
+/// <summary>Reads <c>[GenerateDesignTimeFactory]</c> contexts, hand-written factories and the factory base.</summary>
 public static class ContextFactoryReader
 {
+    public const string GenerateDesignTimeFactoryAttributeMetadataName = "MagicCSharp.Data.EntityFramework.GenerateDesignTimeFactoryAttribute";
+
     public const string MigrationsDatabaseAttributeMetadataName = "MagicCSharp.Data.EntityFramework.MigrationsDatabaseAttribute";
 
     public const string DesignTimeFactoryMetadataName = "Microsoft.EntityFrameworkCore.Design.IDesignTimeDbContextFactory`1";
 
-    public static MigrationsDatabaseContext ReadContext(INamedTypeSymbol context, AttributeData migrationsDatabase)
+    /// <summary>
+    ///     Reads a <c>[GenerateDesignTimeFactory]</c> context, with the database name from its <c>[MigrationsDatabase]</c>:
+    ///     the one place the name is written, which the migration check reads too.
+    /// </summary>
+    public static MigrationsDatabaseContext ReadContext(INamedTypeSymbol context)
     {
-        var databaseName = migrationsDatabase.ConstructorArguments.Length == 1 ? migrationsDatabase.ConstructorArguments[0].Value as string : null;
+        var migrationsDatabase = context.GetAttributes()
+            .FirstOrDefault(attribute => attribute.AttributeClass != null && MetadataNameOf(attribute.AttributeClass) == MigrationsDatabaseAttributeMetadataName);
+        var databaseName = migrationsDatabase != null && migrationsDatabase.ConstructorArguments.Length == 1
+            ? migrationsDatabase.ConstructorArguments[0].Value as string
+            : null;
         return new MigrationsDatabaseContext
         {
             Name = context.Name,
             Namespace = context.ContainingNamespace.IsGlobalNamespace ? "" : context.ContainingNamespace.ToDisplayString(),
             FullyQualifiedName = context.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             Accessibility = context.DeclaredAccessibility == Accessibility.Public ? "public" : "internal",
+            HasMigrationsDatabase = migrationsDatabase != null,
             DatabaseName = databaseName,
             BaseTypesAndInterfaces = new EquatableArray<string>(BaseTypesAndInterfaces(context)),
             IsNested = context.ContainingType != null,
