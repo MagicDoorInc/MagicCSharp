@@ -5,7 +5,7 @@ and how to leave the generated shape. Each topic guide shows its own generated s
 all of them.
 
 `MagicCSharp.Generators` writes code on every build from declarations already in the class: a use case's interface
-from its `Execute` methods, a DAL's mapping from its columns, a repository's filter query and a filter's `Matches`
+from its public methods, a DAL's mapping from its columns, a repository's filter query and a filter's `Matches`
 from the field names, an HTTP client from an interface's routes, a fake from an interface, an `Executing:` log line,
 a host's assembly loader, a context's design-time factory.
 
@@ -46,7 +46,7 @@ that member; the generator still writes the rest of the class:
   `ToEntity` or `Apply` lists `IDalFromEdit<TDal, TEdit>` to keep its generated `From`;
 - a filter field that is not a plain comparison, in `ApplyCustomFilter` and `MatchesCustomFilter`;
 - a client method with logic (skipping the call for an empty list, streaming), without a route attribute;
-- an interface that must hold something other than the class's `Execute` methods;
+- an interface that must hold something other than the class's public methods;
 - an `Executing:` line for a class `[LogExecuting]` refuses.
 
 Every generator leaves a member alone when the class declares it, so declaring one is how you take it over.

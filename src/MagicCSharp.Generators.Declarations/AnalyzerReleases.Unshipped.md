@@ -17,4 +17,5 @@ MCS1611 | MagicCSharp.Generators | Error | ContextFactoryDiagnostics
 
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
+MCS1006 | MagicCSharp.Generators | Error | GeneratorDiagnostics
 MCS1601 | MagicCSharp.Generators | Error | TenantDeletionDiagnostics

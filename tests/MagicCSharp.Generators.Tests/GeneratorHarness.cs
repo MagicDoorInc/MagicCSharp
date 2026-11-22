@@ -141,15 +141,27 @@ public static class GeneratorHarness
         Assert.Empty(errors);
     }
 
+    // A method's type parameter and the notnull and unmanaged constraints are names that global:: cannot qualify.
     private static bool NamesATypeOrNamespace(SimpleNameSyntax simpleName, SemanticModel semanticModel)
     {
-        if (simpleName.IsVar)
+        if (simpleName.IsVar || IsConstraintKeyword(simpleName))
         {
             return false;
         }
 
         var symbol = semanticModel.GetSymbolInfo(simpleName).Symbol;
+        if (symbol is ITypeParameterSymbol)
+        {
+            return false;
+        }
+
         return symbol == null || symbol is ITypeSymbol || symbol is INamespaceSymbol;
+    }
+
+    private static bool IsConstraintKeyword(SimpleNameSyntax simpleName)
+    {
+        var identifier = simpleName.Identifier.Text;
+        return simpleName.Parent is TypeConstraintSyntax && (identifier == "notnull" || identifier == "unmanaged");
     }
 
     private static bool IsInNamespaceName(SyntaxNode node)

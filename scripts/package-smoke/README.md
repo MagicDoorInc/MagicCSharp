@@ -18,7 +18,7 @@ packed version never lands in the machine's shared cache. To run it by hand agai
 
 ```bash
 NUGET_PACKAGES="$(mktemp -d)" dotnet run --project scripts/package-smoke/PackageSmoke \
-  -p:MagicCSharpVersion=1.1.3 -p:RestoreAdditionalProjectSources="$PWD/nupkgs"
+  -p:MagicCSharpVersion=1.1.4 -p:RestoreAdditionalProjectSources="$PWD/nupkgs"
 ```
 
 It is not part of `MagicCSharp.slnx`: the solution builds the packages from source, this checks what ships.

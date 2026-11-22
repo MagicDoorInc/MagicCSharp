@@ -7,6 +7,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ---
 
+## 1.1.4 — 2026-11-22
+
+### Changed
+
+- **`[GenerateInterface]` writes every public method onto the interface, not only `Execute`.** A use case with a
+  method besides `Execute` (a read such as `GetByLease`) had to write its interface by hand to expose it. The
+  interface now holds every public instance method the class declares in any of its parts, with its doc comment,
+  defaults, ref kinds, `[NotLogged]` marks, type parameters and constraints. Left off: static methods, overrides,
+  members the compiler writes (a record's `Equals` and `Deconstruct`), explicit interface implementations, and a
+  method that implements another interface the class lists (`IDisposable.Dispose`), which belongs to that
+  interface. The class still needs a public `Execute` (`MCS1002`).
+- **A generic method is written with its type parameters and constraints, so `MCS1006` is gone.** A generic
+  `Execute` was refused because the interface was written without them.
+- **`[LogExecuting]` writes the `Executing:` line before `Execute` only.** The decorator implements the whole use
+  case interface; any other method on it is passed straight through, with its type parameters and `ref`, `out` and
+  `in` arguments. A hand-written interface's other methods logged the line too before, though only `Execute` runs
+  the use case. The secret-parameter (`MCS1101`) and by-reference (`MCS1108`) refusals apply to `Execute` methods
+  only, since no other method writes a line; the read-only name refusal (`MCS1102`) is unchanged.
+
+### Upgrading
+
+- A `[GenerateInterface]` class with a public method it did not mean callers to see: make it `private` or `internal`,
+  or it lands on the interface at the next build.
+- A generator built on `MagicCSharp.Generators.Declarations`: `UseCaseDeclaration.Methods` holds the interface's
+  members; `ExecuteMethods` is now those named `Execute` among them. `MethodDeclaration` has
+  `TypeParameterConstraintClauses`.
+
 ## 1.1.3 — 2026-11-22
 
 ### Fixed

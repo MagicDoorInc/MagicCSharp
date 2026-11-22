@@ -98,6 +98,132 @@ public class ExecutingLogGeneratorTests
     }
 
     [Fact]
+    public void LogExecuting_ForwardsACustomMethodWithoutALine_OfAnInterfaceGeneratedInTheSameCompilation()
+    {
+        // Act
+        var generatorRunResult = RunExecutingLog("""
+                                                 public record Charge
+                                                 {
+                                                     public required long Id { get; init; }
+                                                 }
+
+                                                 [GenerateInterface]
+                                                 [LogExecuting]
+                                                 public partial class PayChargeUseCase
+                                                 {
+                                                     public Task Execute(long chargeId)
+                                                     {
+                                                         return Task.CompletedTask;
+                                                     }
+
+                                                     public Task<Charge[]> GetUnpaidByLease(long leaseId, bool isIncludingLate = true)
+                                                     {
+                                                         return Task.FromResult<Charge[]>([]);
+                                                     }
+                                                 }
+                                                 """);
+
+        // Assert
+        Assert.Empty(generatorRunResult.Diagnostics);
+        Assert.Contains("""
+                            public global::System.Threading.Tasks.Task Execute(long chargeId)
+                            {
+                                global::Microsoft.Extensions.Logging.LoggerExtensions.LogTrace(this.logger, "Executing: chargeId={chargeId}", new object?[] { chargeId });
+                                return this.payChargeUseCase.Execute(chargeId);
+                            }
+
+                            public global::System.Threading.Tasks.Task<global::Acme.Leasing.Charges.Charge[]> GetUnpaidByLease(long leaseId, bool isIncludingLate = true)
+                            {
+                                return this.payChargeUseCase.GetUnpaidByLease(leaseId, isIncludingLate);
+                            }
+                        }
+                        """, generatorRunResult.GeneratedText(PayChargeHintName));
+    }
+
+    [Fact]
+    public void LogExecuting_ForwardsGenericAndByReferenceMethods_ThatItDoesNotLog()
+    {
+        // Act
+        var generatorRunResult = RunExecutingLog("""
+                                                 [GenerateInterface]
+                                                 [LogExecuting]
+                                                 public partial class PayChargeUseCase
+                                                 {
+                                                     public Task Execute(long chargeId)
+                                                     {
+                                                         return Task.CompletedTask;
+                                                     }
+
+                                                     public bool TryReadAmount(long chargeId, out decimal amount)
+                                                     {
+                                                         amount = chargeId;
+                                                         return true;
+                                                     }
+
+                                                     public TNote? ReadNote<TNote>(long chargeId)
+                                                         where TNote : class, new()
+                                                     {
+                                                         return null;
+                                                     }
+                                                 }
+                                                 """);
+
+        // Assert
+        Assert.Empty(generatorRunResult.Diagnostics);
+        Assert.Contains("""
+                            public bool TryReadAmount(long chargeId, out decimal amount)
+                            {
+                                return this.payChargeUseCase.TryReadAmount(chargeId, out amount);
+                            }
+
+                            public TNote? ReadNote<TNote>(long chargeId)
+                                where TNote : class, new()
+                            {
+                                return this.payChargeUseCase.ReadNote<TNote>(chargeId);
+                            }
+                        """, generatorRunResult.GeneratedText(PayChargeHintName));
+    }
+
+    [Fact]
+    public void LogExecuting_WritesTheLineOnlyOnExecute_OfAHandWrittenInterfaceWithOtherMethods()
+    {
+        // Act
+        var generatorRunResult = RunExecutingLog("""
+                                                 public interface IPayChargeUseCase : IMagicUseCase
+                                                 {
+                                                     Task Execute(long chargeId);
+
+                                                     Task<long> FindByToken(string paymentToken);
+                                                 }
+
+                                                 [LogExecuting]
+                                                 public class PayChargeUseCase : IPayChargeUseCase
+                                                 {
+                                                     public Task Execute(long chargeId)
+                                                     {
+                                                         return Task.CompletedTask;
+                                                     }
+
+                                                     public Task<long> FindByToken(string paymentToken)
+                                                     {
+                                                         return Task.FromResult(0L);
+                                                     }
+                                                 }
+                                                 """);
+
+        // Assert
+        Assert.Empty(generatorRunResult.Diagnostics);
+        var decoratorText = generatorRunResult.GeneratedText(PayChargeHintName);
+        Assert.Single(decoratorText.Split("LogTrace(").Skip(1));
+        Assert.Contains("""
+                            public global::System.Threading.Tasks.Task<long> FindByToken(string paymentToken)
+                            {
+                                return this.payChargeUseCase.FindByToken(paymentToken);
+                            }
+                        """, decoratorText);
+    }
+
+    [Fact]
     public void LogExecuting_DecoratesTheUseCaseInterface_WhenItExtendsAnotherUseCaseInterface()
     {
         // Act

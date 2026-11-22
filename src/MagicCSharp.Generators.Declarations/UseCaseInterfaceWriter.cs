@@ -6,22 +6,32 @@ namespace MagicCSharp.Generators.Declarations;
 /// <summary>Writes a use case's interface from its <see cref="UseCaseDeclaration" />.</summary>
 public static class UseCaseInterfaceWriter
 {
+    private const string ConstraintClauseIndentation = "    ";
+
     /// <summary>The interface alone, for a generator that writes the class itself.</summary>
     public static void WriteInterface(SourceWriter sourceWriter, UseCaseDeclaration declaration)
     {
         sourceWriter.WriteLine(AccessibilityKeyword(declaration.Class.Accessibility) + " partial interface " + declaration.InterfaceName + " : " +
                                declaration.MarkerInterface.FullyQualifiedName);
         sourceWriter.OpenBlock();
-        for (var index = 0; index < declaration.ExecuteMethods.Count; index++)
+        for (var index = 0; index < declaration.Methods.Count; index++)
         {
             if (index > 0)
             {
                 sourceWriter.WriteLine();
             }
 
-            var executeMethod = declaration.ExecuteMethods[index];
-            sourceWriter.WriteDocumentation(executeMethod.Documentation);
-            sourceWriter.WriteLine(executeMethod.ReturnType.FullyQualifiedName + " " + executeMethod.Name + "(" + InterfaceParameterList(executeMethod) + ");");
+            var method = declaration.Methods[index];
+            sourceWriter.WriteDocumentation(method.Documentation);
+            var signature = method.ReturnType.FullyQualifiedName + " " + method.Name + TypeParameterList(method) + "(" + InterfaceParameterList(method) + ")";
+            if (method.TypeParameterConstraintClauses.Count == 0)
+            {
+                sourceWriter.WriteLine(signature + ";");
+                continue;
+            }
+
+            sourceWriter.WriteLine(signature);
+            WriteConstraintClauses(sourceWriter, method, ";");
         }
 
         sourceWriter.CloseBlock();
@@ -50,6 +60,22 @@ public static class UseCaseInterfaceWriter
             HintName = HintNames.For(declaration.Class, "Interface"),
             Text = sourceWriter.ToString(),
         };
+    }
+
+    /// <summary><c>&lt;TKey, TResult&gt;</c> for a generic method; empty for any other.</summary>
+    internal static string TypeParameterList(MethodDeclaration method)
+    {
+        return method.TypeParameters.Count == 0 ? "" : "<" + string.Join(", ", method.TypeParameters.Select(EscapedName)) + ">";
+    }
+
+    /// <summary>Each <c>where</c> clause on a line of its own, one level in; the last ends with <paramref name="lastLineEnd" />.</summary>
+    internal static void WriteConstraintClauses(SourceWriter sourceWriter, MethodDeclaration method, string lastLineEnd)
+    {
+        for (var index = 0; index < method.TypeParameterConstraintClauses.Count; index++)
+        {
+            var lineEnd = index == method.TypeParameterConstraintClauses.Count - 1 ? lastLineEnd : "";
+            sourceWriter.WriteLine(ConstraintClauseIndentation + method.TypeParameterConstraintClauses[index] + lineEnd);
+        }
     }
 
     internal static string ParameterList(MethodDeclaration method)
@@ -83,7 +109,8 @@ public static class UseCaseInterfaceWriter
         return parameterText;
     }
 
-    private static string RefKindPrefix(RefKind refKind)
+    /// <summary><c>ref </c>, <c>out </c> or <c>in </c>, as a parameter or an argument passed to it is written; empty for a value.</summary>
+    internal static string RefKindPrefix(RefKind refKind)
     {
         switch (refKind)
         {

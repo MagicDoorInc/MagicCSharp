@@ -74,7 +74,7 @@ public class GenerateInterfaceGeneratorTests
     }
 
     [Fact]
-    public void GenerateInterface_ListsEveryPublicExecuteOverloadInOrder_AndNoOtherMethod()
+    public void GenerateInterface_ListsEveryPublicInstanceMethodInOrder_AndNoStaticOrInternalOne()
     {
         // Arrange
         const string source = """
@@ -137,6 +137,7 @@ public class GenerateInterfaceGeneratorTests
             "Execute(long)",
             "Execute(Acme.Leasing.Charges.ChargeFilter)",
             "Execute(int, Acme.Leasing.Charges.ChargeFilter)",
+            "Describe()",
         ], InterfaceMethods(generatorRunResult, "Acme.Leasing.Charges.IGetChargesUseCase"));
     }
 
@@ -330,6 +331,211 @@ public class GenerateInterfaceGeneratorTests
     }
 
     [Fact]
+    public void GenerateInterface_CopiesACustomPublicMethod_WithItsDocComment()
+    {
+        // Arrange
+        const string source = """
+                              using System.Collections.Generic;
+                              using System.Threading.Tasks;
+                              using MagicCSharp.UseCases;
+
+                              namespace Acme.Leasing.Charges;
+
+                              public record Charge
+                              {
+                                  public required long Id { get; init; }
+                              }
+
+                              [GenerateInterface]
+                              public partial class GetChargesUseCase
+                              {
+                                  /// <summary>One charge, or null when there is none.</summary>
+                                  public Task<Charge?> Execute(long chargeId)
+                                  {
+                                      return Task.FromResult<Charge?>(null);
+                                  }
+
+                                  /// <summary>Every charge of the lease, oldest first.</summary>
+                                  /// <param name="leaseId">The lease whose charges are read.</param>
+                                  public Task<IReadOnlyList<Charge>> GetByLease(long leaseId, bool isIncludingPaid = false)
+                                  {
+                                      return Task.FromResult<IReadOnlyList<Charge>>([]);
+                                  }
+                              }
+                              """;
+
+        // Act
+        var generatorRunResult = GeneratorHarness.RunClean(source);
+
+        // Assert
+        Assert.Contains("""
+                        public partial interface IGetChargesUseCase : global::MagicCSharp.UseCases.IMagicUseCase
+                        {
+                            /// <summary>One charge, or null when there is none.</summary>
+                            global::System.Threading.Tasks.Task<global::Acme.Leasing.Charges.Charge?> Execute(long chargeId);
+
+                            /// <summary>Every charge of the lease, oldest first.</summary>
+                            /// <param name="leaseId">The lease whose charges are read.</param>
+                            global::System.Threading.Tasks.Task<global::System.Collections.Generic.IReadOnlyList<global::Acme.Leasing.Charges.Charge>> GetByLease(long leaseId, bool isIncludingPaid = false);
+                        }
+                        """, generatorRunResult.GeneratedText("Acme.Leasing.Charges.GetChargesUseCase.Interface.g.cs"));
+    }
+
+    [Fact]
+    public void GenerateInterface_LeavesOutMembersThatBelongToAnotherContract()
+    {
+        // Arrange
+        const string source = """
+                              using System;
+                              using System.Threading.Tasks;
+                              using MagicCSharp.UseCases;
+
+                              namespace Acme.Leasing.Charges;
+
+                              public interface IChargeSource
+                              {
+                                  Task<long> NextChargeId();
+
+                                  Task Reset();
+                              }
+
+                              [GenerateInterface]
+                              public partial class PayChargeUseCase : IDisposable, IAsyncDisposable, IChargeSource
+                              {
+                                  public PayChargeUseCase()
+                                  {
+                                  }
+
+                                  public event EventHandler? Paid;
+
+                                  public long LastChargeId { get; private set; }
+
+                                  public Task Execute(long chargeId)
+                                  {
+                                      LastChargeId = chargeId;
+                                      Paid?.Invoke(this, EventArgs.Empty);
+                                      return Task.CompletedTask;
+                                  }
+
+                                  public Task<long> NextChargeId()
+                                  {
+                                      return Task.FromResult(LastChargeId + 1);
+                                  }
+
+                                  Task IChargeSource.Reset()
+                                  {
+                                      return Task.CompletedTask;
+                                  }
+
+                                  public void Dispose()
+                                  {
+                                  }
+
+                                  public ValueTask DisposeAsync()
+                                  {
+                                      return ValueTask.CompletedTask;
+                                  }
+
+                                  public override string ToString()
+                                  {
+                                      return "PayCharge";
+                                  }
+
+                                  public static PayChargeUseCase Create()
+                                  {
+                                      return new PayChargeUseCase();
+                                  }
+
+                                  public static bool operator ==(PayChargeUseCase? left, PayChargeUseCase? right)
+                                  {
+                                      return ReferenceEquals(left, right);
+                                  }
+
+                                  public static bool operator !=(PayChargeUseCase? left, PayChargeUseCase? right)
+                                  {
+                                      return !ReferenceEquals(left, right);
+                                  }
+
+                                  public override bool Equals(object? other)
+                                  {
+                                      return ReferenceEquals(this, other);
+                                  }
+
+                                  public override int GetHashCode()
+                                  {
+                                      return 0;
+                                  }
+                              }
+                              """;
+
+        // Act
+        var generatorRunResult = GeneratorHarness.RunClean(source);
+
+        // Assert
+        Assert.Equal(["Execute(long)"], InterfaceMethods(generatorRunResult, "Acme.Leasing.Charges.IPayChargeUseCase"));
+    }
+
+    [Fact]
+    public void GenerateInterface_WritesAGenericMethod_WithItsTypeParametersAndConstraints()
+    {
+        // Arrange
+        const string source = """
+                              using System;
+                              using System.Collections.Generic;
+                              using System.Threading.Tasks;
+                              using MagicCSharp.UseCases;
+
+                              namespace Acme.Leasing.Charges;
+
+                              [GenerateInterface]
+                              public partial class ConvertChargeUseCase
+                              {
+                                  public Task<TValue> Execute<TValue>(TValue value)
+                                  {
+                                      return Task.FromResult(value);
+                                  }
+
+                                  public TResult? Read<TKey, TResult>(TKey key, IReadOnlyDictionary<TKey, TResult> values)
+                                      where TKey : notnull, IComparable<TKey>
+                                      where TResult : class, new()
+                                  {
+                                      return values.TryGetValue(key, out var value) ? value : null;
+                                  }
+
+                                  public TAmount Round<TAmount>(TAmount amount)
+                                      where TAmount : unmanaged
+                                  {
+                                      return amount;
+                                  }
+
+                                  public TNote? Note<TNote>()
+                                      where TNote : class?
+                                  {
+                                      return null;
+                                  }
+                              }
+                              """;
+
+        // Act
+        var generatorRunResult = GeneratorHarness.RunClean(source);
+
+        // Assert
+        Assert.Contains("""
+                            global::System.Threading.Tasks.Task<TValue> Execute<TValue>(TValue value);
+
+                            TResult? Read<TKey, TResult>(TKey key, global::System.Collections.Generic.IReadOnlyDictionary<TKey, TResult> values)
+                                where TKey : notnull, global::System.IComparable<TKey>
+                                where TResult : class, new();
+
+                            TAmount Round<TAmount>(TAmount amount)
+                                where TAmount : unmanaged;
+
+                            TNote? Note<TNote>()
+                                where TNote : class?;
+                        """, generatorRunResult.GeneratedText("Acme.Leasing.Charges.ConvertChargeUseCase.Interface.g.cs"));
+    }
+
+    [Fact]
     public void GenerateInterface_GeneratesNothing_WhenTheClassAlreadyImplementsItsInterface()
     {
         // Arrange
@@ -399,7 +605,7 @@ public class GenerateInterfaceGeneratorTests
                               namespace Acme.Leasing.Charges;
 
                               [GenerateInterface]
-                              public partial record PayChargeUseCase
+                              public partial record PayChargeUseCase(long CompanyId)
                               {
                                   public Task Execute(long chargeId)
                                   {
@@ -416,6 +622,7 @@ public class GenerateInterfaceGeneratorTests
             generatorRunResult.GeneratedText("Acme.Leasing.Charges.PayChargeUseCase.Interface.g.cs"));
         var useCaseRecord = generatorRunResult.OutputCompilation.GetTypeByMetadataName("Acme.Leasing.Charges.PayChargeUseCase")!;
         Assert.Contains(useCaseRecord.AllInterfaces, implemented => implemented.ToDisplayString() == "Acme.Leasing.Charges.IPayChargeUseCase");
+        Assert.Equal(["Execute(long)"], InterfaceMethods(generatorRunResult, "Acme.Leasing.Charges.IPayChargeUseCase"));
     }
 
     [Fact]
@@ -637,25 +844,6 @@ public class GenerateInterfaceGeneratorTests
 
         // Assert
         Assert.Equal(["MCS1005 Subject.cs:7 'PayChargeUseCase' is static, and a static class cannot implement an interface"], diagnostics);
-    }
-
-    [Fact]
-    public void GenerateInterface_ReportsMCS1006_WhenExecuteIsGeneric()
-    {
-        // Act
-        var diagnostics = Refusals("""
-                                   [GenerateInterface]
-                                   public partial class ConvertUseCase
-                                   {
-                                       public Task<TValue> Execute<TValue>(TValue value)
-                                       {
-                                           return Task.FromResult(value);
-                                       }
-                                   }
-                                   """);
-
-        // Assert
-        Assert.Equal(["MCS1006 Subject.cs:9 'ConvertUseCase.Execute' is generic; write the interface of 'ConvertUseCase' by hand"], diagnostics);
     }
 
     [Fact]
